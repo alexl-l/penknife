@@ -45,3 +45,19 @@ enum EventPoster {
         }
     }
 }
+
+extension EventPoster {
+    /// Media keys (NX_KEYTYPE_*), as the keyboard sends them; they reach the app playing now.
+    enum MediaKey: Int { case play = 16, next = 17, previous = 18 }
+
+    static func media(_ key: MediaKey) {
+        for down in [true, false] {
+            let flags = down ? 0xA00 : 0xB00
+            NSEvent.otherEvent(with: .systemDefined, location: .zero,
+                               modifierFlags: NSEvent.ModifierFlags(rawValue: UInt(flags)),
+                               timestamp: 0, windowNumber: 0, context: nil, subtype: 8,
+                               data1: key.rawValue << 16 | flags, data2: -1)?
+                .cgEvent?.post(tap: .cghidEventTap)
+        }
+    }
+}

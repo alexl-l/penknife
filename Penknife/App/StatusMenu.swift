@@ -49,10 +49,32 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
+        // Touch Bar readings, also reachable from the menu (R-19).
+        var readings: [NSMenuItem] = []
+        if manager.isEnabled(.weather), let report = (manager.module(.weather) as? WeatherModule)?.report {
+            readings.append(reading(String(localized: "Weather: \(report.summary), \(TemperatureText.short(celsius: report.celsius))"),
+                                    symbol: report.symbol))
+        }
+        if manager.isEnabled(.cpuTemperature), let celsius = (manager.module(.cpuTemperature) as? CPUTemperatureModule)?.read() {
+            readings.append(reading(String(localized: "CPU temperature: \(TemperatureText.short(celsius: Double(celsius)))"),
+                                    symbol: "thermometer.medium"))
+        }
+        if !readings.isEmpty {
+            readings.forEach(menu.addItem)
+            menu.addItem(.separator())
+        }
+
         let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
         menu.addItem(NSMenuItem(title: String(localized: "Quit Penknife"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    /// An informative line: enabled so VoiceOver reads it normally, does nothing when chosen.
+    private func reading(_ title: String, symbol: String) -> NSMenuItem {
+        let entry = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        return entry
     }
 
     // Global hotkeys would be buffered while the menu tracks; pause them meanwhile.

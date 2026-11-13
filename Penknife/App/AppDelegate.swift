@@ -29,12 +29,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let jiggler = JigglerModule()
         let microphone = MicrophoneModule()
         let dialogs = DialogsModule()
-        let touchBar = TouchBarModule(jiggler: jiggler, microphone: microphone, dialogs: dialogs)
+        let music = MusicModule()
+        let cpu = CPUTemperatureModule()
+        let weather = WeatherModule()
+        let touchBar = TouchBarModule(jiggler: jiggler, microphone: microphone, dialogs: dialogs,
+                                      music: music, cpu: cpu, weather: weather)
         manager = ModuleManager(modules: [
             jiggler,
             microphone,
             LockScreenModule(jiggler: jiggler),
             ScreenshotModule(),
+            music,
+            BlockAppleMusicModule(),
+            cpu,
+            weather,
             touchBar,
             dialogs,
         ])

@@ -40,3 +40,5 @@
 - **Weather** (2026-11-13): CoreLocation with `kCLLocationAccuracyReduced` (needs the `personal-information.location` entitlement under hardened runtime), coordinates rounded to 0.1° (~11 km) before leaving the Mac; ephemeral URLSession; every 30 min, retry in 2 min on failure, timer and request cancelled on sleep, refresh 10 s after wake.
 
 - **Footprint with the Touch Bar** (2026-11-13): ~20 MB with everything on, ~12 MB with the Touch Bar off (the Touch Bar's views and DFR cost ~7 MB; weather ~1 MB). Idle CPU ~0.1 %. Weather also pauses while the screens sleep.
+- **Player = bundle id** (2026-11-13): `music.player` stores the chosen app's bundle id (or `mediaKeys`); old values `spotify`/`appleMusic` are migrated on read. Known players (Spotify, Apple Music, iTunes, YouTube Music desktop `com.github.th-ch.youtube-music`, Amazon Music `com.amazon.music`) are listed only when installed; "Choose another app…" (NSOpenPanel) covers the rest, e.g. Chrome web apps. Default: first installed known player. Only Spotify/Music/iTunes support Apple Events; the rest get media keys after opening, which reach the app macOS considers "now playing" (known limit).
+

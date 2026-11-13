@@ -15,6 +15,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private let jiggler: JigglerModule
     private let microphone: MicrophoneModule
     private let dialogs: DialogsModule
+    private let music: MusicModule
+    private let cpu: CPUTemperatureModule
+    private let weather: WeatherModule
     private let log = Logger(subsystem: "Penknife", category: "TouchBar")
 
     private var bar: NSTouchBar?
@@ -28,6 +31,8 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private var showingDate = false
     private var micListener: AudioObjectPropertyListenerBlock?
     private var micDevice: AudioObjectID?
+    private var cpuTimer: Timer?
+    private var screensAsleep = false
 
     private static let barItemID = NSTouchBarItem.Identifier("io.github.alexl-l.Penknife.bar")
     private static let trayItemID = NSTouchBarItem.Identifier("io.github.alexl-l.Penknife.tray")
@@ -40,10 +45,14 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         set { UserDefaults.standard.set(newValue, forKey: autoCloseKey) }
     }
 
-    init(jiggler: JigglerModule, microphone: MicrophoneModule, dialogs: DialogsModule) {
+    init(jiggler: JigglerModule, microphone: MicrophoneModule, dialogs: DialogsModule,
+         music: MusicModule, cpu: CPUTemperatureModule, weather: WeatherModule) {
         self.jiggler = jiggler
         self.microphone = microphone
         self.dialogs = dialogs
+        self.music = music
+        self.cpu = cpu
+        self.weather = weather
         super.init()
     }
 
@@ -88,6 +97,17 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
                 }
             })
         }
+        // The CPU temperature isn't read while the screens sleep (the Touch Bar is off too).
+        for name in [NSWorkspace.screensDidSleepNotification, NSWorkspace.screensDidWakeNotification] {
+            let asleep = name == NSWorkspace.screensDidSleepNotification
+            observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.screensAsleep = asleep
+                    self?.updateTemperature()
+                }
+            })
+        }
+        weather.onChange = { [weak self] in self?.updateWeather() }
         // Turning another module on or off changes which buttons exist.
         observers.append(NotificationCenter.default.addObserver(forName: ModuleManager.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rebuildButtons() }
@@ -105,6 +125,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         guard running else { return }
         running = false
         dialogs.onChange = nil
+        weather.onChange = nil
         observers.forEach {
             NSWorkspace.shared.notificationCenter.removeObserver($0)
             NotificationCenter.default.removeObserver($0)
@@ -139,7 +160,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     // MARK: Buttons
 
     private enum Item: String {
-        case battery, brightness, keyboardLight, jiggler, microphone, screenshot, lock, volume, time
+        case battery, brightness, keyboardLight, jiggler, microphone, screenshot, lock, music, weather, cpu, volume, time
     }
 
     private func isOn(_ module: ModuleID) -> Bool { manager?.isEnabled(module) ?? false }
@@ -169,6 +190,15 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         if isOn(.lockScreen) {
             add(.lock, 0x7176EB) { [weak self] _ in self?.run(.lockScreen) }
         }
+        if isOn(.music) {
+            add(.music, 0x08DA73) { [weak self] _ in self?.music.tap() }
+        }
+        if isOn(.weather) {
+            add(.weather, 0x75DAD8) { [weak self] _ in self?.weather.refresh(ifOlderThan: 60) }
+        }
+        if isOn(.cpuTemperature) {
+            add(.cpu, 0xFFAE02) { [weak self] _ in self?.updateTemperature() }
+        }
         add(.volume, 0xFFAE02) { [weak self] in self?.openSlider($0, OutputVolume(), String(localized: "Volume")) }
         add(.time, 0xFFFFFF) { [weak self] _ in self?.toggleDate() }
         barView.setButtons(buttons)
@@ -184,10 +214,15 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         barView.button(Item.screenshot.rawValue)?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
         barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock screen"))
         barView.button(Item.volume.rawValue)?.show(symbol: "speaker.wave.2.fill", label: String(localized: "Volume"))
+        barView.button(Item.music.rawValue)?.show(
+            symbol: "music.note",
+            label: String(localized: "Music. One tap plays or pauses, two go to the next song, three to the previous one."))
         updateBattery()
         updateJiggler()
         updateMicrophone()
         updateClock()
+        updateWeather()
+        updateTemperature()
     }
 
     private func run(_ module: ModuleID) {
@@ -233,7 +268,43 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         dateTimer?.invalidate()
         dateTimer = nil
         showingDate = false
+        cpuTimer?.invalidate()
+        cpuTimer = nil
         unwatchMicrophone()
+    }
+
+    // MARK: Weather and CPU
+
+    private func updateWeather() {
+        guard let button = barView?.button(Item.weather.rawValue) else { return }
+        if let report = weather.report {
+            let text = TemperatureText.short(celsius: report.celsius)
+            button.show(symbol: report.symbol, text: text,
+                        label: String(localized: "Weather: \(report.summary), \(TemperatureText.long(celsius: report.celsius))"))
+        } else if weather.status == .noLocation {
+            button.show(symbol: "location.slash", label: String(localized: "Weather: location not allowed. Tap to open the settings."))
+        } else {
+            button.show(symbol: "cloud", label: String(localized: "Weather: no data yet"))
+        }
+    }
+
+    /// Reads the CPU temperature now and again in ~30 s, only while its button is on screen.
+    private func updateTemperature() {
+        cpuTimer?.invalidate()
+        cpuTimer = nil
+        guard running, !screensAsleep, let button = barView?.button(Item.cpu.rawValue) else { return }
+        if let celsius = cpu.read() {
+            button.show(symbol: "thermometer.medium", text: TemperatureText.short(celsius: Double(celsius)),
+                        label: String(localized: "CPU temperature: \(TemperatureText.long(celsius: Double(celsius)))"))
+        } else {
+            button.show(symbol: "thermometer.medium", text: "—", label: String(localized: "CPU temperature not available"))
+        }
+        let timer = Timer(timeInterval: 30, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateTemperature() }
+        }
+        timer.tolerance = 5
+        RunLoop.main.add(timer, forMode: .common)
+        cpuTimer = timer
     }
 
     private func updateBattery() {

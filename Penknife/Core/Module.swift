@@ -8,6 +8,10 @@ enum ModuleID: String, CaseIterable, Identifiable {
     case microphone
     case lockScreen
     case screenshot
+    case music
+    case blockAppleMusic
+    case cpuTemperature
+    case weather
     case touchBar
     case dialogs
 
@@ -19,6 +23,10 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: String(localized: "Microphone")
         case .lockScreen: String(localized: "Lock screen")
         case .screenshot: String(localized: "Screenshot")
+        case .music: String(localized: "Music")
+        case .blockAppleMusic: String(localized: "Block Apple Music")
+        case .cpuTemperature: String(localized: "CPU temperature")
+        case .weather: String(localized: "Weather")
         case .touchBar: String(localized: "Touch Bar")
         case .dialogs: String(localized: "Native dialogs")
         }
@@ -30,7 +38,11 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: String(localized: "Mutes and unmutes the microphone, in sync with Microsoft Teams and Google Meet.")
         case .lockScreen: String(localized: "Turns off the mouse jiggler and locks the screen.")
         case .screenshot: String(localized: "Takes a screenshot of an area and copies it to the clipboard.")
-        case .touchBar: String(localized: "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, volume and time.")
+        case .music: String(localized: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.")
+        case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself, e.g. with the play key.")
+        case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
+        case .weather: String(localized: "Shows the current weather on the Touch Bar and in the menu, using your approximate location.")
+        case .touchBar: String(localized: "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, music, weather, CPU temperature, volume and time.")
         case .dialogs: String(localized: "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.")
         }
     }
@@ -43,6 +55,10 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: "mic"
         case .lockScreen: "lock"
         case .screenshot: "camera.viewfinder"
+        case .music: "music.note"
+        case .blockAppleMusic: "nosign"
+        case .cpuTemperature: "thermometer.medium"
+        case .weather: "cloud.sun"
         case .touchBar: "rectangle.split.3x1"
         case .dialogs: "macwindow.on.rectangle"
         }

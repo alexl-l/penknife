@@ -1,6 +1,5 @@
 {
   "sourceLanguage": "en",
-  "version": "1.0",
   "strings": {
     "CFBundleDisplayName": {
       "localizations": {
@@ -13,15 +12,38 @@
       }
     },
     "NSAppleEventsUsageDescription": {
+      "comment": "Privacy - AppleEvents Sending Usage Description",
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Penknife sincroniza el micrófono con Google Meet en Chrome."
+            "value": "Penknife controla tu reproductor de música y sincroniza el micrófono con Google Meet en Chrome."
           }
         }
-      },
-      "comment": "Privacy - AppleEvents Sending Usage Description"
+      }
+    },
+    "NSLocationUsageDescription": {
+      "comment": "Privacy - Location Usage Description",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife muestra el clima de tu ubicación aproximada. Solo se envían coordenadas redondeadas a Open-Meteo."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription": {
+      "comment": "Privacy - Location When In Use Usage Description",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife muestra el clima de tu ubicación aproximada. Solo se envían coordenadas redondeadas a Open-Meteo."
+          }
+        }
+      }
     }
-  }
+  },
+  "version": "1.0"
 }

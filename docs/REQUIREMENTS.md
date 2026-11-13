@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 2 in progress** (phase 1 committed; user said go on 2026-11-13).
+Status: **phase 2 done** (2026-11-13). Next: phase 3, clipboard (R-7); also pending R-20 alerts redesign and uninstalling MTMR + Hammerspoon.
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -20,8 +20,8 @@ Phase 1 progress (2026-11-13): built, installed in /Applications and reviewed (s
 Phase 2 progress (2026-11-13): Touch Bar module built and installed (battery, brightness, keyboard light, jiggler, mic, screenshot, lock, volume, time; color modes; dialog step-aside; Settings toggle "Close sliders and the date automatically"). MTMR must be closed while Penknife's Touch Bar is on.
 - Lock button takes the old "End of day" slot (lock.fill icon).
 - Sliders approved by the user (2026-11-13); while one is open, all other buttons are hidden.
-- Music (R-5), Block Apple Music (R-6), CPU temperature (R-9) and weather (R-13) built and installed (2026-11-13), each its own module; values also shown in the menu. Reviewed (security, accessibility, performance, QA; fixes applied). Pending: user's hands-on test (music taps, player choice, menu readings); code not committed yet.
-- Player choices: Spotify (default), Apple Music, "Any app (media keys)". Play/pause, next and previous also have shortcuts (no default keys). Tap on weather refreshes it (or opens Location settings if denied). Temperatures follow the system unit, shown as "54°".
+- Music (R-5), Block Apple Music (R-6), CPU temperature (R-9) and weather (R-13) built and installed (2026-11-13), each its own module; values also shown in the menu. Reviewed (security, accessibility, performance, QA; fixes applied). Tested by the user and committed (2026-11-13).
+- Player choices: see R-5 (configurable list, 2026-11-13). Play/pause, next and previous also have shortcuts (no default keys). Tap on weather refreshes it (or opens Location settings if denied). Temperatures follow the system unit, shown as "54°".
 
 ## Requirements
 
@@ -48,9 +48,10 @@ While a sheet, modal window or system prompt is in front, step aside so the Touc
 
 **R-5 Music** — agreed
 Music button and taps: 1 play/pause, 2 next, 3 previous; opens the player if closed. The player is selectable (Spotify, Apple Music, others), not only Spotify.
+- PLAYER CONFIGURABLE BY THE USER, SAME BEHAVIOR FOR ALL (user, 2026-11-13): Spotify, Apple Music (iTunes on old Macs), YouTube Music, Amazon Music and any other app chosen with "Choose another app…" (e.g. a YouTube Music web app installed from Chrome). Known apps are listed when installed. Spotify and Apple Music/iTunes are driven by Apple Events (exact app); the others by media keys after making sure the app is open (needs Accessibility). Extra choice "Any app (media keys)" controls whatever is playing.
 
 **R-6 Block Apple Music (noTunes)** — agreed
-Prevent Apple Music from launching on play; off when Apple Music is the chosen player.
+Prevent Apple Music (and iTunes) from launching on play; MUST NOT CLASH with the player choice: paused automatically while Apple Music or iTunes is the chosen player, and Settings says so.
 
 **R-7 Clipboard (Maccy)** — agreed (updated 2026-11-13)
 History with search, pin the most used items, global shortcut to open it. Skip concealed/transient items (passwords).

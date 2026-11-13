@@ -9,3 +9,10 @@ extension KeyboardShortcuts.Name {
     static let lockScreen = Self("lockScreen", default: .init(.f6))
     static let screenshot = Self("screenshot", default: .init(.f1))
 }
+
+/// Music (R-5): no default keys, the user records them in Settings → Shortcuts.
+extension KeyboardShortcuts.Name {
+    static let playPause = Self("playPause")
+    static let nextTrack = Self("nextTrack")
+    static let previousTrack = Self("previousTrack")
+}

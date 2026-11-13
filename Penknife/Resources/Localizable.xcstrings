@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ is not installed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no está instalado"
+          }
+        }
+      }
+    },
     "%lld seconds": {
       "localizations": {
         "es": {
@@ -51,6 +61,16 @@
         }
       }
     },
+    "Any app (media keys)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cualquier app (teclas multimedia)"
+          }
+        }
+      }
+    },
     "Battery %@. Tap to change the icon colors.": {
       "localizations": {
         "es": {
@@ -61,12 +81,62 @@
         }
       }
     },
+    "Block Apple Music": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloquear Apple Music"
+          }
+        }
+      }
+    },
     "Brightness": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Brillo"
+          }
+        }
+      }
+    },
+    "Choose": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir"
+          }
+        }
+      }
+    },
+    "Choose another app…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir otra app…"
+          }
+        }
+      }
+    },
+    "Choose the app you listen to music with.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige la app con la que escuchas música."
+          }
+        }
+      }
+    },
+    "Clear": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Despejado"
           }
         }
       }
@@ -91,12 +161,62 @@
         }
       }
     },
+    "Closes Apple Music when it opens by itself, e.g. with the play key.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cierra Apple Music cuando se abre solo, por ejemplo con la tecla de reproducir."
+          }
+        }
+      }
+    },
+    "Cloudy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nublado"
+          }
+        }
+      }
+    },
     "Copy": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Copiar"
+          }
+        }
+      }
+    },
+    "CPU temperature": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura de la CPU"
+          }
+        }
+      }
+    },
+    "CPU temperature not available": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura de la CPU no disponible"
+          }
+        }
+      }
+    },
+    "CPU temperature: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura de la CPU: %@"
           }
         }
       }
@@ -121,12 +241,32 @@
         }
       }
     },
+    "Drizzle": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llovizna"
+          }
+        }
+      }
+    },
     "Edit": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Edición"
+          }
+        }
+      }
+    },
+    "Fog": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Niebla"
           }
         }
       }
@@ -311,6 +451,26 @@
         }
       }
     },
+    "Music": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Música"
+          }
+        }
+      }
+    },
+    "Music. One tap plays or pauses, two go to the next song, three to the previous one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Música. Un toque reproduce o pausa, dos pasan a la siguiente canción, tres a la anterior."
+          }
+        }
+      }
+    },
     "Mute microphone": {
       "localizations": {
         "es": {
@@ -351,12 +511,32 @@
         }
       }
     },
+    "Next track": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canción siguiente"
+          }
+        }
+      }
+    },
     "No microphone found": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "No se encontró ningún micrófono"
+          }
+        }
+      }
+    },
+    "Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo se envía una ubicación aproximada (unos 11 km). [Datos del clima de Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)."
           }
         }
       }
@@ -381,12 +561,42 @@
         }
       }
     },
+    "Partly cloudy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parcialmente nublado"
+          }
+        }
+      }
+    },
     "Paste": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Pegar"
+          }
+        }
+      }
+    },
+    "Paused automatically while Apple Music or iTunes is your music player.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se pausa solo mientras Apple Music o iTunes sea tu reproductor de música."
+          }
+        }
+      }
+    },
+    "Paused: Apple Music is your music player.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pausa: Apple Music es tu reproductor de música."
           }
         }
       }
@@ -401,12 +611,12 @@
         }
       }
     },
-    "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, volume and time.": {
+    "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, music, weather, CPU temperature, volume and time.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Touch Bar propio de Penknife: batería, brillo, luz del teclado, acciones, volumen y hora."
+            "value": "Touch Bar propia de Penknife: batería, brillo, luz del teclado, acciones, música, clima, temperatura de la CPU, volumen y hora."
           }
         }
       }
@@ -421,12 +631,62 @@
         }
       }
     },
+    "Play or pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproducir o pausar"
+          }
+        }
+      }
+    },
+    "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproduce, pausa y cambia de canción. En la Touch Bar: un toque reproduce o pausa, dos pasan a la siguiente canción, tres a la anterior."
+          }
+        }
+      }
+    },
+    "Player": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproductor"
+          }
+        }
+      }
+    },
+    "Previous track": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canción anterior"
+          }
+        }
+      }
+    },
     "Quit Penknife": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Salir de Penknife"
+          }
+        }
+      }
+    },
+    "Rain": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lluvia"
           }
         }
       }
@@ -501,6 +761,36 @@
         }
       }
     },
+    "Shows the CPU temperature on the Touch Bar and in the menu.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra la temperatura de la CPU en la Touch Bar y en el menú."
+          }
+        }
+      }
+    },
+    "Shows the current weather on the Touch Bar and in the menu, using your approximate location.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muestra el clima actual en la Touch Bar y en el menú, con tu ubicación aproximada."
+          }
+        }
+      }
+    },
+    "Snow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieve"
+          }
+        }
+      }
+    },
     "Takes a screenshot of an area and copies it to the clipboard.": {
       "localizations": {
         "es": {
@@ -517,6 +807,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "El idioma sigue al del sistema (español o inglés)."
+          }
+        }
+      }
+    },
+    "Thunderstorm": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tormenta"
           }
         }
       }
@@ -577,6 +877,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Volumen"
+          }
+        }
+      }
+    },
+    "Weather": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clima"
+          }
+        }
+      }
+    },
+    "Weather: %@, %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clima: %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "Weather: location not allowed. Tap to open the settings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clima: ubicación no permitida. Toca para abrir los ajustes."
+          }
+        }
+      }
+    },
+    "Weather: no data yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clima: aún sin datos"
           }
         }
       }
