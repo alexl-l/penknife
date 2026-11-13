@@ -1,6 +1,5 @@
 {
   "sourceLanguage": "en",
-  "version": "1.0",
   "strings": {
     "%lld seconds": {
       "localizations": {
@@ -52,12 +51,42 @@
         }
       }
     },
+    "Battery %@. Tap to change the icon colors.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería %@. Toca para cambiar los colores de los iconos."
+          }
+        }
+      }
+    },
+    "Brightness": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brillo"
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cerrar"
+          }
+        }
+      }
+    },
+    "Close sliders and the date automatically": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar los deslizadores y la fecha automáticamente"
           }
         }
       }
@@ -122,6 +151,16 @@
         }
       }
     },
+    "Keyboard backlight": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luz del teclado"
+          }
+        }
+      }
+    },
     "Launch at login": {
       "localizations": {
         "es": {
@@ -172,6 +211,26 @@
         }
       }
     },
+    "Microphone, muted": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono, silenciado"
+          }
+        }
+      }
+    },
+    "Microphone, on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono, activado"
+          }
+        }
+      }
+    },
     "Modules": {
       "localizations": {
         "es": {
@@ -218,6 +277,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mover ratón activado"
+          }
+        }
+      }
+    },
+    "Mouse jiggler, off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover ratón, desactivado"
+          }
+        }
+      }
+    },
+    "Mouse jiggler, on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover ratón, activado"
           }
         }
       }
@@ -308,6 +387,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pegar"
+          }
+        }
+      }
+    },
+    "Penknife — the pocket knife for your Mac": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife — la navaja para tu Mac"
+          }
+        }
+      }
+    },
+    "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, volume and time.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch Bar propio de Penknife: batería, brillo, luz del teclado, acciones, volumen y hora."
           }
         }
       }
@@ -422,6 +521,16 @@
         }
       }
     },
+    "Touch Bar": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touch Bar"
+          }
+        }
+      }
+    },
     "Turn on when unlocking, off when locking": {
       "localizations": {
         "es": {
@@ -462,6 +571,26 @@
         }
       }
     },
+    "Volume": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen"
+          }
+        }
+      }
+    },
+    "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mientras haya un diálogo o aviso del sistema delante, el Touch Bar muestra sus propios botones."
+          }
+        }
+      }
+    },
     "Window": {
       "localizations": {
         "es": {
@@ -472,5 +601,6 @@
         }
       }
     }
-  }
+  },
+  "version": "1.0"
 }

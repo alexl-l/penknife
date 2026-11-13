@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 1 in progress** (user said go on 2026-11-13).
+Status: **phase 2 in progress** (phase 1 committed; user said go on 2026-11-13).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -17,14 +17,20 @@ Phase 1 progress (2026-11-13): built, installed in /Applications and reviewed (s
 - Added for R-19: confirmation HUD duration setting (2/4/8/15 s, default 4 s); Window menu General/Modules/Shortcuts with ⌘1–⌘3.
 - F12 from the Touch Bar works (user confirmed 2026-11-13): Fn twins + 0.4 s de-duplication. Default F-key shortcuts clash with system functions on Macs without Touch Bar (accessibility review); kept as the user's Hammerspoon keys. Before making the repo public: license + legal review.
 
+Phase 2 progress (2026-11-13): Touch Bar module built and installed (battery, brightness, keyboard light, jiggler, mic, screenshot, lock, volume, time; color modes; dialog step-aside; Settings toggle "Close sliders and the date automatically"). MTMR must be closed while Penknife's Touch Bar is on.
+- Lock button takes the old "End of day" slot (lock.fill icon).
+- Sliders approved by the user (2026-11-13); while one is open, all other buttons are hidden.
+- Pending: music (R-5, R-6), CPU temp (R-9), weather (R-13).
+
 ## Requirements
 
 **R-1 Touch Bar** — agreed
 OWN IMPLEMENTATION WRITTEN FROM SCRATCH (confirmed 2026-11-13): MTMR is only a reference for how to call Apple's private Touch Bar APIs; no MTMR code is copied (if that ever seems necessary, `legal-advisor` first). When phase 2 is done, MTMR and Hammerspoon are uninstalled.
 Reproduce the current MTMR setup (see the dotfiles repo, `macos/mtmr/`): 12 equal-width buttons, battery · brightness · keyboard light · jiggler · mic · screenshot · end of day · music ‖ weather · CPU temp · volume · time.
-- Brightness / keyboard light / volume open a slider from their button position (left half opens rightwards, right half leftwards); slider and close ✕ are one gray element, full bar height, round white knob, track tinted with the item color; closes ~0.4 s after release or after 4 s idle; ✕ closes it.
+- Brightness / keyboard light / volume open a slider from their button position (left half opens rightwards, right half leftwards); slider and close ✕ are one gray element, full bar height, round white knob, track tinted with the item color; closes ~0.4 s after release (at most 1 s after the last change; user found 4 s too slow after touching it, 2026-11-13) or after 4 s if untouched; ✕ closes it.
 - Battery tap cycles icon colors: own colors → all white → rainbow left to right (including texts).
 - Time in 12 h (h:mm); tap shows the date as DD/MM/YY for 4 s, tap again hides it.
+- EASTER EGG (user, 2026-11-13, changed): long press on the time: the penknife (own drawing: red handle, silver blade) writes "Hello Penknife!" in calligraphy (Snell Roundhand) with its tip gliding along a smoothed copy of the ink path (moving average, ~3 s), turns and slashes it right to left; the halves drift apart and the buttons fade back (~5 s). Reduce Motion: static text. A tap ends it. Pac-Man version and confetti marquee discarded.
 - No loading placeholders (no hourglass).
 - Only active on Macs with a Touch Bar.
 
@@ -112,6 +118,7 @@ THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) 
 
 ## Rejected / out of scope
 - Fan control (MacFanPro stays out; risky SMC writes).
+- Long press on the time to sleep the Mac (MTMR had it; user said no, 2026-11-13).
 - Uploading screenshots to the web.
 - Mac App Store (private APIs needed for Touch Bar, brightness, temperature; sandbox blocks controlling other apps).
 - Archive extraction (RAR/7Z) — little benefit for the work.

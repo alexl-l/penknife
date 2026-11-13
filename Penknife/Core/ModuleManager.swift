@@ -5,6 +5,9 @@ import Observation
 /// Owns the modules, persists which ones are on and wires their shortcuts.
 @Observable
 final class ModuleManager {
+    /// Posted after a module is turned on or off.
+    static let didChangeNotification = Notification.Name("PenknifeModulesDidChange")
+
     let modules: [any Module]
     private(set) var enabled: Set<ModuleID> = []
 
@@ -67,6 +70,7 @@ final class ModuleManager {
             module.stop()
         }
         refreshFnKeys()
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
     }
 
     /// Enabled actions, in module order, for the menu.
@@ -96,7 +100,7 @@ final class ModuleManager {
 
     /// One key press can reach both the plain and the Fn hotkey (Touch Bar F keys);
     /// an action runs at most once per 0.4 s so a toggle doesn't flip twice.
-    private func run(_ action: ModuleAction) {
+    func run(_ action: ModuleAction) {
         let now = Date()
         if let last = lastRun[action.shortcut.rawValue], now.timeIntervalSince(last) < 0.4 { return }
         lastRun[action.shortcut.rawValue] = now

@@ -27,13 +27,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let jiggler = JigglerModule()
+        let microphone = MicrophoneModule()
+        let dialogs = DialogsModule()
+        let touchBar = TouchBarModule(jiggler: jiggler, microphone: microphone, dialogs: dialogs)
         manager = ModuleManager(modules: [
             jiggler,
-            MicrophoneModule(),
+            microphone,
             LockScreenModule(jiggler: jiggler),
             ScreenshotModule(),
-            DialogsModule(),
+            touchBar,
+            dialogs,
         ])
+        touchBar.manager = manager
         manager.startEnabledModules()
 
         NSApp.mainMenu = MainMenu.make()

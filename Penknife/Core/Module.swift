@@ -8,6 +8,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     case microphone
     case lockScreen
     case screenshot
+    case touchBar
     case dialogs
 
     var id: String { rawValue }
@@ -18,6 +19,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: String(localized: "Microphone")
         case .lockScreen: String(localized: "Lock screen")
         case .screenshot: String(localized: "Screenshot")
+        case .touchBar: String(localized: "Touch Bar")
         case .dialogs: String(localized: "Native dialogs")
         }
     }
@@ -28,12 +30,12 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: String(localized: "Mutes and unmutes the microphone, in sync with Microsoft Teams and Google Meet.")
         case .lockScreen: String(localized: "Turns off the mouse jiggler and locks the screen.")
         case .screenshot: String(localized: "Takes a screenshot of an area and copies it to the clipboard.")
-        case .dialogs: String(localized: "Detects dialogs and system prompts so the Touch Bar can show their own buttons.")
+        case .touchBar: String(localized: "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, volume and time.")
+        case .dialogs: String(localized: "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.")
         }
     }
 
-    /// On unless it has nothing to drive yet (dialog detection waits for the Touch Bar, phase 2).
-    var defaultOn: Bool { self != .dialogs }
+    var defaultOn: Bool { true }
 
     var symbol: String {
         switch self {
@@ -41,6 +43,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: "mic"
         case .lockScreen: "lock"
         case .screenshot: "camera.viewfinder"
+        case .touchBar: "rectangle.split.3x1"
         case .dialogs: "macwindow.on.rectangle"
         }
     }

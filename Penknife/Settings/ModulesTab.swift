@@ -28,6 +28,11 @@ struct ModulesTab: View {
                         .padding(.leading, 28)
                         .disabled(!manager.isEnabled(.jiggler))
                     }
+                    if id == .touchBar {
+                        AutoCloseToggle()
+                            .padding(.leading, 28)
+                            .disabled(!manager.isEnabled(.touchBar))
+                    }
                 }
             } footer: {
                 Text("A module that is off uses no CPU or memory.")
@@ -36,5 +41,14 @@ struct ModulesTab: View {
         }
         .formStyle(.grouped)
         .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+/// Sliders and the date close by themselves, or only when tapped (R-19).
+private struct AutoCloseToggle: View {
+    @AppStorage(TouchBarModule.autoCloseKey) private var autoClose = true
+
+    var body: some View {
+        Toggle("Close sliders and the date automatically", isOn: $autoClose)
     }
 }
