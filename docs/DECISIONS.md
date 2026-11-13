@@ -29,3 +29,7 @@
 - **Accessibility prompt once per launch**: actions that need it don't re-prompt on every press; Settings → General has the button.
 - **Meet sync matches `https://meet.google.com/` by prefix** so no other tab gets the script. Known limit: it relies on the English aria-label "Turn on microphone".
 - **QA agents can't drive the UI** unless their shell (Terminal/Claude) has Accessibility; hands-on UI checks fall to the user or need that permission.
+- **F keys from the Touch Bar carry Fn** (2026-11-13): KeyboardShortcuts strips Fn, so a bare "F12" never fired from the Touch Bar (the old Hammerspoon binds used `fn`). `Core/FnHotKeys.swift` registers an F key + Fn twin (Carbon `kEventKeyModifierFnMask`) for every bare F-key shortcut, refreshed when shortcuts or modules change.
+- **Jiggler follows the lock** via `com.apple.screenIsLocked` / `screenIsUnlocked` distributed notifications, observed only while the module and option are on.
+- **Hotkey de-duplication** (2026-11-13): a Touch Bar F key fired both the plain and the Fn hotkey, flipping toggles twice; actions now run at most once per 0.4 s (`ModuleManager.run`).
+- **Stale Accessibility grant** (2026-11-13): System Settings showed Penknife on, but the grant belonged to an older (ad-hoc) signature. Fix: `tccutil reset Accessibility io.github.alexl-l.Penknife` and grant again. With the self-signed certificate the designated requirement is stable, so grants survive reinstalls.

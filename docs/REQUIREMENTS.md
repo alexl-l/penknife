@@ -15,7 +15,7 @@ Phase 1 progress (2026-11-13): built, installed in /Applications and reviewed (s
 - Pending: user's hands-on test (QA agent could not drive the UI: no Accessibility for its shell); logo (menu bar uses an SF Symbol placeholder); test Settings memory release after closing.
 - Interim behavior: screenshot = system area capture to clipboard until R-8; "Native dialogs" module off by default until the Touch Bar uses it (phase 2).
 - Added for R-19: confirmation HUD duration setting (2/4/8/15 s, default 4 s); Window menu General/Modules/Shortcuts with ⌘1–⌘3.
-- Open question: default F-key shortcuts clash with system functions on Macs without Touch Bar (accessibility review); kept as the user's Hammerspoon keys. Before making the repo public: license + legal review.
+- F12 from the Touch Bar works (user confirmed 2026-11-13): Fn twins + 0.4 s de-duplication. Default F-key shortcuts clash with system functions on Macs without Touch Bar (accessibility review); kept as the user's Hammerspoon keys. Before making the repo public: license + legal review.
 
 ## Requirements
 
@@ -31,7 +31,9 @@ Reproduce the current MTMR setup (see the dotfiles repo, `macos/mtmr/`): 12 equa
 For each F key choose either a Penknife action or its native function (brightness, volume, etc.).
 
 **R-3 Actions (from Hammerspoon)** — agreed
-Mouse jiggler (toggle; moves the mouse after 10 s idle), microphone toggle synced with Microsoft Teams and Google Meet, lock screen, end of day (stop jiggler + lock after 2 s), screenshot shortcut. Current behavior and shortcuts: dotfiles `macos/hammerspoon/init.lua`.
+Mouse jiggler (toggle; moves the mouse after 10 s idle), microphone toggle synced with Microsoft Teams and Google Meet, lock screen, screenshot shortcut.
+- Jiggler follows the lock (changed 2026-11-13): turns off whenever the Mac locks (Penknife's lock action turns it off before locking) and on whenever it unlocks; launching at login counts as unlocking. On by default, can be turned off in Settings → Modules. Replaces the "End of day" action, which was removed.
+- If the Accessibility permission is missing, the jiggler says so instead of doing nothing. Current behavior and shortcuts: dotfiles `macos/hammerspoon/init.lua`.
 
 **R-4 Native dialogs** — agreed
 While a sheet, modal window or system prompt is in front, step aside so the Touch Bar shows the app's own native buttons (Save, Delete, Allow…), unchanged (native colors), and come back after. Plain "AXDialog" windows must not count (Warp keeps hidden ones). Event-driven, no polling.
@@ -103,6 +105,9 @@ The user does not want an accessibility lawsuit, and the more the app works by k
 - VoiceOver labels on every control (Spanish and English); never color alone for state; respects Increase Contrast, Reduce Motion, Reduce Transparency.
 - Auto-closing elements (sliders, date) have a setting or non-timed alternative.
 - Reference: WCAG 2.2 AA. Every UI change is checked by the `accessibility-reviewer` agent.
+
+**R-20 Confirmation alerts** — agreed (2026-11-13), IMPERATIVE, future
+THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) MUST BE REPLACED; the user finds them ugly. Not designed yet: ask `ux-ui-designer` for native-looking options (e.g. system-style OSD like volume/brightness, menu bar icon change, Touch Bar feedback) and let the user choose. Keep R-19 (VoiceOver announcement, duration setting or non-timed alternative).
 
 ## Rejected / out of scope
 - Fan control (MacFanPro stays out; risky SMC writes).
