@@ -1,5 +1,42 @@
 import AppKit
 
+/// The key the jiggler presses after moving the mouse, so Teams and Slack also see keyboard
+/// activity (R-3). Only keys that type nothing; Caps Lock is pressed twice so its state stays.
+enum JigglerKey: String, CaseIterable, Identifiable {
+    case capsLock, shift, control, option, f18, none
+
+    var id: String { rawValue }
+    static let key = "jiggler.key"
+
+    static var current: JigglerKey {
+        UserDefaults.standard.string(forKey: key).flatMap(JigglerKey.init) ?? .capsLock
+    }
+
+    var title: String {
+        switch self {
+        case .capsLock: String(localized: "Caps Lock (twice)")
+        case .shift: "Shift"
+        case .control: "Control"
+        case .option: "Option"
+        case .f18: "F18"
+        case .none: String(localized: "None (mouse only)")
+        }
+    }
+
+    var keyCode: CGKeyCode? {
+        switch self {
+        case .capsLock: 57
+        case .shift: 56
+        case .control: 59
+        case .option: 58
+        case .f18: 79
+        case .none: nil
+        }
+    }
+
+    var presses: Int { self == .capsLock ? 2 : 1 }
+}
+
 /// Mouse jiggler (R-3): while active, nudges the mouse after 10 s without input.
 /// Optionally follows the screen lock: off when the Mac locks, on when it unlocks (and at launch).
 /// No event tap and no 1 s polling: it reads the system idle time and sleeps until the
@@ -114,21 +151,25 @@ final class JigglerModule: Module {
         }
     }
 
-    /// Same movement as the old Hammerspoon script: a 3 px square, then Caps Lock twice
-    /// (pressed and released back, so its state doesn't change) to register keyboard activity.
+    /// Same movement as the old Hammerspoon script: a 3 px square, then the chosen key
+    /// (Caps Lock by default, pressed twice so its state doesn't change) for keyboard activity.
     private func jiggle() {
         guard !isJiggling else { return }
         isJiggling = true
         let origin = EventPoster.mouseLocation
+        let key = JigglerKey.current
         let steps: [CGPoint] = [.init(x: 3, y: 0), .init(x: 0, y: 3), .init(x: -3, y: 0), .init(x: 0, y: -3), .zero]
         Task {
             for step in steps {
                 EventPoster.moveMouse(to: CGPoint(x: origin.x + step.x, y: origin.y + step.y))
                 try? await Task.sleep(for: .milliseconds(80))
             }
-            EventPoster.key(CGKeyCode(57))
-            try? await Task.sleep(for: .milliseconds(100))
-            EventPoster.key(CGKeyCode(57))
+            if let code = key.keyCode {
+                for press in 0..<key.presses {
+                    if press > 0 { try? await Task.sleep(for: .milliseconds(100)) }
+                    EventPoster.key(code)
+                }
+            }
             isJiggling = false
         }
     }

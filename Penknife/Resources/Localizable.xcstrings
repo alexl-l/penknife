@@ -101,6 +101,16 @@
         }
       }
     },
+    "Caps Lock (twice)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bloq Mayús (dos veces)"
+          }
+        }
+      }
+    },
     "Choose": {
       "localizations": {
         "es": {
@@ -287,6 +297,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concedido"
+          }
+        }
+      }
+    },
+    "Key it presses": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tecla que oprime"
           }
         }
       }
@@ -527,6 +547,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "No se encontró ningún micrófono"
+          }
+        }
+      }
+    },
+    "None (mouse only)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ninguna (solo ratón)"
           }
         }
       }

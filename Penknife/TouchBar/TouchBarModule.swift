@@ -75,8 +75,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         self.bar = bar
 
         let tray = NSCustomTouchBarItem(identifier: Self.trayItemID)
-        tray.view = NSButton(image: NSImage(systemSymbolName: "wrench.and.screwdriver", accessibilityDescription: "Penknife")!,
+        tray.view = NSButton(image: NSImage(named: "MenuBarIcon") ?? NSImage(),
                              target: self, action: #selector(present))
+        tray.view.setAccessibilityLabel("Penknife")
         TouchBarPrivate.addTrayItem(tray)
 
         rebuildButtons()

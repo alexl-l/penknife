@@ -15,8 +15,9 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         super.init()
 
         if let button = item.button {
-            let image = NSImage(systemSymbolName: "wrench.and.screwdriver", accessibilityDescription: "Penknife")
+            let image = NSImage(named: "MenuBarIcon")
             image?.isTemplate = true
+            image?.accessibilityDescription = "Penknife"
             button.image = image
             button.setAccessibilityLabel("Penknife")
         }

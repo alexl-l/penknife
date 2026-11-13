@@ -41,6 +41,7 @@ For each F key choose either a Penknife action or its native function (brightnes
 **R-3 Actions (from Hammerspoon)** — agreed
 Mouse jiggler (toggle; moves the mouse after 10 s idle), microphone toggle synced with Microsoft Teams and Google Meet, lock screen, screenshot shortcut.
 - Jiggler follows the lock (changed 2026-11-13): turns off whenever the Mac locks (Penknife's lock action turns it off before locking) and on whenever it unlocks; launching at login counts as unlocking. On by default, can be turned off in Settings → Modules. Replaces the "End of day" action, which was removed.
+- After moving, the jiggler presses a key so Teams and Slack also see activity; THE KEY IS CONFIGURABLE (user, 2026-11-13): Caps Lock pressed twice (default, user likes it: harmless), Shift, Control, Option, F18 or none.
 - If the Accessibility permission is missing, the jiggler says so instead of doing nothing. Current behavior and shortcuts: dotfiles `macos/hammerspoon/init.lua`.
 
 **R-4 Native dialogs** — agreed
@@ -117,6 +118,18 @@ The user does not want an accessibility lawsuit, and the more the app works by k
 
 **R-20 Confirmation alerts** — agreed (2026-11-13), IMPERATIVE, future
 THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) MUST BE REPLACED; the user finds them ugly. Not designed yet: ask `ux-ui-designer` for native-looking options (e.g. system-style OSD like volume/brightness, menu bar icon change, Touch Bar feedback) and let the user choose. Keep R-19 (VoiceOver announcement, duration setting or non-timed alternative).
+
+**R-21 App icon** — agreed (2026-11-13), IMPERATIVE
+THE APP MUST HAVE ITS OWN ICON (user doesn't like it having none): app icon (Finder, Settings, Spotlight, System Settings lists) plus the menu bar logo (R-14), same design.
+- A PENKNIFE (single folding blade), NOT a Swiss/multi-tool knife. MUST LOOK VERY "APPLE" (user, 2026-11-13). Red discarded (user dislikes it).
+- Chosen (2026-11-13): the menu bar glyph (which the user likes a lot) in white Liquid Glass on a system-blue gradient. Discarded: blue-handle knife with silver blade on black ("looks like 2015", "something is missing"), glyph on black with blue glow.
+- Built as a native Icon Composer `.icon` (the system renders the glass). Menu bar and Touch Bar tray use the same glyph as a template image.
+
+**R-22 Settings window** — agreed (2026-11-13), IMPERATIVE
+THE SETTINGS WINDOW CAN BE RESIZED AND LONG TABS SCROLL; the size and position are remembered.
+
+**R-23 Game (easter egg)** — idea, TO EVALUATE LATER (user, 2026-11-13)
+Holding the battery button for several seconds starts a small Touch Bar game: jump over obstacles or dodge them. Which game, controls and scoring still to decide with the user. Not started.
 
 ## Rejected / out of scope
 - Fan control (MacFanPro stays out; risky SMC writes).

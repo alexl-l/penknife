@@ -27,6 +27,9 @@ struct ModulesTab: View {
                         ))
                         .padding(.leading, 28)
                         .disabled(!manager.isEnabled(.jiggler))
+                        JigglerKeyPicker()
+                            .padding(.leading, 28)
+                            .disabled(!manager.isEnabled(.jiggler))
                     }
                     if id == .music {
                         PlayerPicker()
@@ -56,7 +59,6 @@ struct ModulesTab: View {
             }
         }
         .formStyle(.grouped)
-        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
@@ -104,5 +106,16 @@ private struct BlockAppleMusicNote: View {
              : "Paused automatically while Apple Music or iTunes is your music player.")
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// The key the jiggler presses so Teams and Slack see keyboard activity (R-3).
+private struct JigglerKeyPicker: View {
+    @AppStorage(JigglerKey.key) private var key = JigglerKey.capsLock
+
+    var body: some View {
+        Picker("Key it presses", selection: $key) {
+            ForEach(JigglerKey.allCases) { Text($0.title).tag($0) }
+        }
     }
 }
