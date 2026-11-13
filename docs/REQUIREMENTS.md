@@ -20,6 +20,7 @@ Phase 1 progress (2026-11-13): built, installed in /Applications and reviewed (s
 ## Requirements
 
 **R-1 Touch Bar** — agreed
+OWN IMPLEMENTATION WRITTEN FROM SCRATCH (confirmed 2026-11-13): MTMR is only a reference for how to call Apple's private Touch Bar APIs; no MTMR code is copied (if that ever seems necessary, `legal-advisor` first). When phase 2 is done, MTMR and Hammerspoon are uninstalled.
 Reproduce the current MTMR setup (see the dotfiles repo, `macos/mtmr/`): 12 equal-width buttons, battery · brightness · keyboard light · jiggler · mic · screenshot · end of day · music ‖ weather · CPU temp · volume · time.
 - Brightness / keyboard light / volume open a slider from their button position (left half opens rightwards, right half leftwards); slider and close ✕ are one gray element, full bar height, round white knob, track tinted with the item color; closes ~0.4 s after release or after 4 s idle; ✕ closes it.
 - Battery tap cycles icon colors: own colors → all white → rainbow left to right (including texts).
