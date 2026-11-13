@@ -20,7 +20,8 @@ Phase 1 progress (2026-11-13): built, installed in /Applications and reviewed (s
 Phase 2 progress (2026-11-13): Touch Bar module built and installed (battery, brightness, keyboard light, jiggler, mic, screenshot, lock, volume, time; color modes; dialog step-aside; Settings toggle "Close sliders and the date automatically"). MTMR must be closed while Penknife's Touch Bar is on.
 - Lock button takes the old "End of day" slot (lock.fill icon).
 - Sliders approved by the user (2026-11-13); while one is open, all other buttons are hidden.
-- Pending: music (R-5, R-6), CPU temp (R-9), weather (R-13).
+- Music (R-5), Block Apple Music (R-6), CPU temperature (R-9) and weather (R-13) built and installed (2026-11-13), each its own module; values also shown in the menu. Reviewed (security, accessibility, performance, QA; fixes applied). Pending: user's hands-on test (music taps, player choice, menu readings); code not committed yet.
+- Player choices: Spotify (default), Apple Music, "Any app (media keys)". Play/pause, next and previous also have shortcuts (no default keys). Tap on weather refreshes it (or opens Location settings if denied). Temperatures follow the system unit, shown as "54°".
 
 ## Requirements
 
