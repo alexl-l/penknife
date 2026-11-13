@@ -131,12 +131,22 @@
         }
       }
     },
-    "Allow Penknife in Screen & System Audio Recording, then reopen Penknife": {
+    "Alerts": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Permite Penknife en Grabación de pantalla y audio del sistema y vuelve a abrir Penknife"
+            "value": "Avisos"
+          }
+        }
+      }
+    },
+    "Allow Penknife, then reopen it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite Penknife y vuelve a abrirlo"
           }
         }
       }
@@ -401,6 +411,16 @@
         }
       }
     },
+    "Clipboard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portapapeles"
+          }
+        }
+      }
+    },
     "Clipboard history": {
       "localizations": {
         "es": {
@@ -491,12 +511,12 @@
         }
       }
     },
-    "Copied. To paste it too, Penknife needs Accessibility.": {
+    "Copied": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Copiado. Para pegarlo también, Penknife necesita Accesibilidad."
+            "value": "Copiado"
           }
         }
       }
@@ -531,12 +551,12 @@
         }
       }
     },
-    "Couldn't save the screenshot in %@": {
+    "Couldn't save the screenshot": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo guardar la captura en %@"
+            "value": "No se pudo guardar la captura"
           }
         }
       }
@@ -881,6 +901,16 @@
         }
       }
     },
+    "Microphone on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono abierto"
+          }
+        }
+      }
+    },
     "Microphone unmuted": {
       "localizations": {
         "es": {
@@ -931,16 +961,6 @@
         }
       }
     },
-    "Mouse jiggler needs the Accessibility permission": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«Mover ratón» necesita el permiso de Accesibilidad"
-          }
-        }
-      }
-    },
     "Mouse jiggler off": {
       "localizations": {
         "es": {
@@ -977,6 +997,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mover ratón, activado"
+          }
+        }
+      }
+    },
+    "Move the mouse after": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover el ratón tras"
           }
         }
       }
@@ -1057,6 +1087,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Necesario para mover el ratón, sincronizar el micrófono con Teams y detectar diálogos."
+          }
+        }
+      }
+    },
+    "Needs the Accessibility permission": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Necesita el permiso de Accesibilidad"
           }
         }
       }
@@ -1461,6 +1501,16 @@
         }
       }
     },
+    "Screen Recording needed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falta permiso de Grabación de pantalla"
+          }
+        }
+      }
+    },
     "Screen while selecting": {
       "localizations": {
         "es": {
@@ -1517,6 +1567,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Captura. Arrastra para seleccionar un área, Espacio para elegir una ventana, Intro para toda la pantalla, Esc para cancelar."
+          }
+        }
+      }
+    },
+    "Screenshots": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Capturas"
           }
         }
       }
@@ -1611,12 +1671,22 @@
         }
       }
     },
-    "Show confirmations for": {
+    "Show alerts for": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostrar confirmaciones durante"
+            "value": "Mostrar avisos durante"
+          }
+        }
+      }
+    },
+    "Show status dots in the menu bar": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar puntos de estado en la barra de menús"
           }
         }
       }
@@ -1751,6 +1821,16 @@
         }
       }
     },
+    "To paste it too, allow Accessibility": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para pegarlo también, permite Accesibilidad"
+          }
+        }
+      }
+    },
     "Touch Bar": {
       "localizations": {
         "es": {
@@ -1837,6 +1917,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Versión"
+          }
+        }
+      }
+    },
+    "VoiceOver announces them even when they are hidden.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "VoiceOver los anuncia aunque estén ocultos."
           }
         }
       }

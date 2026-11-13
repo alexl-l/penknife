@@ -37,10 +37,10 @@ enum JigglerKey: String, CaseIterable, Identifiable {
     var presses: Int { self == .capsLock ? 2 : 1 }
 }
 
-/// Mouse jiggler (R-3): while active, nudges the mouse after 10 s without input.
+/// Mouse jiggler (R-3): while active, nudges the mouse after a chosen time without input (R-23).
 /// Optionally follows the screen lock: off when the Mac locks, on when it unlocks (and at launch).
 /// No event tap and no 1 s polling: it reads the system idle time and sleeps until the
-/// earliest moment the next jiggle could be due (at most one wakeup every ~10 s).
+/// earliest moment the next jiggle could be due (at most one wakeup per interval).
 @Observable
 final class JigglerModule: Module {
     let id = ModuleID.jiggler
@@ -62,7 +62,19 @@ final class JigglerModule: Module {
         }
     }
 
-    private let idleThreshold: TimeInterval = 10
+    static let intervalKey = "jiggler.interval"
+    static let intervals: [TimeInterval] = [10, 30, 60, 120, 300]
+
+    /// Seconds without input before the mouse moves (R-23). Anything not offered in Settings means 10 s.
+    private var idleThreshold: TimeInterval {
+        let value = UserDefaults.standard.double(forKey: Self.intervalKey)
+        return Self.intervals.contains(value) ? value : 10
+    }
+
+    /// Settings changed the interval: count again from now, so a shorter time applies at once.
+    func intervalChanged() {
+        if isActive { schedule(after: idleThreshold) }
+    }
 
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .toggleJiggler, title: String(localized: "Mouse jiggler"), symbol: id.symbol,
@@ -86,7 +98,7 @@ final class JigglerModule: Module {
     func toggle() {
         if isActive {
             deactivate()
-            HUD.shared.show(String(localized: "Mouse jiggler off"))
+            HUD.shared.show(String(localized: "Mouse jiggler off"), symbol: "cursorarrow", kind: .off, category: .jiggler)
         } else {
             activate()
         }
@@ -95,12 +107,13 @@ final class JigglerModule: Module {
     private func activate() {
         guard !isActive else { return }
         guard Permissions.shared.ensureAccessibility() else {
-            HUD.shared.show(String(localized: "Mouse jiggler needs the Accessibility permission"))
+            HUD.shared.show(String(localized: "Mouse jiggler"), detail: String(localized: "Needs the Accessibility permission"),
+                             symbol: "lock.fill", kind: .permission, category: .jiggler)
             return
         }
         isActive = true
         schedule(after: idleThreshold)
-        HUD.shared.show(String(localized: "Mouse jiggler on"))
+        HUD.shared.show(String(localized: "Mouse jiggler on"), symbol: "cursorarrow.motionlines", kind: .on, category: .jiggler)
     }
 
     /// Lock notifications are observed only while the module is on and the option is set (R-15).

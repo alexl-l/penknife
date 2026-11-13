@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 3 done** (2026-11-13, clipboard committed). **Phase 4 done** (2026-11-13): screenshots (R-8) built, reviewed (security, performance, accessibility), tested and approved by the user, committed. Next: also pending R-20 alerts redesign and uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
+Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-23 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied) and installed (2026-11-13), pending the user's test; not committed. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -138,7 +138,15 @@ The user does not want an accessibility lawsuit, and the more the app works by k
 - Reference: WCAG 2.2 AA. Every UI change is checked by the `accessibility-reviewer` agent.
 
 **R-20 Confirmation alerts** — agreed (2026-11-13), IMPERATIVE, future
-THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) MUST BE REPLACED; the user finds them ugly. Not designed yet: ask `ux-ui-designer` for native-looking options (e.g. system-style OSD like volume/brightness, menu bar icon change, Touch Bar feedback) and let the user choose. Keep R-19 (VoiceOver announcement, duration setting or non-timed alternative).
+THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) MUST BE REPLACED; the user finds them ugly. Keep R-19 (VoiceOver announcement, duration setting or non-timed alternative).
+- Chosen (2026-11-13, after a live demo): option A, a Liquid Glass capsule (44 pt high, fitted width) at the top right, 12 pt under the menu bar and 16 pt from the edge, like the macOS 26 volume/brightness indicator. SF Symbol 18 pt + 13 pt medium text; "on" in system blue, "off" in grey, errors with a yellow triangle (no red). Long messages: short title + 11 pt second line (e.g. "Copiado" / "Activa Accesibilidad para pegar"), at most 2 lines. Fade + short slide in, plain fade with Reduce Motion; solid background under Reduce Transparency, outline under Increase Contrast. The user liked B (centered "Dynamic Island" capsule) but followed the designer's advice.
+- SETTING PER TYPE OF ALERT (IMPERATIVE, 2026-11-13): the user chooses which alerts to show, e.g. screenshots off, mouse jiggler off. Replaces the single on/off switch. VoiceOver announcements stay.
+- All alerts last the same time, set by the user: 1/2/4/8/15 s (1 s ADDED, IMPERATIVE).
+- MENU BAR DOTS (IMPERATIVE): two small dots stacked beside the menu bar icon. User's spec (2026-11-13): TOP = MICROPHONE, BOTTOM = MOUSE JIGGLER, always in those slots; each with its own color; a dot shows only while its function is on, otherwise nothing (one, the other, both or none). Reason: the user can't tell whether the jiggler is on without waiting for the mouse to move. Reviewed by `ux-ui-designer`. Chosen after a live demo (2026-11-13, variant 3): both dots always visible, filled = on, 1 pt ring = off. Mic: orange (as Apple's mic indicator), filled = mic open, ring = muted. Mouse: system blue, filled = jiggler on, ring = off. 4 pt dots, 2 pt gap, 3 pt right of the glyph, fixed-width column. Same look under Increase Contrast (the outlined version was "horrible"). Green (= camera on Apple) and purple discarded. VoiceOver: status item value states both ("Mouse jiggler on, microphone muted"). Setting to hide the dots.
+- Alert types (agreed): mouse jiggler, microphone, screenshots, clipboard, music; turning a type off hides all its alerts, errors included.
+
+**R-23 Jiggler interval** — agreed (2026-11-13), IMPERATIVE
+THE TIME WITHOUT INPUT BEFORE THE JIGGLER MOVES THE MOUSE MUST BE A SETTING (today fixed at 10 s). Options agreed: 10 s (default), 30 s, 1 min, 2 min, 5 min.
 
 **R-21 App icon** — agreed (2026-11-13), IMPERATIVE
 THE APP MUST HAVE ITS OWN ICON (user doesn't like it having none): app icon (Finder, Settings, Spotlight, System Settings lists) plus the menu bar logo (R-14), same design.

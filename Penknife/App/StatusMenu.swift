@@ -2,28 +2,143 @@ import AppKit
 import KeyboardShortcuts
 
 /// Menu bar icon (R-14: only the logo) and its menu. The menu is rebuilt only when it opens.
+/// Beside the logo, two status dots (R-20): microphone on top (orange, filled = open, ring = muted)
+/// and mouse jiggler below (blue, filled = on, ring = off). Each shows only while its module is on.
 final class StatusMenu: NSObject, NSMenuDelegate {
+    static let dotsKey = "menuBar.statusDots"
+
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
     private let manager: ModuleManager
     private let openSettings: () -> Void
     private var actions: [ModuleAction] = []
+    private let glyph: NSImage? = {
+        let image = NSImage(named: "MenuBarIcon")
+        image?.isTemplate = true
+        image?.accessibilityDescription = "Penknife"
+        return image
+    }()
+    private lazy var micWatcher = MicrophoneWatcher { [weak self] in self?.updateIcon() }
+    private var defaultsObserver: NSObjectProtocol?
+    private var lastDotsOn: Bool?
+    /// What the icon shows now (nil = no dot), to redraw only on a real change.
+    private var shown: (mic: Bool?, jiggler: Bool?)?
 
     init(manager: ModuleManager, openSettings: @escaping () -> Void) {
         self.manager = manager
         self.openSettings = openSettings
         super.init()
 
-        if let button = item.button {
-            let image = NSImage(named: "MenuBarIcon")
-            image?.isTemplate = true
-            image?.accessibilityDescription = "Penknife"
-            button.image = image
-            button.setAccessibilityLabel("Penknife")
-        }
+        item.button?.setAccessibilityLabel("Penknife")
         menu.delegate = self
         menu.autoenablesItems = false
         item.menu = menu
+
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                // Any defaults write lands here; only the dots setting matters.
+                guard let self, self.dotsOn != self.lastDotsOn else { return }
+                self.updateIcon()
+            }
+        }
+        trackState()
+    }
+
+    // MARK: Status dots
+
+    private var jiggler: JigglerModule? { manager.module(.jiggler) as? JigglerModule }
+    private var microphone: MicrophoneModule? { manager.module(.microphone) as? MicrophoneModule }
+    private var dotsOn: Bool { UserDefaults.standard.object(forKey: Self.dotsKey) as? Bool ?? true }
+
+    /// Redraws when the jiggler turns on or off, or a module is switched on or off. Event-driven, no timer.
+    private func trackState() {
+        withObservationTracking {
+            _ = jiggler?.isActive
+            _ = manager.enabled
+        } onChange: { [weak self] in
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated {
+                    self?.updateIcon()
+                    self?.trackState()
+                }
+            }
+        }
+        updateIcon()
+    }
+
+    private func updateIcon() {
+        guard let button = item.button, let glyph else { return }
+        lastDotsOn = dotsOn
+        let showMic = dotsOn && manager.isEnabled(.microphone)
+        // No input device: no mic dot (it would claim an open mic).
+        let hasMic = showMic && MicrophoneModule.defaultInputDevice() != nil
+        let showJiggler = dotsOn && manager.isEnabled(.jiggler)
+
+        // The microphone is watched only while its dot is shown.
+        if showMic { micWatcher.start() } else { micWatcher.stop() }
+
+        let micOpen = hasMic ? !(microphone?.isMuted ?? false) : nil
+        let jigglerOn = showJiggler ? (jiggler?.isActive ?? false) : nil
+        if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn { return }
+        shown = (micOpen, jigglerOn)
+
+        guard micOpen != nil || jigglerOn != nil else {
+            item.length = NSStatusItem.squareLength
+            button.image = glyph
+            button.setAccessibilityValue(nil)
+            return
+        }
+        item.length = NSStatusItem.variableLength
+        button.image = Self.icon(glyph: glyph, micOpen: micOpen, jigglerOn: jigglerOn)
+
+        var states: [String] = []
+        if let jigglerOn {
+            states.append(jigglerOn ? String(localized: "Mouse jiggler on") : String(localized: "Mouse jiggler off"))
+        }
+        if let micOpen {
+            states.append(micOpen ? String(localized: "Microphone on") : String(localized: "Microphone muted"))
+        }
+        button.setAccessibilityValue(states.joined(separator: ", "))
+        // State can change from elsewhere (Touch Bar, Teams, Control Center): tell VoiceOver.
+        NSAccessibility.post(element: button, notification: .valueChanged)
+    }
+
+    /// The logo in the menu bar text color plus a fixed 6 pt column for the dots, so the icon keeps
+    /// its width. 4 pt dots, 2 pt apart, 3 pt from the logo. Drawn when the menu bar draws, so it
+    /// follows light, dark and tinted menu bars.
+    private static func icon(glyph: NSImage, micOpen: Bool?, jigglerOn: Bool?) -> NSImage {
+        let glyphSize = glyph.size
+        let dot: CGFloat = 4, gap: CGFloat = 2, spacing: CGFloat = 3, column: CGFloat = 6, trailing: CGFloat = 2
+        let size = NSSize(width: glyphSize.width + spacing + column + trailing, height: glyphSize.height)
+        let image = NSImage(size: size, flipped: false) { _ in
+            let glyphRect = NSRect(origin: .zero, size: glyphSize)
+            glyph.draw(in: glyphRect)
+            NSColor.labelColor.set()
+            glyphRect.fill(using: .sourceAtop)
+
+            let x = glyphSize.width + spacing + (column - dot) / 2
+            let mid = size.height / 2
+            let marks: [(Bool?, NSRect, NSColor)] = [
+                (micOpen, NSRect(x: x, y: mid + gap / 2, width: dot, height: dot), .systemOrange),
+                (jigglerOn, NSRect(x: x, y: mid - gap / 2 - dot, width: dot, height: dot), .systemBlue),
+            ]
+            for case let (on?, rect, color) in marks {
+                if on {
+                    color.setFill()
+                    NSBezierPath(ovalIn: rect).fill()
+                } else {
+                    color.setStroke()
+                    let ring = NSBezierPath(ovalIn: rect.insetBy(dx: 0.5, dy: 0.5))
+                    ring.lineWidth = 1
+                    ring.stroke()
+                }
+            }
+            return true
+        }
+        image.accessibilityDescription = "Penknife"
+        return image
     }
 
     /// Opens the menu from the keyboard shortcut.

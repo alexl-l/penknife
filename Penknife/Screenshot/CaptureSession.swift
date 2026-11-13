@@ -530,7 +530,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             guard let self else { return }
             self.capturing = false
             guard let image else {
-                HUD.shared.show(String(localized: "Couldn't take the screenshot"))
+                HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
+                                kind: .error, category: .screenshot)
                 self.session.cancel()
                 return
             }
@@ -563,7 +564,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             guard let self else { return }
             self.capturing = false
             guard let image else {
-                HUD.shared.show(String(localized: "Couldn't take the screenshot"))
+                HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
+                                kind: .error, category: .screenshot)
                 self.session.cancel()
                 return
             }
@@ -965,7 +967,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             announce(String(localized: "Screenshot saved"))
             session.cancel()
         } catch {
-            HUD.shared.show(String(localized: "Couldn't save the screenshot in \(folder.lastPathComponent)"))
+            HUD.shared.show(String(localized: "Couldn't save the screenshot"), detail: folder.lastPathComponent,
+                            symbol: "exclamationmark.triangle.fill", kind: .error, category: .screenshot)
         }
     }
 }

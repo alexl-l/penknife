@@ -1,40 +1,101 @@
 import AppKit
 
-/// Short on-screen confirmation ("Microphone muted"), also announced to VoiceOver.
-/// One reused panel; it costs nothing while hidden. How long it stays is a setting (R-19).
+/// Which feature an alert belongs to; each type can be hidden in Settings (R-20).
+enum AlertCategory: String, CaseIterable, Identifiable {
+    case jiggler, microphone, screenshot, clipboard, music
+
+    var id: String { rawValue }
+    var key: String { "alerts.\(rawValue)" }
+
+    var title: String {
+        switch self {
+        case .jiggler: String(localized: "Mouse jiggler")
+        case .microphone: String(localized: "Microphone")
+        case .screenshot: String(localized: "Screenshots")
+        case .clipboard: String(localized: "Clipboard")
+        case .music: String(localized: "Music")
+        }
+    }
+
+    var isShown: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+}
+
+/// What the alert says, which sets the symbol color. State is also in the text, never only in color (R-19).
+enum AlertKind {
+    case on, off, error, permission
+
+    var color: NSColor {
+        switch self {
+        case .on, .permission: .systemBlue
+        case .off: .secondaryLabelColor
+        case .error: .systemYellow
+        }
+    }
+}
+
+/// Short confirmation in a Liquid Glass capsule at the top right, under the menu bar, like the
+/// macOS 26 volume and brightness indicator (R-20). Always announced to VoiceOver, even when the
+/// alert type is hidden. The panel exists only while an alert is on screen.
 final class HUD {
     static let shared = HUD()
 
     static let durationKey = "hud.duration"
-    static let durations: [Double] = [2, 4, 8, 15]
+    static let durations: [Double] = [1, 2, 4, 8, 15]
     static var duration: Double {
         let value = UserDefaults.standard.double(forKey: durationKey)
         return value > 0 ? value : 4
     }
 
     private var panel: NSPanel?
-    /// Display options the panel was built with, to rebuild it when they change.
-    private var builtFor: (reduceTransparency: Bool, increaseContrast: Bool)?
-    private let label = NSTextField(labelWithString: "")
     private var hideWork: DispatchWorkItem?
+    /// Bumped on every show, so a fade-out that finishes late doesn't close a newer alert.
+    private var generation = 0
 
-    func show(_ message: String) {
-        let panel = currentPanel()
-        label.stringValue = message
-        label.setAccessibilityLabel(message)
-        let size = label.fittingSize
-        let frame = NSRect(x: 0, y: 0, width: size.width + 32, height: size.height + 20)
-        if let screen = NSScreen.main?.visibleFrame {
-            panel.setFrame(frame.offsetBy(dx: screen.midX - frame.width / 2, dy: screen.minY + screen.height * 0.18), display: true)
-        }
-        panel.alphaValue = 1
-        panel.orderFrontRegardless()
+    private static let singleHeight: CGFloat = 44
+    private static let doubleHeight: CGFloat = 56
+    private static let maxWidth: CGFloat = 360
+    private static let margin: CGFloat = 12
+    private static let edge: CGFloat = 16
 
+    func show(_ title: String, detail: String? = nil, symbol: String, kind: AlertKind, category: AlertCategory) {
+        let spoken = [title, detail].compactMap { $0 }.joined(separator: ". ")
         NSAccessibility.post(
-            element: label,
+            element: NSApp as Any,
             notification: .announcementRequested,
-            userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.high.rawValue]
+            userInfo: [.announcement: spoken, .priority: NSAccessibilityPriorityLevel.high.rawValue]
         )
+        guard category.isShown else { return }
+
+        generation += 1
+        let content = makeContent(title: title, detail: detail, symbol: symbol, kind: kind, spoken: spoken)
+        let height = detail == nil ? Self.singleHeight : Self.doubleHeight
+        let width = min(max(height, content.fittingSize.width), Self.maxWidth)
+        let background = makeBackground(content: content, cornerRadius: detail == nil ? height / 2 : 16)
+
+        let mouse = NSEvent.mouseLocation
+        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main else { return }
+        let area = screen.visibleFrame
+        let frame = NSRect(x: area.maxX - width - Self.edge, y: area.maxY - Self.margin - height, width: width, height: height)
+
+        let panel = self.panel ?? makePanel()
+        self.panel = panel
+        panel.contentView = background
+        // Also while fading out: the new alert takes over in place, without sliding in again.
+        let wasVisible = panel.isVisible
+        let reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        if wasVisible || reduceMotion {
+            panel.setFrame(frame, display: true)
+        } else {
+            panel.setFrame(frame.offsetBy(dx: 0, dy: 6), display: true)
+        }
+        if !wasVisible { panel.alphaValue = 0 }
+        panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+            if !wasVisible && !reduceMotion { panel.animator().setFrame(frame, display: true) }
+        }
 
         hideWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.hide() }
@@ -46,69 +107,98 @@ final class HUD {
         guard let panel else { return }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             panel.orderOut(nil)
+            self.panel = nil
             return
         }
+        let shown = generation
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.25
+            context.duration = 0.2
             panel.animator().alphaValue = 0
-        } completionHandler: {
-            MainActor.assumeIsolated { panel.orderOut(nil) }
+        } completionHandler: { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, self.generation == shown else { return }
+                panel.orderOut(nil)
+                self.panel = nil
+            }
         }
     }
 
-    private func currentPanel() -> NSPanel {
-        let workspace = NSWorkspace.shared
-        let options = (workspace.accessibilityDisplayShouldReduceTransparency, workspace.accessibilityDisplayShouldIncreaseContrast)
-        if let panel, let builtFor, builtFor == options { return panel }
-        panel?.orderOut(nil)
-        builtFor = options
-        let panel = makePanel(reduceTransparency: options.0, increaseContrast: options.1)
-        self.panel = panel
-        return panel
-    }
-
-    private func makePanel(reduceTransparency: Bool, increaseContrast: Bool) -> NSPanel {
+    private func makePanel() -> NSPanel {
         let panel = NSPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         panel.level = .statusBar
         panel.isOpaque = false
         panel.backgroundColor = .clear
         panel.ignoresMouseEvents = true
-        panel.hasShadow = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle]
-
-        let background: NSView
-        if reduceTransparency || increaseContrast {
-            background = NSView()
-            background.wantsLayer = true
-            background.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        } else {
-            let effect = NSVisualEffectView()
-            effect.material = .hudWindow
-            effect.state = .active
-            background = effect
-        }
-        background.wantsLayer = true
-        background.layer?.cornerRadius = 10
-        background.layer?.masksToBounds = true
-        if increaseContrast {
-            background.layer?.borderWidth = 1
-            background.layer?.borderColor = NSColor.labelColor.cgColor
-        }
-        background.setAccessibilityElement(true)
-        background.setAccessibilityRole(.group)
-
-        label.font = .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
-        label.textColor = .labelColor
-        label.alignment = .center
-        label.setAccessibilityElement(true)
-        label.removeFromSuperview()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        background.addSubview(label)
-        NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: background.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: background.centerYAnchor),
-        ])
-        panel.contentView = background
+        panel.hasShadow = false
+        panel.isReleasedWhenClosed = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .transient, .ignoresCycle, .fullScreenAuxiliary]
         return panel
+    }
+
+    private func makeContent(title: String, detail: String?, symbol: String, kind: AlertKind, spoken: String) -> NSView {
+        let icon = NSImageView()
+        icon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        icon.symbolConfiguration = .init(pointSize: 18, weight: .medium)
+        icon.contentTintColor = kind.color
+
+        let titleLabel = label(title, font: .systemFont(ofSize: 13, weight: .medium), color: .labelColor)
+        let texts = NSStackView(views: [titleLabel])
+        texts.orientation = .vertical
+        texts.alignment = .leading
+        texts.spacing = 1
+        if let detail {
+            texts.addArrangedSubview(label(detail, font: .systemFont(ofSize: 11), color: .secondaryLabelColor))
+        }
+
+        let row = NSStackView(views: [icon, texts])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        row.edgeInsets = NSEdgeInsets(top: 0, left: 14, bottom: 0, right: 16)
+        row.setAccessibilityElement(true)
+        row.setAccessibilityRole(.staticText)
+        row.setAccessibilityLabel(spoken)
+        return row
+    }
+
+    private func label(_ text: String, font: NSFont, color: NSColor) -> NSTextField {
+        let field = NSTextField(labelWithString: text)
+        field.font = font
+        field.textColor = color
+        field.lineBreakMode = .byTruncatingTail
+        field.maximumNumberOfLines = 1
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        field.setAccessibilityElement(false)
+        return field
+    }
+
+    /// Glass by default; an opaque capsule under Reduce Transparency, outlined under Increase Contrast.
+    private func makeBackground(content: NSView, cornerRadius: CGFloat) -> NSView {
+        let workspace = NSWorkspace.shared
+        let increaseContrast = workspace.accessibilityDisplayShouldIncreaseContrast
+        if !workspace.accessibilityDisplayShouldReduceTransparency && !increaseContrast {
+            let glass = NSGlassEffectView()
+            glass.cornerRadius = cornerRadius
+            glass.contentView = content
+            return glass
+        }
+        let solid = NSView()
+        solid.wantsLayer = true
+        solid.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        solid.layer?.cornerRadius = cornerRadius
+        solid.layer?.masksToBounds = true
+        if increaseContrast {
+            solid.layer?.borderWidth = 1
+            solid.layer?.borderColor = NSColor.labelColor.cgColor
+        }
+        content.translatesAutoresizingMaskIntoConstraints = false
+        solid.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: solid.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: solid.trailingAnchor),
+            content.topAnchor.constraint(equalTo: solid.topAnchor),
+            content.bottomAnchor.constraint(equalTo: solid.bottomAnchor),
+        ])
+        return solid
     }
 }

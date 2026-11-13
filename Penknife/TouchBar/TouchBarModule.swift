@@ -29,8 +29,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private var clockTimer: Timer?
     private var dateTimer: Timer?
     private var showingDate = false
-    private var micListener: AudioObjectPropertyListenerBlock?
-    private var micDevice: AudioObjectID?
+    private lazy var micWatcher = MicrophoneWatcher { [weak self] in self?.updateMicrophone() }
     private var cpuTimer: Timer?
     private var screensAsleep = false
 
@@ -255,7 +254,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
             batterySource = source
         }
-        watchMicrophone()
+        micWatcher.start()
         trackJiggler()
     }
 
@@ -271,7 +270,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         showingDate = false
         cpuTimer?.invalidate()
         cpuTimer = nil
-        unwatchMicrophone()
+        micWatcher.stop()
     }
 
     // MARK: Weather and CPU
@@ -349,33 +348,6 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         barView?.button(Item.microphone.rawValue)?.show(
             symbol: muted ? "mic.slash.fill" : "mic.fill",
             label: muted ? String(localized: "Microphone, muted") : String(localized: "Microphone, on"))
-    }
-
-    /// Mute changes from anywhere (Teams, Control Center) update the button.
-    private func watchMicrophone() {
-        unwatchMicrophone()
-        guard let device = MicrophoneModule.defaultInputDevice() else { return }
-        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
-            MainActor.assumeIsolated { self?.updateMicrophone() }
-        }
-        for selector in [kAudioDevicePropertyMute, kAudioDevicePropertyVolumeScalar] {
-            var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioDevicePropertyScopeInput,
-                                                     mElement: kAudioObjectPropertyElementMain)
-            AudioObjectAddPropertyListenerBlock(device, &address, .main, listener)
-        }
-        micDevice = device
-        micListener = listener
-    }
-
-    private func unwatchMicrophone() {
-        guard let micDevice, let micListener else { return }
-        for selector in [kAudioDevicePropertyMute, kAudioDevicePropertyVolumeScalar] {
-            var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioDevicePropertyScopeInput,
-                                                     mElement: kAudioObjectPropertyElementMain)
-            AudioObjectRemovePropertyListenerBlock(micDevice, &address, .main, micListener)
-        }
-        self.micDevice = nil
-        self.micListener = nil
     }
 
     // MARK: Clock

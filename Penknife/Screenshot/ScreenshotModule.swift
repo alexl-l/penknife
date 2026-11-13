@@ -81,7 +81,8 @@ final class ScreenshotModule: Module {
                 do {
                     images = try await ScreenGrabber.captureAll()
                 } catch {
-                    HUD.shared.show(String(localized: "Couldn't take the screenshot"))
+                    HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
+                                    kind: .error, category: .screenshot)
                     return
                 }
             }
@@ -98,7 +99,9 @@ final class ScreenshotModule: Module {
     private func requestPermission() {
         let defaults = UserDefaults.standard
         if defaults.bool(forKey: Self.askedKey) {
-            HUD.shared.show(String(localized: "Allow Penknife in Screen & System Audio Recording, then reopen Penknife"))
+            HUD.shared.show(String(localized: "Screen Recording needed"),
+                            detail: String(localized: "Allow Penknife, then reopen it"),
+                            symbol: "lock.fill", kind: .permission, category: .screenshot)
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
                 NSWorkspace.shared.open(url)
             }

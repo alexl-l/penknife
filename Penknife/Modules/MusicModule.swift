@@ -146,7 +146,8 @@ final class MusicModule: Module {
         guard let bundleID = player.bundleID,
               NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty else { return false }
         guard let url = player.url else {
-            HUD.shared.show(String(localized: "\(player.title) is not installed"))
+            HUD.shared.show(String(localized: "\(player.title) is not installed"), symbol: "exclamationmark.triangle.fill",
+                            kind: .error, category: .music)
             return true
         }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())

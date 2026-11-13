@@ -27,6 +27,8 @@ struct ModulesTab: View {
                             set: { jiggler.followsLock = $0 }
                         ))
                         .disabled(!manager.isEnabled(.jiggler))
+                        JigglerIntervalPicker { jiggler.intervalChanged() }
+                            .disabled(!manager.isEnabled(.jiggler))
                         JigglerKeyPicker()
                             .disabled(!manager.isEnabled(.jiggler))
                     }
@@ -239,6 +241,21 @@ private struct BlockAppleMusicNote: View {
              : "Paused automatically while Apple Music or iTunes is your music player.")
             .font(.caption)
             .foregroundStyle(.secondary)
+    }
+}
+
+/// Time without input before the jiggler moves the mouse (R-23).
+private struct JigglerIntervalPicker: View {
+    @AppStorage(JigglerModule.intervalKey) private var interval = 10.0
+    let changed: () -> Void
+
+    var body: some View {
+        Picker("Move the mouse after", selection: $interval) {
+            ForEach(JigglerModule.intervals, id: \.self) { seconds in
+                Text(Duration.seconds(seconds), format: .units(allowed: [.minutes, .seconds], width: .wide)).tag(seconds)
+            }
+        }
+        .onChange(of: interval) { changed() }
     }
 }
 

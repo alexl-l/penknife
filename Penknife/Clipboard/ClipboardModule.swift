@@ -175,7 +175,8 @@ final class ClipboardModule: Module {
 
         guard paste, Self.pastes else { return }
         guard Permissions.shared.ensureAccessibility() else {
-            HUD.shared.show(String(localized: "Copied. To paste it too, Penknife needs Accessibility."))
+            HUD.shared.show(String(localized: "Copied"), detail: String(localized: "To paste it too, allow Accessibility"),
+                             symbol: "doc.on.clipboard.fill", kind: .permission, category: .clipboard)
             return
         }
         // ⌘V only once the app that was in front when the panel opened has the keyboard back;

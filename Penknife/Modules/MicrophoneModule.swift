@@ -30,7 +30,7 @@ final class MicrophoneModule: Module {
 
     func toggle() {
         guard let device = Self.defaultInputDevice() else {
-            HUD.shared.show(String(localized: "No microphone found"))
+            HUD.shared.show(String(localized: "No microphone found"), symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
             return
         }
         let mute = !isMuted
@@ -49,7 +49,11 @@ final class MicrophoneModule: Module {
             }
         }
 
-        HUD.shared.show(mute ? String(localized: "Microphone muted") : String(localized: "Microphone unmuted"))
+        if mute {
+            HUD.shared.show(String(localized: "Microphone muted"), symbol: "mic.slash.fill", kind: .off, category: .microphone)
+        } else {
+            HUD.shared.show(String(localized: "Microphone unmuted"), symbol: "mic.fill", kind: .on, category: .microphone)
+        }
     }
 
     // MARK: Apps
@@ -135,5 +139,75 @@ final class MicrophoneModule: Module {
         var address = address(selector, device)
         var value = value
         AudioObjectSetPropertyData(device, &address, 0, nil, UInt32(MemoryLayout<T>.size), &value)
+    }
+}
+
+/// Calls `onChange` when the default input is muted or unmuted from anywhere (Penknife, Teams,
+/// Control Center) or when the default input device changes. CoreAudio listeners cost nothing
+/// between changes. Used by the Touch Bar button and the menu bar dot.
+final class MicrophoneWatcher {
+    private let onChange: () -> Void
+    private var device: AudioObjectID?
+    private var deviceListener: AudioObjectPropertyListenerBlock?
+    private var defaultListener: AudioObjectPropertyListenerBlock?
+
+    init(onChange: @escaping () -> Void) {
+        self.onChange = onChange
+    }
+
+    var isWatching: Bool { defaultListener != nil }
+
+    func start() {
+        guard !isWatching else { return }
+        var address = Self.defaultInputAddress
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            MainActor.assumeIsolated {
+                self?.watchDevice()
+                self?.onChange()
+            }
+        }
+        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
+        defaultListener = listener
+        watchDevice()
+    }
+
+    func stop() {
+        unwatchDevice()
+        guard let defaultListener else { return }
+        var address = Self.defaultInputAddress
+        AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, defaultListener)
+        self.defaultListener = nil
+    }
+
+    private static let defaultInputAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioHardwarePropertyDefaultInputDevice, mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain)
+
+    private static let selectors = [kAudioDevicePropertyMute, kAudioDevicePropertyVolumeScalar]
+
+    private func watchDevice() {
+        unwatchDevice()
+        guard let device = MicrophoneModule.defaultInputDevice() else { return }
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.onChange() }
+        }
+        for selector in Self.selectors {
+            var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioDevicePropertyScopeInput,
+                                                     mElement: kAudioObjectPropertyElementMain)
+            AudioObjectAddPropertyListenerBlock(device, &address, .main, listener)
+        }
+        self.device = device
+        deviceListener = listener
+    }
+
+    private func unwatchDevice() {
+        guard let device, let deviceListener else { return }
+        for selector in Self.selectors {
+            var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioDevicePropertyScopeInput,
+                                                     mElement: kAudioObjectPropertyElementMain)
+            AudioObjectRemovePropertyListenerBlock(device, &address, .main, deviceListener)
+        }
+        self.device = nil
+        self.deviceListener = nil
     }
 }

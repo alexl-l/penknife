@@ -3,6 +3,7 @@ import SwiftUI
 struct GeneralTab: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @AppStorage(HUD.durationKey) private var hudDuration = 4.0
+    @AppStorage(StatusMenu.dotsKey) private var statusDots = true
     private var permissions = Permissions.shared
 
     private var version: String {
@@ -16,13 +17,23 @@ struct GeneralTab: View {
                     .onChange(of: launchAtLogin) { _, on in
                         LaunchAtLogin.isEnabled = on
                     }
-                Picker("Show confirmations for", selection: $hudDuration) {
-                    ForEach(HUD.durations, id: \.self) { seconds in
-                        Text("\(Int(seconds)) seconds").tag(seconds)
-                    }
-                }
+                Toggle("Show status dots in the menu bar", isOn: $statusDots)
             } footer: {
                 Text("The language follows the system (Spanish or English).")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Picker("Show alerts for", selection: $hudDuration) {
+                    ForEach(HUD.durations, id: \.self) { seconds in
+                        Text(Duration.seconds(seconds), format: .units(allowed: [.seconds], width: .wide)).tag(seconds)
+                    }
+                }
+                ForEach(AlertCategory.allCases) { AlertToggle(category: $0) }
+            } header: {
+                Text("Alerts")
+            } footer: {
+                Text("VoiceOver announces them even when they are hidden.")
                     .foregroundStyle(.secondary)
             }
 
@@ -60,6 +71,21 @@ struct GeneralTab: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Show or hide one type of alert (R-20).
+private struct AlertToggle: View {
+    let category: AlertCategory
+    @AppStorage private var shown: Bool
+
+    init(category: AlertCategory) {
+        self.category = category
+        _shown = AppStorage(wrappedValue: true, category.key)
+    }
+
+    var body: some View {
+        Toggle(category.title, isOn: $shown)
     }
 }
 
