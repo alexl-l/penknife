@@ -1,0 +1,29 @@
+# Build
+build/
+DerivedData/
+*.xcarchive
+*.dSYM*
+.build/
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+
+# Secrets and certificates (never commit)
+*.p12
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+*.pem
+*.key
+.env
+.env.*
+Secrets.xcconfig
+Local.xcconfig
+
+# Sparkle private key
+sparkle_private_key*
+
+# macOS
+.DS_Store
