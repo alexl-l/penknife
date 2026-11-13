@@ -1,0 +1,27 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "CFBundleDisplayName": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife"
+          }
+        }
+      }
+    },
+    "NSAppleEventsUsageDescription": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife sincroniza el micrófono con Google Meet en Chrome."
+          }
+        }
+      },
+      "comment": "Privacy - AppleEvents Sending Usage Description"
+    }
+  }
+}
