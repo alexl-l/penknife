@@ -37,7 +37,7 @@ enum JigglerKey: String, CaseIterable, Identifiable {
     var presses: Int { self == .capsLock ? 2 : 1 }
 }
 
-/// Mouse jiggler (R-3): while active, nudges the mouse after a chosen time without input (R-23).
+/// Mouse jiggler (R-3): while active, nudges the mouse after a chosen time without input (R-24).
 /// Optionally follows the screen lock: off when the Mac locks, on when it unlocks (and at launch).
 /// No event tap and no 1 s polling: it reads the system idle time and sleeps until the
 /// earliest moment the next jiggle could be due (at most one wakeup per interval).
@@ -65,7 +65,7 @@ final class JigglerModule: Module {
     static let intervalKey = "jiggler.interval"
     static let intervals: [TimeInterval] = [10, 30, 60, 120, 300]
 
-    /// Seconds without input before the mouse moves (R-23). Anything not offered in Settings means 10 s.
+    /// Seconds without input before the mouse moves (R-24). Anything not offered in Settings means 10 s.
     private var idleThreshold: TimeInterval {
         let value = UserDefaults.standard.double(forKey: Self.intervalKey)
         return Self.intervals.contains(value) ? value : 10

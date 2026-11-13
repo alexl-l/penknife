@@ -244,7 +244,7 @@ private struct BlockAppleMusicNote: View {
     }
 }
 
-/// Time without input before the jiggler moves the mouse (R-23).
+/// Time without input before the jiggler moves the mouse (R-24).
 private struct JigglerIntervalPicker: View {
     @AppStorage(JigglerModule.intervalKey) private var interval = 10.0
     let changed: () -> Void

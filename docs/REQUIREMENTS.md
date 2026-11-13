@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-23 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied) and installed (2026-11-13), pending the user's test; not committed. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
+Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **Next: R-25** (Touch Bar icons that follow state, battery toggle/long press, color mode settings), approved to build by the user (2026-11-13); first check whether macOS notifies brightness / keyboard light changes. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -31,7 +31,7 @@ Phase 3 (2026-11-13): clipboard history (R-7) built as its own module, reviewed 
 OWN IMPLEMENTATION WRITTEN FROM SCRATCH (confirmed 2026-11-13): MTMR is only a reference for how to call Apple's private Touch Bar APIs; no MTMR code is copied (if that ever seems necessary, `legal-advisor` first). When phase 2 is done, MTMR and Hammerspoon are uninstalled.
 Reproduce the current MTMR setup (see the dotfiles repo, `macos/mtmr/`): 12 equal-width buttons, battery · brightness · keyboard light · jiggler · mic · screenshot · end of day · music ‖ weather · CPU temp · volume · time.
 - Brightness / keyboard light / volume open a slider from their button position (left half opens rightwards, right half leftwards); slider and close ✕ are one gray element, full bar height, round white knob, track tinted with the item color; closes ~0.4 s after release (at most 1 s after the last change; user found 4 s too slow after touching it, 2026-11-13) or after 4 s if untouched; ✕ closes it.
-- Battery tap cycles icon colors: own colors → all white → rainbow left to right (including texts).
+- Battery tap cycles icon colors: own colors → all white → rainbow left to right (including texts). CHANGING (R-25, 2026-11-13): the tap will toggle percentage ↔ battery icon; the color modes move to a long press.
 - Time in 12 h (h:mm); tap shows the date as DD/MM/YY for 4 s, tap again hides it.
 - EASTER EGG (user, 2026-11-13, changed): long press on the time: the penknife (own drawing: red handle, silver blade) writes "Hello Penknife!" in calligraphy (Snell Roundhand) with its tip gliding along a smoothed copy of the ink path (moving average, ~3 s), turns and slashes it right to left; the halves drift apart and the buttons fade back (~5 s). Reduce Motion: static text. A tap ends it. Pac-Man version and confetti marquee discarded.
 - No loading placeholders (no hourglass).
@@ -145,7 +145,15 @@ THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) 
 - MENU BAR DOTS (IMPERATIVE): two small dots stacked beside the menu bar icon. User's spec (2026-11-13): TOP = MICROPHONE, BOTTOM = MOUSE JIGGLER, always in those slots; each with its own color; a dot shows only while its function is on, otherwise nothing (one, the other, both or none). Reason: the user can't tell whether the jiggler is on without waiting for the mouse to move. Reviewed by `ux-ui-designer`. Chosen after a live demo (2026-11-13, variant 3): both dots always visible, filled = on, 1 pt ring = off. Mic: orange (as Apple's mic indicator), filled = mic open, ring = muted. Mouse: system blue, filled = jiggler on, ring = off. 4 pt dots, 2 pt gap, 3 pt right of the glyph, fixed-width column. Same look under Increase Contrast (the outlined version was "horrible"). Green (= camera on Apple) and purple discarded. VoiceOver: status item value states both ("Mouse jiggler on, microphone muted"). Setting to hide the dots.
 - Alert types (agreed): mouse jiggler, microphone, screenshots, clipboard, music; turning a type off hides all its alerts, errors included.
 
-**R-23 Jiggler interval** — agreed (2026-11-13), IMPERATIVE
+**R-25 Touch Bar icons that follow state; battery button** — agreed, approved to build (2026-11-13), not started
+The user loved that the jiggler icon changes with its state; ALL ICONS SHOULD DO THE SAME.
+- Screen brightness: many rays when high (`sun.max`), few when low (`sun.min`). Keyboard light: same idea, 2–3 levels. Volume: 3/2/1 waves, crossed speaker when muted. CPU temperature (our proposal): thermometer fills with the temperature. Music: different static icon while playing vs paused (note with waves / plain note); no animation (battery).
+- Battery TAP toggles percentage ↔ battery icon that fills/empties (remembered). Icon color: green > 50 %, yellow 20–50 %, red < 20 % (our thresholds, red explicitly asked here), bolt while charging. Only in multicolor mode: in monochrome and rainbow the battery follows the mode's color.
+- Battery LONG PRESS (several seconds) cycles the color mode: multicolor → monochrome → rainbow.
+- Settings: monochrome color (user picks it; today all white) and the default mode (monochrome, rainbow, multicolor).
+- Open: does macOS notify brightness / keyboard light changes made with the keys? If not, refresh when our sliders change and when the Touch Bar reappears, never polling every few seconds. Check before designing.
+
+**R-24 Jiggler interval** — agreed (2026-11-13), IMPERATIVE
 THE TIME WITHOUT INPUT BEFORE THE JIGGLER MOVES THE MOUSE MUST BE A SETTING (today fixed at 10 s). Options agreed: 10 s (default), 30 s, 1 min, 2 min, 5 min.
 
 **R-21 App icon** — agreed (2026-11-13), IMPERATIVE
@@ -159,7 +167,7 @@ THE SETTINGS WINDOW CAN BE RESIZED AND LONG TABS SCROLL; the size and position a
 - Modules tab: one section per module, options flush inside it, as System Settings does (user approved, 2026-11-13). Colored icon tiles offered, not chosen.
 
 **R-23 Game (easter egg)** — idea, TO EVALUATE LATER (user, 2026-11-13)
-Holding the battery button for several seconds starts a small Touch Bar game: jump over obstacles or dodge them. Which game, controls and scoring still to decide with the user. Not started.
+MOVED (2026-11-13): a VERY long press on the time/date button (longer than the easter egg's) starts a small Touch Bar game; the battery long press now changes the color mode (R-25). Original idea: holding the battery button for several seconds starts a small Touch Bar game: jump over obstacles or dodge them. Which game, controls and scoring still to decide with the user. Not started.
 
 ## Rejected / out of scope
 - Fan control (MacFanPro stays out; risky SMC writes).
