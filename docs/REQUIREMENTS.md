@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 2 done** (2026-11-13). Next: phase 3, clipboard (R-7); also pending R-20 alerts redesign and uninstalling MTMR + Hammerspoon.
+Status: **phase 3 done** (2026-11-13, clipboard committed). Next: phase 4, screenshots (R-8); also pending R-20 alerts redesign and uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -23,7 +23,7 @@ Phase 2 progress (2026-11-13): Touch Bar module built and installed (battery, br
 - Music (R-5), Block Apple Music (R-6), CPU temperature (R-9) and weather (R-13) built and installed (2026-11-13), each its own module; values also shown in the menu. Reviewed (security, accessibility, performance, QA; fixes applied). Tested by the user and committed (2026-11-13).
 - Player choices: see R-5 (configurable list, 2026-11-13). Play/pause, next and previous also have shortcuts (no default keys). Tap on weather refreshes it (or opens Location settings if denied). Temperatures follow the system unit, shown as "54°".
 
-Phase 3 progress (2026-11-13): clipboard history (R-7) built and installed as its own module; reviewed (security, performance, accessibility; fixes applied); tested and approved by the user.
+Phase 3 (2026-11-13): clipboard history (R-7) built as its own module, reviewed (security, performance, accessibility; fixes applied), tested, approved and committed. Not verified hands-on by us: pasting with/without formatting (user to confirm).
 
 ## Requirements
 
