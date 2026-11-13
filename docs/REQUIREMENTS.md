@@ -2,14 +2,20 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **agreed, not started** (user said not to code until they say go).
+Status: **phase 1 in progress** (user said go on 2026-11-13).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
 2. Touch Bar (R-1) or F-keys (R-2), music (R-5, R-6), CPU temperature (R-9). `legal-advisor` before reusing MTMR code.
 3. Clipboard (R-7).
 4. Screenshots (R-8).
-Speed test (R-10) and weather (R-13) fit in any phase. Before making the repo public: license + legal review.
+Speed test (R-10) and weather (R-13) fit in any phase.
+
+Phase 1 progress (2026-11-13): built, installed in /Applications and reviewed (security, accessibility, performance; fixes applied). Code not committed yet.
+- Pending: user's hands-on test (QA agent could not drive the UI: no Accessibility for its shell); logo (menu bar uses an SF Symbol placeholder); test Settings memory release after closing.
+- Interim behavior: screenshot = system area capture to clipboard until R-8; "Native dialogs" module off by default until the Touch Bar uses it (phase 2).
+- Added for R-19: confirmation HUD duration setting (2/4/8/15 s, default 4 s); Window menu General/Modules/Shortcuts with ⌘1–⌘3.
+- Open question: default F-key shortcuts clash with system functions on Macs without Touch Bar (accessibility review); kept as the user's Hammerspoon keys. Before making the repo public: license + legal review.
 
 ## Requirements
 

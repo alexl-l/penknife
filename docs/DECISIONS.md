@@ -18,3 +18,14 @@
 - **Accessibility**: global `accessibility-reviewer` agent reviews every UI change (R-19).
 - **Shortcuts: KeyboardShortcuts library** (sindresorhus, MIT; 2026-11-13): native recorder control, keyboard and VoiceOver accessible, avoids writing our own. Add its license notice to the app.
 - **Weather: Open-Meteo** (2026-11-13): free for non-commercial use, no key (nothing secret in the repo), data CC BY 4.0 (attribution required). If Penknife ever becomes commercial, check their terms with `legal-advisor`.
+- **Project setup** (2026-11-13): hand-written Xcode project with a synchronized `Penknife/` folder (new files need no project edits), Swift 6 with MainActor default isolation, AppKit `NSStatusItem` + `NSMenu` (native keyboard menu) and SwiftUI views inside an `NSTabViewController` toolbar window for Settings (the SwiftUI `Settings` scene can't be opened reliably from a menu bar app). String Catalogs for es/en. Bundle id `io.github.alexl-l.Penknife`.
+- **Signing certificate created** (2026-11-13): self-signed "Penknife Local Signing" (10 years) in the login keychain, trusted for code signing. `scripts/install.sh` builds Release, signs with it (hardened runtime) and installs to /Applications. The private key exists only in the keychain.
+- **Jiggler without event tap** (2026-11-13): reads system idle time (`CGEventSource.secondsSinceLastEventType`) and sleeps with a one-shot timer until the next jiggle could be due; no Input Monitoring permission, ≤1 wakeup per ~10 s while on, none while off. Same movement as Hammerspoon (3 px square + Caps Lock twice).
+- **Lock screen** (2026-11-13): private `SACLockScreenImmediate` (login.framework, what the Apple menu uses, no permission); falls back to posting ⌃⌘Q.
+- **Menu shortcuts paused while the menu is open**: KeyboardShortcuts requires it (events get buffered during menu tracking).
+- **Hammerspoon coexistence**: both register the same F keys; only one gets them. Quit Hammerspoon to use Penknife's shortcuts; MTMR still depends on it for music and dialogs until phase 2.
+- **Launch at login only from /Applications** (2026-11-13): the first registration came from the Debug build in `build/`. Now only the /Applications copy registers, and it re-registers if its path changed. The user's choice is stored separately (`launchAtLogin.enabled`, default on).
+- **Settings window built on open, released on close** (2026-11-13): SwiftUI tabs took RSS from ~15 MB to ~60 MB. Idle: 0 % CPU, 0 wakeups, ~11 MB footprint.
+- **Accessibility prompt once per launch**: actions that need it don't re-prompt on every press; Settings → General has the button.
+- **Meet sync matches `https://meet.google.com/` by prefix** so no other tab gets the script. Known limit: it relies on the English aria-label "Turn on microphone".
+- **QA agents can't drive the UI** unless their shell (Terminal/Claude) has Accessibility; hands-on UI checks fall to the user or need that permission.
