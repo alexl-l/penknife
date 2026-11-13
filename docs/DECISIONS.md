@@ -17,3 +17,4 @@
 - **Public repo hygiene** (2026-11-13): git author is `alexl-l <53312543+alexl-l@users.noreply.github.com>` (history rewritten, repo-local config set); `.gitignore` excludes builds, xcuserdata, certificates and secrets. Never commit keys, certificates, personal paths or emails. License pending (MIT likely; check MTMR obligations with `legal-advisor`).
 - **Accessibility**: global `accessibility-reviewer` agent reviews every UI change (R-19).
 - **Shortcuts: KeyboardShortcuts library** (sindresorhus, MIT; 2026-11-13): native recorder control, keyboard and VoiceOver accessible, avoids writing our own. Add its license notice to the app.
+- **Weather: Open-Meteo** (2026-11-13): free for non-commercial use, no key (nothing secret in the repo), data CC BY 4.0 (attribution required). If Penknife ever becomes commercial, check their terms with `legal-advisor`.

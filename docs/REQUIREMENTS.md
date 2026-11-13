@@ -62,9 +62,11 @@ Minimum possible CPU/RAM/battery: event-driven over polling, timers aligned to w
 **R-12 Settings** — agreed
 A settings window to configure everything, designed so others could use it if published.
 
-**R-13 Weather** — pending (changed 2026-11-13)
-Weather on the Touch Bar. User first chose Apple's WeatherKit, but it needs the paid Apple Developer Program, which the user won't pay. Source to be decided (proposal: Open-Meteo, free, no account or key).
-- Needs location permission. Refresh ~30 min (our choice).
+**R-13 Weather** — agreed (changed 2026-11-13)
+Weather on the Touch Bar from Open-Meteo (free, no account or API key). Replaces the first choice, Apple's WeatherKit, which needs the paid developer account.
+- Location from macOS (location permission); only rounded coordinates are sent.
+- Refresh ~30 min (our choice); no request while the module is off or the Mac sleeps.
+- Show the data attribution ("Weather data by Open-Meteo.com", CC BY 4.0) in Settings/About.
 
 **R-14 Menu bar icon** — agreed
 Only the logo, no data next to it.
