@@ -11,6 +11,46 @@
         }
       }
     },
+    "%@, pinned": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, fijado"
+          }
+        }
+      }
+    },
+    "%lld MB": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld MB"
+          }
+        }
+      }
+    },
+    "%lld files: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld archivos: %@"
+          }
+        }
+      }
+    },
+    "%lld results": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld resultados"
+          }
+        }
+      }
+    },
     "%lld seconds": {
       "localizations": {
         "es": {
@@ -71,6 +111,16 @@
         }
       }
     },
+    "At the pointer": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Junto al puntero"
+          }
+        }
+      }
+    },
     "Battery %@. Tap to change the icon colors.": {
       "localizations": {
         "es": {
@@ -101,12 +151,62 @@
         }
       }
     },
+    "CPU temperature": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura de la CPU"
+          }
+        }
+      }
+    },
+    "CPU temperature not available": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura de la CPU no disponible"
+          }
+        }
+      }
+    },
+    "CPU temperature: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Temperatura de la CPU: %@"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar"
+          }
+        }
+      }
+    },
     "Caps Lock (twice)": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Bloq Mayús (dos veces)"
+          }
+        }
+      }
+    },
+    "Center of the screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Centro de la pantalla"
           }
         }
       }
@@ -151,6 +251,36 @@
         }
       }
     },
+    "Clear History…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar historial…"
+          }
+        }
+      }
+    },
+    "Clear the clipboard history?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Borrar el historial del portapapeles?"
+          }
+        }
+      }
+    },
+    "Clipboard history": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historial del portapapeles"
+          }
+        }
+      }
+    },
     "Close": {
       "localizations": {
         "es": {
@@ -191,6 +321,26 @@
         }
       }
     },
+    "Command Shift Delete": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comando Mayúsculas Borrar"
+          }
+        }
+      }
+    },
+    "Copied. To paste it too, Penknife needs Accessibility.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiado. Para pegarlo también, Penknife necesita Accesibilidad."
+          }
+        }
+      }
+    },
     "Copy": {
       "localizations": {
         "es": {
@@ -201,42 +351,32 @@
         }
       }
     },
-    "CPU temperature": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temperatura de la CPU"
-          }
-        }
-      }
-    },
-    "CPU temperature not available": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temperatura de la CPU no disponible"
-          }
-        }
-      }
-    },
-    "CPU temperature: %@": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Temperatura de la CPU: %@"
-          }
-        }
-      }
-    },
     "Cut": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cortar"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar"
+          }
+        }
+      }
+    },
+    "Deleted": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminado"
           }
         }
       }
@@ -271,12 +411,32 @@
         }
       }
     },
+    "Files": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivos"
+          }
+        }
+      }
+    },
     "Fog": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Niebla"
+          }
+        }
+      }
+    },
+    "Fonts, bold and colors. ⇧↩ in the history does the opposite once.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuentes, negritas y colores. ⇧↩ en el historial hace lo contrario esa vez."
           }
         }
       }
@@ -297,6 +457,56 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concedido"
+          }
+        }
+      }
+    },
+    "History": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historial"
+          }
+        }
+      }
+    },
+    "History cleared": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historial borrado"
+          }
+        }
+      }
+    },
+    "Image": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagen"
+          }
+        }
+      }
+    },
+    "In use: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En uso: %@"
+          }
+        }
+      }
+    },
+    "Keep text formatting": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener el formato del texto"
           }
         }
       }
@@ -337,6 +547,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bloquear pantalla"
+          }
+        }
+      }
+    },
+    "Memory for the history": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memoria para el historial"
           }
         }
       }
@@ -551,12 +771,32 @@
         }
       }
     },
+    "No results": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin resultados"
+          }
+        }
+      }
+    },
     "None (mouse only)": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Ninguna (solo ratón)"
+          }
+        }
+      }
+    },
+    "Nothing copied yet": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no has copiado nada"
           }
         }
       }
@@ -591,6 +831,16 @@
         }
       }
     },
+    "Open the history": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir el historial"
+          }
+        }
+      }
+    },
     "Partly cloudy": {
       "localizations": {
         "es": {
@@ -607,6 +857,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pegar"
+          }
+        }
+      }
+    },
+    "Paste after choosing an item": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar al elegir un elemento"
           }
         }
       }
@@ -657,6 +917,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permisos"
+          }
+        }
+      }
+    },
+    "Pin": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijar"
+          }
+        }
+      }
+    },
+    "Pinned": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijados"
+          }
+        }
+      }
+    },
+    "Pinned items are kept.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los elementos fijados se conservan."
+          }
+        }
+      }
+    },
+    "Pinned items are saved on this Mac and never deleted unless you remove them.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los elementos fijados se guardan en este Mac y nunca se borran salvo que los quites tú."
           }
         }
       }
@@ -731,12 +1031,42 @@
         }
       }
     },
+    "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuerda lo que copias (texto, imágenes y archivos) para buscarlo y volver a pegarlo. Las contraseñas se ignoran. Al salir solo se conservan los elementos fijados."
+          }
+        }
+      }
+    },
     "Screenshot": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Captura de pantalla"
+          }
+        }
+      }
+    },
+    "Search": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar"
+          }
+        }
+      }
+    },
+    "Search the clipboard history": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar en el historial del portapapeles"
           }
         }
       }
@@ -831,6 +1161,16 @@
         }
       }
     },
+    "Text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto"
+          }
+        }
+      }
+    },
     "The language follows the system (Spanish or English).": {
       "localizations": {
         "es": {
@@ -887,6 +1227,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deshacer"
+          }
+        }
+      }
+    },
+    "Unpin": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dejar de fijar"
+          }
+        }
+      }
+    },
+    "Unpinned": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya no está fijado"
           }
         }
       }
@@ -967,6 +1327,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ventana"
+          }
+        }
+      }
+    },
+    "⌘%lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘%lld"
           }
         }
       }

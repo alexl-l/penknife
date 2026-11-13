@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             microphone,
             LockScreenModule(jiggler: jiggler),
             ScreenshotModule(),
+            ClipboardModule(),
             music,
             BlockAppleMusicModule(),
             cpu,

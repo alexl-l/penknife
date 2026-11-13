@@ -23,6 +23,8 @@ Phase 2 progress (2026-11-13): Touch Bar module built and installed (battery, br
 - Music (R-5), Block Apple Music (R-6), CPU temperature (R-9) and weather (R-13) built and installed (2026-11-13), each its own module; values also shown in the menu. Reviewed (security, accessibility, performance, QA; fixes applied). Tested by the user and committed (2026-11-13).
 - Player choices: see R-5 (configurable list, 2026-11-13). Play/pause, next and previous also have shortcuts (no default keys). Tap on weather refreshes it (or opens Location settings if denied). Temperatures follow the system unit, shown as "54°".
 
+Phase 3 progress (2026-11-13): clipboard history (R-7) built and installed as its own module; reviewed (security, performance, accessibility; fixes applied); tested and approved by the user.
+
 ## Requirements
 
 **R-1 Touch Bar** — agreed
@@ -62,6 +64,11 @@ History with search, pin the most used items, global shortcut to open it. Skip c
 - Manual clear: one item or the whole history.
 - Shortcut customizable, default ⌃⌥V.
 - PINNED ITEMS ARE NEVER DELETED, NOT BY RESTART, LIMIT OR "CLEAR HISTORY"; ONLY WHEN THE USER REMOVES THEM MANUALLY. They are saved to disk (app's Application Support, owner-only permissions) and do not count toward the memory limit.
+- Panel (our choices, 2026-11-13, pending the user's design approval): floating glass panel that doesn't take Penknife to the front, so the paste lands in the app you were in. Search field on top, "Pinned" then "History", app icon / image thumbnail per row. Opens centered like Spotlight or at the pointer (setting). Clicking outside or Esc closes it.
+- Keys: ↑↓ move, Return pastes, ⌥Return only copies, ⌘1–⌘9 paste that row, ⌘P pin/unpin, ⌘⌫ delete, ⌘⇧⌫ clear history (asks first). Right-click menu with the same actions.
+- Text formatting configurable (user, 2026-11-13): "Keep text formatting" (on by default) pastes with fonts/bold/colors, off pastes plain text; ⇧Return in the panel does the opposite once (our choice). Row icons 18 pt (user asked for smaller).
+- Panel design approved by the user (2026-11-13: "lo veo muy muy bien").
+- Settings: memory limit (25/50/100/250/500 MB), "Paste after choosing an item" (on; needs Accessibility, otherwise it only copies and says so), where it opens, clear history. Turning the module off empties the history (pins stay).
 
 **R-8 Screenshots (Lightshot)** — agreed (updated 2026-11-13)
 Select an area, annotate (arrows, text, highlight), copy or save. NOTHING is uploaded to the web.
@@ -127,6 +134,7 @@ THE APP MUST HAVE ITS OWN ICON (user doesn't like it having none): app icon (Fin
 
 **R-22 Settings window** — agreed (2026-11-13), IMPERATIVE
 THE SETTINGS WINDOW CAN BE RESIZED AND LONG TABS SCROLL; the size and position are remembered.
+- Modules tab: one section per module, options flush inside it, as System Settings does (user approved, 2026-11-13). Colored icon tiles offered, not chosen.
 
 **R-23 Game (easter egg)** — idea, TO EVALUATE LATER (user, 2026-11-13)
 Holding the battery button for several seconds starts a small Touch Bar game: jump over obstacles or dodge them. Which game, controls and scoring still to decide with the user. Not started.

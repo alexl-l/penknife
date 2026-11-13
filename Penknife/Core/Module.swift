@@ -8,6 +8,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     case microphone
     case lockScreen
     case screenshot
+    case clipboard
     case music
     case blockAppleMusic
     case cpuTemperature
@@ -23,6 +24,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: String(localized: "Microphone")
         case .lockScreen: String(localized: "Lock screen")
         case .screenshot: String(localized: "Screenshot")
+        case .clipboard: String(localized: "Clipboard history")
         case .music: String(localized: "Music")
         case .blockAppleMusic: String(localized: "Block Apple Music")
         case .cpuTemperature: String(localized: "CPU temperature")
@@ -38,6 +40,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: String(localized: "Mutes and unmutes the microphone, in sync with Microsoft Teams and Google Meet.")
         case .lockScreen: String(localized: "Turns off the mouse jiggler and locks the screen.")
         case .screenshot: String(localized: "Takes a screenshot of an area and copies it to the clipboard.")
+        case .clipboard: String(localized: "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.")
         case .music: String(localized: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.")
         case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself, e.g. with the play key.")
         case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
@@ -55,6 +58,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .microphone: "mic"
         case .lockScreen: "lock"
         case .screenshot: "camera.viewfinder"
+        case .clipboard: "list.clipboard"
         case .music: "music.note"
         case .blockAppleMusic: "nosign"
         case .cpuTemperature: "thermometer.medium"

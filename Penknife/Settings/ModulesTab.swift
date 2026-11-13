@@ -6,8 +6,9 @@ struct ModulesTab: View {
 
     var body: some View {
         Form {
-            Section {
-                ForEach(ModuleID.allCases) { id in
+            // One section per module, as System Settings groups its options.
+            ForEach(ModuleID.allCases) { id in
+                Section {
                     Toggle(isOn: Binding(
                         get: { manager.isEnabled(id) },
                         set: { manager.setEnabled(id, $0) }
@@ -25,40 +26,82 @@ struct ModulesTab: View {
                             get: { jiggler.followsLock },
                             set: { jiggler.followsLock = $0 }
                         ))
-                        .padding(.leading, 28)
                         .disabled(!manager.isEnabled(.jiggler))
                         JigglerKeyPicker()
-                            .padding(.leading, 28)
                             .disabled(!manager.isEnabled(.jiggler))
+                    }
+                    if id == .clipboard, let clipboard = manager.module(.clipboard) as? ClipboardModule {
+                        ClipboardOptions(store: clipboard.store)
+                            .disabled(!manager.isEnabled(.clipboard))
                     }
                     if id == .music {
                         PlayerPicker()
-                            .padding(.leading, 28)
                             .disabled(!manager.isEnabled(.music))
                     }
                     if id == .blockAppleMusic {
                         BlockAppleMusicNote()
-                            .padding(.leading, 28)
                             .disabled(!manager.isEnabled(.blockAppleMusic))
                     }
                     if id == .weather {
                         Text("Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                            .padding(.leading, 28)
                     }
                     if id == .touchBar {
                         AutoCloseToggle()
-                            .padding(.leading, 28)
                             .disabled(!manager.isEnabled(.touchBar))
                     }
+                } footer: {
+                    if id == ModuleID.allCases.last {
+                        Text("A module that is off uses no CPU or memory.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
-            } footer: {
-                Text("A module that is off uses no CPU or memory.")
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Clipboard history options (R-7): memory limit, paste or only copy, where the panel opens,
+/// and clearing the history (pinned items are always kept).
+private struct ClipboardOptions: View {
+    let store: ClipboardStore
+    @AppStorage(ClipboardStore.limitKey) private var limit = 100
+    @AppStorage(ClipboardModule.pasteKey) private var paste = true
+    @AppStorage(ClipboardModule.formattingKey) private var formatting = true
+    @AppStorage(ClipboardModule.positionKey) private var position = ClipboardPosition.center.rawValue
+    @State private var confirmClear = false
+
+    var body: some View {
+        Picker("Memory for the history", selection: $limit) {
+            ForEach(ClipboardStore.limits, id: \.self) { mb in
+                Text("\(mb) MB").tag(mb)
+            }
+        }
+        .onChange(of: limit) { store.trim() }
+        Toggle("Paste after choosing an item", isOn: $paste)
+        Toggle(isOn: $formatting) {
+            Text("Keep text formatting")
+            Text("Fonts, bold and colors. ⇧↩ in the history does the opposite once.")
+        }
+        Picker("Open the history", selection: $position) {
+            ForEach(ClipboardPosition.allCases, id: \.rawValue) { option in
+                Text(option.title).tag(option.rawValue)
+            }
+        }
+        LabeledContent {
+            Button("Clear History…") { confirmClear = true }
+                .disabled(store.history.isEmpty)
+        } label: {
+            Text("In use: \(ByteCountFormatter.string(fromByteCount: Int64(store.usedBytes), countStyle: .memory))")
+            Text("Pinned items are saved on this Mac and never deleted unless you remove them.")
+        }
+        .confirmationDialog("Clear the clipboard history?", isPresented: $confirmClear) {
+            Button("Clear", role: .destructive) { store.clearHistory() }
+        } message: {
+            Text("Pinned items are kept.")
+        }
     }
 }
 
