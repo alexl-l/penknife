@@ -4,12 +4,12 @@ All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that re
 
 Status: **agreed, not started** (user said not to code until they say go).
 
-## Phases
-1. Base: menu bar app, settings window, stable signing, actions (R-3), dialog handoff (R-4).
-2. Touch Bar (R-1) or F-keys (R-2) depending on the Mac; music (R-5, R-6).
+## Phases (plan agreed 2026-11-13)
+1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
+2. Touch Bar (R-1) or F-keys (R-2), music (R-5, R-6), CPU temperature (R-9). `legal-advisor` before reusing MTMR code.
 3. Clipboard (R-7).
 4. Screenshots (R-8).
-Speed test (R-10) and temperature (R-9) fit in any phase.
+Speed test (R-10) and weather (R-13) fit in any phase. Before making the repo public: license + legal review.
 
 ## Requirements
 
@@ -62,9 +62,8 @@ Minimum possible CPU/RAM/battery: event-driven over polling, timers aligned to w
 **R-12 Settings** — agreed
 A settings window to configure everything, designed so others could use it if published.
 
-**R-13 Weather** — agreed, blocked until paid Apple Developer account
-Weather on the Touch Bar from Apple's native WeatherKit (user's choice).
-- WeatherKit needs the paid Apple Developer Program (signed App ID with the WeatherKit capability) and Apple's weather attribution; with the free self-signed certificate it cannot work, so the weather button stays hidden until then.
+**R-13 Weather** — pending (changed 2026-11-13)
+Weather on the Touch Bar. User first chose Apple's WeatherKit, but it needs the paid Apple Developer Program, which the user won't pay. Source to be decided (proposal: Open-Meteo, free, no account or key).
 - Needs location permission. Refresh ~30 min (our choice).
 
 **R-14 Menu bar icon** — agreed
@@ -79,8 +78,12 @@ EVERY FUNCTION CAN BE TURNED ON/OFF AND EVERYTHING IS CUSTOMIZABLE (shortcuts in
 - Both languages: Spanish and English, following the system language.
 - Minimum macOS 26 (Tahoe), the current version on the user's Mac (our choice; analysis in DECISIONS.md).
 
-**R-17 Distribution and updates** — agreed (2026-11-13)
-Direct download (notarized, Developer ID) + Sparkle updates; manual updates until published. Mac App Store discarded: the private APIs cannot be removed without losing the core features (see DECISIONS.md).
+**R-17 Distribution and updates** — agreed (changed 2026-11-13)
+No paid Apple Developer account (user's decision). Without it there is no notarization and no Mac App Store.
+- Personal use: self-signed certificate, as now.
+- If published: open source on GitHub (build from source, or download a release that Gatekeeper warns about the first time; user opens it via System Settings → Privacy & Security → Open Anyway).
+- Updates: Sparkle (works without the paid account; its signing key never goes in the repo). Manual until published.
+- Mac App Store discarded: needs the paid account and doesn't allow the private APIs.
 
 **R-18 Open source** — agreed
 The repo may become public. NOTHING SENSITIVE CAN BE EXPOSED: no keys, certificates, passwords, personal paths, emails or personal data in code, docs or git history.
