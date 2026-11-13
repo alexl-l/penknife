@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "%@ (%@)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ (%2$@)"
+          }
+        }
+      }
+    },
     "%@ is not installed": {
       "localizations": {
         "es": {
@@ -21,12 +31,32 @@
         }
       }
     },
+    "%lld GB": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld GB"
+          }
+        }
+      }
+    },
     "%lld MB": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "%lld MB"
+          }
+        }
+      }
+    },
+    "%lld by %lld pixels": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld por %2$lld píxeles"
           }
         }
       }
@@ -101,12 +131,52 @@
         }
       }
     },
+    "Allow Penknife in Screen & System Audio Recording, then reopen Penknife": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite Penknife en Grabación de pantalla y audio del sistema y vuelve a abrir Penknife"
+          }
+        }
+      }
+    },
+    "Also used by images pasted from the clipboard history into Finder. When it is full, the oldest are deleted; a bigger image is copied only as an image. In use: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "También lo usan las imágenes del historial pegadas en Finder. Cuando se llena, se borran las más antiguas; una imagen más grande se copia solo como imagen. En uso: %@"
+          }
+        }
+      }
+    },
     "Any app (media keys)": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cualquier app (teclas multimedia)"
+          }
+        }
+      }
+    },
+    "Area: drag to select, or Return for the whole screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Área: arrastra para seleccionar o pulsa Intro para toda la pantalla"
+          }
+        }
+      }
+    },
+    "Arrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flecha"
           }
         }
       }
@@ -131,12 +201,42 @@
         }
       }
     },
+    "Black": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negro"
+          }
+        }
+      }
+    },
     "Block Apple Music": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Bloquear Apple Music"
+          }
+        }
+      }
+    },
+    "Blue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Azul"
+          }
+        }
+      }
+    },
+    "Blur": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desenfocar"
           }
         }
       }
@@ -241,6 +341,36 @@
         }
       }
     },
+    "Choose the folder for screenshots": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir la carpeta de capturas"
+          }
+        }
+      }
+    },
+    "Choose…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir…"
+          }
+        }
+      }
+    },
+    "Circle": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Círculo"
+          }
+        }
+      }
+    },
     "Clear": {
       "localizations": {
         "es": {
@@ -321,6 +451,36 @@
         }
       }
     },
+    "Color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color"
+          }
+        }
+      }
+    },
+    "Color (1–8)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color (1–8)"
+          }
+        }
+      }
+    },
+    "Color: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color: %@"
+          }
+        }
+      }
+    },
     "Command Shift Delete": {
       "localizations": {
         "es": {
@@ -351,12 +511,62 @@
         }
       }
     },
+    "Copy (⌘C)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar (⌘C)"
+          }
+        }
+      }
+    },
+    "Copy also as a file": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar también como archivo"
+          }
+        }
+      }
+    },
+    "Couldn't save the screenshot in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar la captura en %@"
+          }
+        }
+      }
+    },
+    "Couldn't take the screenshot": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo hacer la captura"
+          }
+        }
+      }
+    },
     "Cut": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Cortar"
+          }
+        }
+      }
+    },
+    "Default color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color por defecto"
           }
         }
       }
@@ -371,12 +581,32 @@
         }
       }
     },
+    "Delete these files now": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar estos archivos ahora"
+          }
+        }
+      }
+    },
     "Deleted": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Eliminado"
+          }
+        }
+      }
+    },
+    "Desktop": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escritorio"
           }
         }
       }
@@ -411,6 +641,16 @@
         }
       }
     },
+    "Extra thick": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muy grueso"
+          }
+        }
+      }
+    },
     "Files": {
       "localizations": {
         "es": {
@@ -441,6 +681,16 @@
         }
       }
     },
+    "Frozen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Congelada"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "es": {
@@ -457,6 +707,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Concedido"
+          }
+        }
+      }
+    },
+    "Green": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verde"
+          }
+        }
+      }
+    },
+    "Highlighter": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcador"
           }
         }
       }
@@ -487,6 +757,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Imagen"
+          }
+        }
+      }
+    },
+    "Image %@ at %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagen %1$@ a las %2$@"
           }
         }
       }
@@ -541,12 +821,32 @@
         }
       }
     },
+    "Live": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En vivo"
+          }
+        }
+      }
+    },
     "Lock screen": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Bloquear pantalla"
+          }
+        }
+      }
+    },
+    "Medium": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mediano"
           }
         }
       }
@@ -681,6 +981,16 @@
         }
       }
     },
+    "Moved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Movida"
+          }
+        }
+      }
+    },
     "Moves the mouse after 10 seconds without activity, so you stay active.": {
       "localizations": {
         "es": {
@@ -781,6 +1091,16 @@
         }
       }
     },
+    "No tool: drag to move the selection": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin herramienta: arrastra para mover la selección"
+          }
+        }
+      }
+    },
     "None (mouse only)": {
       "localizations": {
         "es": {
@@ -841,6 +1161,16 @@
         }
       }
     },
+    "Orange": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Naranja"
+          }
+        }
+      }
+    },
     "Partly cloudy": {
       "localizations": {
         "es": {
@@ -887,6 +1217,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "En pausa: Apple Music es tu reproductor de música."
+          }
+        }
+      }
+    },
+    "Pen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lápiz"
           }
         }
       }
@@ -1001,6 +1341,16 @@
         }
       }
     },
+    "Purple": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Morado"
+          }
+        }
+      }
+    },
     "Quit Penknife": {
       "localizations": {
         "es": {
@@ -1021,12 +1371,52 @@
         }
       }
     },
+    "Rectangle": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rectángulo"
+          }
+        }
+      }
+    },
+    "Red": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rojo"
+          }
+        }
+      }
+    },
     "Redo": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Rehacer"
+          }
+        }
+      }
+    },
+    "Redo (⇧⌘Z)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehacer (⇧⌘Z)"
+          }
+        }
+      }
+    },
+    "Redone: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rehecho: %@"
           }
         }
       }
@@ -1041,12 +1431,102 @@
         }
       }
     },
+    "Save": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar"
+          }
+        }
+      }
+    },
+    "Save (⌘S)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar (⌘S)"
+          }
+        }
+      }
+    },
+    "Save to": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar en"
+          }
+        }
+      }
+    },
+    "Screen while selecting": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla al seleccionar"
+          }
+        }
+      }
+    },
     "Screenshot": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Captura de pantalla"
+          }
+        }
+      }
+    },
+    "Screenshot %@ at %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura de pantalla %1$@ a las %2$@"
+          }
+        }
+      }
+    },
+    "Screenshot copied": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura copiada"
+          }
+        }
+      }
+    },
+    "Screenshot saved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura guardada"
+          }
+        }
+      }
+    },
+    "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captura. Arrastra para seleccionar un área, Espacio para elegir una ventana, Intro para toda la pantalla, Esc para cancelar."
+          }
+        }
+      }
+    },
+    "Scrolling up makes lines and text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desplazar hacia arriba hace las líneas y el texto"
           }
         }
       }
@@ -1077,6 +1557,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Seleccionar todo"
+          }
+        }
+      }
+    },
+    "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Nothing is uploaded.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona un área o, con Espacio, una ventana. Márcala con flechas, texto, marcador, rectángulos, círculos, lápiz o desenfoque y luego cópiala o guárdala. No se sube nada a internet."
+          }
+        }
+      }
+    },
+    "Selected %lld by %lld pixels. Tools: V, R, O, P, H, T, B. Copy with Command C, save with Command S.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionados %1$lld por %2$lld píxeles. Herramientas: V, R, O, P, H, T, B. Copia con Comando C, guarda con Comando S."
           }
         }
       }
@@ -1141,6 +1641,26 @@
         }
       }
     },
+    "Size (- and +, or scroll)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño (- y +, o desplazando)"
+          }
+        }
+      }
+    },
+    "Size: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño: %@"
+          }
+        }
+      }
+    },
     "Snow": {
       "localizations": {
         "es": {
@@ -1151,12 +1671,12 @@
         }
       }
     },
-    "Takes a screenshot of an area and copies it to the clipboard.": {
+    "Space for images to paste as files": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Captura un área de la pantalla y la copia al portapapeles."
+            "value": "Espacio para imágenes que se pegan como archivo"
           }
         }
       }
@@ -1177,6 +1697,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "El idioma sigue al del sistema (español o inglés)."
+          }
+        }
+      }
+    },
+    "Thick": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grueso"
+          }
+        }
+      }
+    },
+    "Thicker": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más gruesos"
+          }
+        }
+      }
+    },
+    "Thin": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fino"
+          }
+        }
+      }
+    },
+    "Thinner": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más delgados"
           }
         }
       }
@@ -1227,6 +1787,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Deshacer"
+          }
+        }
+      }
+    },
+    "Undo (⌘Z)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshacer (⌘Z)"
+          }
+        }
+      }
+    },
+    "Undone: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshecho: %@"
           }
         }
       }
@@ -1321,6 +1901,16 @@
         }
       }
     },
+    "White": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blanco"
+          }
+        }
+      }
+    },
     "Window": {
       "localizations": {
         "es": {
@@ -1331,12 +1921,52 @@
         }
       }
     },
+    "Window %lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ventana %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Window: click a window, or use the arrows and Return": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ventana: haz clic en una ventana o usa las flechas e Intro"
+          }
+        }
+      }
+    },
+    "Yellow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Amarillo"
+          }
+        }
+      }
+    },
     "⌘%lld": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "⌘%lld"
+          }
+        }
+      }
+    },
+    "⌘V in a Finder folder creates the PNG file; other apps paste the image.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘V en una carpeta de Finder crea el archivo PNG; las demás apps pegan la imagen."
           }
         }
       }

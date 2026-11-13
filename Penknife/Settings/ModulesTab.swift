@@ -34,6 +34,10 @@ struct ModulesTab: View {
                         ClipboardOptions(store: clipboard.store)
                             .disabled(!manager.isEnabled(.clipboard))
                     }
+                    if id == .screenshot {
+                        ScreenshotOptions()
+                            .disabled(!manager.isEnabled(.screenshot))
+                    }
                     if id == .music {
                         PlayerPicker()
                             .disabled(!manager.isEnabled(.music))
@@ -106,6 +110,92 @@ private struct ClipboardOptions: View {
 }
 
 /// Sliders and the date close by themselves, or only when tapped (R-19).
+/// Screenshot options (R-8): frozen or live screen while selecting, and where Save puts files.
+private struct ScreenshotOptions: View {
+    @AppStorage(ScreenshotModule.modeKey) private var mode = ScreenshotMode.frozen.rawValue
+    @AppStorage(ScreenshotModule.folderKey) private var folderPath: String?
+    @AppStorage(ScreenshotModule.scrollKey) private var scrollUpThinner = false
+    @AppStorage(CapturePalette.colorKey) private var defaultColor = 4
+    @AppStorage(ScreenshotModule.copyFileKey) private var copyFile = true
+    @AppStorage(PastableImage.limitKey) private var pastableLimit = 500
+    @State private var pastableUsed = PastableImage.used
+
+    var body: some View {
+        Picker("Screen while selecting", selection: $mode) {
+            ForEach(ScreenshotMode.allCases, id: \.rawValue) { option in
+                Text(option.title).tag(option.rawValue)
+            }
+        }
+        Picker("Default color", selection: $defaultColor) {
+            ForEach(CapturePalette.colors.indices, id: \.self) { index in
+                Label {
+                    Text(CapturePalette.name(index))
+                } icon: {
+                    Image(nsImage: Self.swatch(CapturePalette.colors[index]))
+                }
+                .tag(index)
+            }
+        }
+        Picker("Scrolling up makes lines and text", selection: $scrollUpThinner) {
+            Text("Thicker").tag(false)
+            Text("Thinner").tag(true)
+        }
+        Toggle(isOn: $copyFile) {
+            Text("Copy also as a file")
+            Text("⌘V in a Finder folder creates the PNG file; other apps paste the image.")
+        }
+        Picker(selection: $pastableLimit) {
+            ForEach(PastableImage.limits, id: \.self) { mb in
+                Text(mb >= 1000 ? "\(mb / 1000) GB" : "\(mb) MB").tag(mb)
+            }
+        } label: {
+            Text("Space for images to paste as files")
+            Text("Also used by images pasted from the clipboard history into Finder. When it is full, the oldest are deleted; a bigger image is copied only as an image. In use: \(ByteCountFormatter.string(fromByteCount: pastableUsed, countStyle: .file))")
+        }
+        .onChange(of: pastableLimit) {
+            PastableImage.makeRoom()
+            pastableUsed = PastableImage.used
+        }
+        Button("Delete these files now") {
+            PastableImage.removeAll()
+            pastableUsed = 0
+        }
+        .disabled(pastableUsed == 0)
+        LabeledContent("Save to") {
+            HStack {
+                Text(FileManager.default.displayName(atPath: ScreenshotModule.folder.path))
+                    .foregroundStyle(.secondary)
+                    .id(folderPath)
+                Button("Choose…", action: choose)
+                    .accessibilityLabel(String(localized: "Choose the folder for screenshots"))
+            }
+        }
+    }
+
+    /// A small color dot for the menu (menus show images, not SwiftUI shapes).
+    private static func swatch(_ color: NSColor) -> NSImage {
+        NSImage(size: NSSize(width: 12, height: 12), flipped: false) { rect in
+            color.setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 0.5, dy: 0.5)).fill()
+            NSColor.separatorColor.setStroke()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 0.5, dy: 0.5)).stroke()
+            return true
+        }
+    }
+
+    private func choose() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = ScreenshotModule.folder
+        panel.prompt = String(localized: "Choose")
+        if panel.runModal() == .OK, let url = panel.url {
+            folderPath = url.path
+        }
+    }
+}
+
 private struct AutoCloseToggle: View {
     @AppStorage(TouchBarModule.autoCloseKey) private var autoClose = true
 

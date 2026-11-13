@@ -3,7 +3,7 @@ import IOKit
 
 /// CPU temperature (R-9): read-only, the same value MacFanPro shows: SMC key `TCMb` truncated to
 /// whole degrees; without it, the hottest core key. Reads only when asked (the Touch Bar every
-/// ~30 s, the menu when it opens); the SMC connection is closed while the module is off.
+/// ~10 s, the menu when it opens); the SMC connection is closed while the module is off.
 final class CPUTemperatureModule: Module {
     let id = ModuleID.cpuTemperature
     let actions: [ModuleAction] = []

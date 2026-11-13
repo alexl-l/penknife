@@ -39,7 +39,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .jiggler: String(localized: "Moves the mouse after 10 seconds without activity, so you stay active.")
         case .microphone: String(localized: "Mutes and unmutes the microphone, in sync with Microsoft Teams and Google Meet.")
         case .lockScreen: String(localized: "Turns off the mouse jiggler and locks the screen.")
-        case .screenshot: String(localized: "Takes a screenshot of an area and copies it to the clipboard.")
+        case .screenshot: String(localized: "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Nothing is uploaded.")
         case .clipboard: String(localized: "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.")
         case .music: String(localized: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.")
         case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself, e.g. with the play key.")

@@ -18,7 +18,8 @@ enum ScreenLocker {
     }
 }
 
-/// Lock screen (R-3): turns the jiggler off first, so it never runs while locked.
+/// Lock screen (R-3): turns the jiggler off first when it follows the lock (setting), so it
+/// doesn't run while locked.
 final class LockScreenModule: Module {
     let id = ModuleID.lockScreen
     private weak var jiggler: JigglerModule?
@@ -30,32 +31,11 @@ final class LockScreenModule: Module {
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .lockScreen, title: String(localized: "Lock screen"), symbol: id.symbol,
                       perform: { [weak self] in
-                          self?.jiggler?.deactivate()
+                          if let jiggler = self?.jiggler, jiggler.followsLock { jiggler.deactivate() }
                           ScreenLocker.lock()
                       })]
     }
 
     func start() {}
     func stop() {}
-}
-
-/// Screenshot shortcut (R-3). Until the editor (R-8) exists it uses the system's interactive
-/// area capture and copies the result to the clipboard. One short-lived process per press.
-final class ScreenshotModule: Module {
-    let id = ModuleID.screenshot
-
-    var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .screenshot, title: String(localized: "Screenshot"), symbol: id.symbol,
-                      perform: { Self.capture() })]
-    }
-
-    func start() {}
-    func stop() {}
-
-    private static func capture() {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        process.arguments = ["-i", "-c"]
-        try? process.run()
-    }
 }

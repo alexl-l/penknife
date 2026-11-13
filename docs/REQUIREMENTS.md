@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 3 done** (2026-11-13, clipboard committed). Next: phase 4, screenshots (R-8); also pending R-20 alerts redesign and uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
+Status: **phase 3 done** (2026-11-13, clipboard committed). **Phase 4 done** (2026-11-13): screenshots (R-8) built, reviewed (security, performance, accessibility), tested and approved by the user, committed. Next: also pending R-20 alerts redesign and uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -42,7 +42,7 @@ For each F key choose either a Penknife action or its native function (brightnes
 
 **R-3 Actions (from Hammerspoon)** — agreed
 Mouse jiggler (toggle; moves the mouse after 10 s idle), microphone toggle synced with Microsoft Teams and Google Meet, lock screen, screenshot shortcut.
-- Jiggler follows the lock (changed 2026-11-13): turns off whenever the Mac locks (Penknife's lock action turns it off before locking) and on whenever it unlocks; launching at login counts as unlocking. On by default, can be turned off in Settings → Modules. Replaces the "End of day" action, which was removed.
+- Jiggler follows the lock (changed 2026-11-13): turns off whenever the Mac locks (Penknife's lock action turns it off before locking) and on whenever it unlocks; launching at login counts as unlocking. On by default, can be turned off in Settings → Modules; when off, neither locking nor Penknife's lock action touch the jiggler (user, 2026-11-13). Replaces the "End of day" action, which was removed.
 - After moving, the jiggler presses a key so Teams and Slack also see activity; THE KEY IS CONFIGURABLE (user, 2026-11-13): Caps Lock pressed twice (default, user likes it: harmless), Shift, Control, Option, F18 or none.
 - If the Accessibility permission is missing, the jiggler says so instead of doing nothing. Current behavior and shortcuts: dotfiles `macos/hammerspoon/init.lua`.
 
@@ -68,15 +68,29 @@ History with search, pin the most used items, global shortcut to open it. Skip c
 - Keys: ↑↓ move, Return pastes, ⌥Return only copies, ⌘1–⌘9 paste that row, ⌘P pin/unpin, ⌘⌫ delete, ⌘⇧⌫ clear history (asks first). Right-click menu with the same actions.
 - Text formatting configurable (user, 2026-11-13): "Keep text formatting" (on by default) pastes with fonts/bold/colors, off pastes plain text; ⇧Return in the panel does the opposite once (our choice). Row icons 18 pt (user asked for smaller).
 - Panel design approved by the user (2026-11-13: "lo veo muy muy bien").
+- Idea for later (user, 2026-11-13): select several history items (e.g. holding Shift) and paste them together, e.g. into a Finder folder. Check keyboard/VoiceOver accessibility before designing.
+- Images chosen from the history while Finder is in front are pasted as a PNG file into the open folder (user, 2026-11-13); in other apps as the image. Files already paste as files.
 - Settings: memory limit (25/50/100/250/500 MB), "Paste after choosing an item" (on; needs Accessibility, otherwise it only copies and says so), where it opens, clear history. Turning the module off empties the history (pins stay).
 
 **R-8 Screenshots (Lightshot)** — agreed (updated 2026-11-13)
-Select an area, annotate (arrows, text, highlight), copy or save. NOTHING is uploaded to the web.
+Select an area, annotate, copy or save. NOTHING is uploaded to the web.
 - Shortcut customizable, default F1 (note: on Macs without Touch Bar F1 is brightness; R-2 decides which wins).
-- Two buttons: **Copy** (also ⌘C) and **Save** to a folder chosen in Settings (also ⌘S, our choice).
+- Selection: click and drag an area, as Lightshot. Pressing Space while selecting switches to window mode: the window under the pointer is highlighted and a click selects it (user, 2026-11-13); Space again goes back to area.
+- Screen frozen at the moment of the shortcut or live while selecting: both, setting (user, 2026-11-13). Default frozen (our choice, as Lightshot).
+- Tools (user, 2026-11-13): arrow, text, highlighter, rectangle, ellipse (circle), free pen, blur (hide sensitive data). Pixelate replaced by a real blur (user: the squares looked ugly). Blur look chosen by the user (2026-11-13): frosted glass (rounded corners, light tint, hairline of light, soft shadow); icon `aqi.medium` (diffuse dots; the drop looked like a color picker). Rhombus/triangle not needed (user, unsure, left out).
+- Colors (user, 2026-11-13: more variety, red too): red, orange, yellow, green, blue, purple, white, black. The starting color is a setting (default blue; user wants to pick e.g. red).
+- Size (user, 2026-11-13): line thickness of every shape and text size are adjustable (4 sizes, keys - and +, scroll wheel). Scroll up = thicker by default; the direction is a setting (user: some people want it reversed).
+- Color and size choices: the open row replaces its button (no option shown twice) and closes when choosing a tool or clicking the screenshot (user, 2026-11-13).
+- ⌘Z/⇧⌘Z behave exactly like the toolbar's undo/redo, also after typing text (bug fixed 2026-11-13).
+- Holding Space must not flicker (key repeat ignored). In window mode the desktop itself can be captured (pointer over no window), as macOS does.
+- A selected window is captured as macOS does: the window alone with its rounded corners and colored title bar buttons (transparent corners). The chosen window gets the focus behind the scenes before it is captured, so it looks active (user, 2026-11-13), not the screen area it covers. Window and desktop capture and the blur approved by the user (2026-11-13).
+- Paste into Finder folders (user, 2026-11-13): Copy also offers the screenshot as a PNG file, so ⌘V in a Finder folder creates it; other apps still paste the image. Setting "Copy also as a file", on by default. Images copied by other apps are not touched (too invasive). Implemented before the user approved it (our mistake); user keeps it to test (2026-11-13).
+- Those files are kept (so several can be pasted later) until the space the user gives them is full (100 MB–2 GB, default 500 MB, our choice); then the oldest are deleted. An image bigger than that space is copied only as an image. Not deleted when copying something else nor after a day (user, 2026-11-13). Button to delete them now.
+- Two buttons: **Copy** (also ⌘C) and **Save** to a folder chosen in Settings (also ⌘S, our choice). Both close the capture (user, 2026-11-13). Esc cancels.
+- Toolbar (user chose variant B, 2026-11-13): one glass capsule below the selection (tools | color | undo/redo | Copy, Save), icons only with tooltips; moves above, or inside, when there is no room. Selected tool = filled system-blue circle. Size label "800 × 600" above the selection's top-left corner. Tool keys V arrow, T text, H highlighter, R rectangle, O ellipse, P pen, B blur (inactive while typing text). Colors 1–8.
 
 **R-9 CPU temperature** — agreed
-Read-only, same value as MacFanPro: SMC key `TCMb` truncated to whole degrees (fallback hottest core key). Refresh ~30 s. No fan control.
+Read-only, same value as MacFanPro: SMC key `TCMb` truncated to whole degrees (fallback hottest core key). Refresh every 10 s (user, 2026-11-13; was 30 s), only while shown. No fan control.
 
 **R-10 Internet speed test** — agreed
 From the menu bar, using macOS `networkQuality` (replaces Ookla Speedtest).

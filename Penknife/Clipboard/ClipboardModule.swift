@@ -117,15 +117,18 @@ final class ClipboardModule: Module {
             ?? NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         if let source, skippedApps.contains(source) { return nil }
 
+        // Only the data that will be kept is read (a screenshot can be tens of MB).
+        let imageType: NSPasteboard.PasteboardType? = types.contains(.png) ? .png : types.contains(.tiff) ? .tiff : nil
+
         if types.contains(.fileURL),
            let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
-           !urls.isEmpty {
+           !urls.isEmpty,
+           // An image Penknife also offered as a file (to paste into Finder) is kept as the image.
+           !(imageType != nil && urls.allSatisfy(PastableImage.isOurs)) {
             let key = ClipItem.fingerprint(urls.map { Data($0.path.utf8) })
             return ClipItem(id: UUID(), kind: .files, files: urls, source: source, date: .now, key: key)
         }
 
-        // Only the data that will be kept is read (a screenshot can be tens of MB).
-        let imageType: NSPasteboard.PasteboardType? = types.contains(.png) ? .png : types.contains(.tiff) ? .tiff : nil
         let hasRTF = types.contains(.rtf)
         // Documents (Word, Pages) offer text and a picture of it: rich text means it is text.
         let isText = types.contains(.string) && (imageType == nil || hasRTF)
@@ -154,7 +157,12 @@ final class ClipboardModule: Module {
             if Self.keepsFormatting != invertFormatting, let rtf = item.rtf { pasteboard.setData(rtf, forType: .rtf) }
             pasteboard.setString(item.text ?? "", forType: .string)
         case .image:
-            if let data = item.image {
+            guard let data = item.image else { break }
+            if previousApp?.bundleIdentifier == "com.apple.finder",
+               let png = PastableImage.png(from: data, type: item.imageType) {
+                // In Finder the image is pasted as a PNG file into the open folder.
+                PastableImage.copy(png, named: PastableImage.timestampName { String(localized: "Image \($0) at \($1)") })
+            } else {
                 pasteboard.setData(data, forType: NSPasteboard.PasteboardType(item.imageType ?? NSPasteboard.PasteboardType.tiff.rawValue))
             }
         case .files:

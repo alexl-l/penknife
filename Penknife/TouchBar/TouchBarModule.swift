@@ -289,7 +289,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }
     }
 
-    /// Reads the CPU temperature now and again in ~30 s, only while its button is on screen.
+    /// Reads the CPU temperature now and again in ~10 s, only while its button is on screen.
     private func updateTemperature() {
         cpuTimer?.invalidate()
         cpuTimer = nil
@@ -300,10 +300,10 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         } else {
             button.show(symbol: "thermometer.medium", text: "—", label: String(localized: "CPU temperature not available"))
         }
-        let timer = Timer(timeInterval: 30, repeats: false) { [weak self] _ in
+        let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.updateTemperature() }
         }
-        timer.tolerance = 5
+        timer.tolerance = 2
         RunLoop.main.add(timer, forMode: .common)
         cpuTimer = timer
     }
