@@ -90,6 +90,8 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             guard let self, !self.pendingLevels.isEmpty else { return }
             self.refreshLevels()
         }
+        // The hold that opened the game may never report its end (the button was hidden).
+        view.onGameEnd = { [weak self] in self?.jigglerLongPressing = false }
         view.monochromeColor = Self.monochromeColor
         view.colorMode = Self.storedColorMode
         playerID = MusicPlayer.current.id
@@ -130,6 +132,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             observers.append(center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {
                     self?.screensAsleep = asleep
+                    if asleep { self?.barView?.closeGame() }
                     self?.updateTemperature()
                     if !asleep { self?.refreshLevels() }
                 }
@@ -144,6 +147,10 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         observers.append(NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.settingsChanged() }
         })
+        // The game never keeps running behind the lock screen.
+        lockObserver = DistributedNotificationCenter.default().addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.barView?.closeGame() }
+        }
         present()
         #if DEBUG
         // Development only: `-easterEgg` plays the animation at launch, for screenshots.
@@ -163,6 +170,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             NotificationCenter.default.removeObserver($0)
         }
         observers = []
+        if let lockObserver { DistributedNotificationCenter.default().removeObserver(lockObserver) }
+        lockObserver = nil
+        barView?.closeGame()
         stopSources()
         barView?.closeSlider()
         if let bar { TouchBarPrivate.minimize(bar) }
@@ -179,6 +189,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private func minimize() {
         guard let bar else { return }
         barView?.closeSlider()
+        barView?.closeGame()
         TouchBarPrivate.minimize(bar)
     }
 
@@ -211,7 +222,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         add(.brightness, 0xFFDB00) { [weak self] in self?.openSlider($0, DisplayBrightness(), String(localized: "Brightness")) }
         add(.keyboardLight, 0x4AD1E6) { [weak self] in self?.openSlider($0, KeyboardBrightness(), String(localized: "Keyboard backlight")) }
         if isOn(.jiggler) {
-            add(.jiggler, 0x0099FF) { [weak self] _ in self?.run(.jiggler) }
+            add(.jiggler, 0x0099FF) { [weak self] _ in self?.jigglerTapped() }
         }
         if isOn(.microphone) {
             add(.microphone, 0xFF5D49) { [weak self] _ in self?.run(.microphone) }
@@ -240,8 +251,15 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             press.minimumPressDuration = 0.8
             time.addGestureRecognizer(press)
         }
-        // A hold on the old battery button may never report its end.
+        if let jiggler = barView.button(Item.jiggler.rawValue) {
+            let press = NSPressGestureRecognizer(target: self, action: #selector(jigglerLongPressed(_:)))
+            press.allowedTouchTypes = .direct
+            press.minimumPressDuration = 3
+            jiggler.addGestureRecognizer(press)
+        }
+        // A hold on the old battery or jiggler button may never report its end.
         endBatteryHold()
+        jigglerLongPressing = false
         if let battery = barView.button(Item.battery.rawValue) {
             let press = NSPressGestureRecognizer(target: self, action: #selector(batteryLongPressed(_:)))
             press.allowedTouchTypes = .direct
@@ -561,6 +579,28 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .ended, .cancelled, .failed:
             longPressing = false
             longPressEnded = Date()
+        default: break
+        }
+    }
+
+    /// Hold on the jiggler for 3 s opens the game (R-23); the release must not toggle the jiggler.
+    private var jigglerLongPressEnded = Date.distantPast
+    private var jigglerLongPressing = false
+    private var lockObserver: NSObjectProtocol?
+
+    private func jigglerTapped() {
+        if jigglerLongPressing || Date().timeIntervalSince(jigglerLongPressEnded) < 0.5 { return }
+        run(.jiggler)
+    }
+
+    @objc private func jigglerLongPressed(_ recognizer: NSPressGestureRecognizer) {
+        switch recognizer.state {
+        case .began:
+            jigglerLongPressing = true
+            barView?.playGame()
+        case .ended, .cancelled, .failed:
+            jigglerLongPressing = false
+            jigglerLongPressEnded = Date()
         default: break
         }
     }

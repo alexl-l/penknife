@@ -91,6 +91,16 @@
         }
       }
     },
+    "+%lld combo": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld combo"
+          }
+        }
+      }
+    },
     "A module that is off uses no CPU or memory.": {
       "localizations": {
         "es": {
@@ -721,6 +731,16 @@
         }
       }
     },
+    "Flat": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plano"
+          }
+        }
+      }
+    },
     "Fog": {
       "localizations": {
         "es": {
@@ -751,12 +771,32 @@
         }
       }
     },
+    "Game over · %lld points · Best %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fin · %1$lld puntos · Récord %2$lld"
+          }
+        }
+      }
+    },
     "General": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "General"
+          }
+        }
+      }
+    },
+    "Glossy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brillante"
           }
         }
       }
@@ -1207,6 +1247,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Necesita el permiso de Accesibilidad"
+          }
+        }
+      }
+    },
+    "Neon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neón"
           }
         }
       }
@@ -1861,6 +1911,16 @@
         }
       }
     },
+    "Slicing game": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Juego de cortar"
+          }
+        }
+      }
+    },
     "Snow": {
       "localizations": {
         "es": {
@@ -1877,6 +1937,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Espacio para imágenes que se pegan como archivo"
+          }
+        }
+      }
+    },
+    "Tap to play again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca para jugar otra vez"
           }
         }
       }

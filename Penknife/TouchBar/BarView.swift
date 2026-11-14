@@ -288,13 +288,50 @@ final class BarView: NSView {
         buttons.forEach { $0.isHidden = hidden }
     }
 
+    // MARK: Game (R-23)
+
+    private var game: SliceGameView?
+    var isGameOpen: Bool { game != nil }
+    /// Called after the game closes.
+    var onGameEnd: (() -> Void)?
+
+    /// Hold on the jiggler button: the slicing game takes the whole bar.
+    func playGame() {
+        guard game == nil, easterEgg == nil else { return }
+        closeSlider()
+        let view = SliceGameView(frame: bounds)
+        view.autoresizingMask = [.width, .height]
+        view.onFinish = { [weak self] in self?.endGame() }
+        addSubview(view)
+        game = view
+        stack.isHidden = true
+        view.start()
+        NSAccessibility.post(element: view, notification: .layoutChanged)
+    }
+
+    /// Closes the game if open (also when the bar hides, the screens sleep or the Mac locks).
+    func closeGame() { game?.finish() }
+
+    private func endGame() {
+        game?.removeFromSuperview()
+        game = nil
+        stack.isHidden = false
+        onGameEnd?()
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        stack.alphaValue = 0
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.35
+            stack.animator().alphaValue = 1
+        }
+    }
+
     // MARK: Easter egg
 
     private var easterEgg: EasterEggView?
 
     /// Long press on the time: "Hello Penknife!" handwritten, then slashed by a penknife.
     func playEasterEgg() {
-        guard easterEgg == nil else { return }
+        guard easterEgg == nil, game == nil else { return }
         closeSlider()
         let egg = EasterEggView(frame: bounds)
         egg.autoresizingMask = [.width, .height]
