@@ -97,6 +97,9 @@ private struct BarButtonsList: View {
     @State private var startIndex = 0
     @State private var offset: CGFloat = 0
     private let rowHeight: CGFloat = 28
+    /// Drags are measured in the list's space: in the row's own space the reference moves with
+    /// the row, so a slow drag around half a row made it jump back and forth.
+    private static let space = "barButtonsList"
 
     private var visibleCount: Int {
         order.filter { !hidden.contains($0) && isOn($0) }.count
@@ -108,6 +111,7 @@ private struct BarButtonsList: View {
                 row(item, index: index)
             }
         }
+        .coordinateSpace(.named(Self.space))
         .padding(6)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.primary.opacity(0.03)))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color.primary.opacity(0.1)))
@@ -169,7 +173,7 @@ private struct BarButtonsList: View {
     }
 
     private func dragGesture(_ item: BarItem) -> some Gesture {
-        DragGesture(minimumDistance: 3)
+        DragGesture(minimumDistance: 3, coordinateSpace: .named(Self.space))
             .onChanged { drag in
                 if dragging == nil {
                     dragging = item

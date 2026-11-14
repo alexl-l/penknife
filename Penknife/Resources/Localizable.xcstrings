@@ -1471,6 +1471,26 @@
         }
       }
     },
+    "Off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado"
+          }
+        }
+      }
+    },
+    "On": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activado"
+          }
+        }
+      }
+    },
     "One tap plays or pauses, two go to the next song, three to the previous one.": {
       "localizations": {
         "es": {

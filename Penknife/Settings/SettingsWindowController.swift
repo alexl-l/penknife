@@ -14,15 +14,19 @@ final class SettingsWindowController: NSWindowController {
         super.init(window: window)
 
         add(GeneralTab(), title: String(localized: "General"), symbol: "gearshape")
-        add(ModulesTab(manager: manager), title: String(localized: "Modules"), symbol: "square.grid.2x2")
+        add(ModulesTab(manager: manager), title: String(localized: "Modules"), symbol: "square.grid.2x2", minWidth: 680)
         add(ShortcutsTab(manager: manager), title: String(localized: "Shortcuts"), symbol: "keyboard")
 
         // Resizable; long tabs scroll. Size and position are remembered between openings.
         window.styleMask = [.titled, .closable, .resizable]
         window.isReleasedWhenClosed = false
-        window.contentMinSize = NSSize(width: 480, height: 300)
+        window.contentMinSize = NSSize(width: 680, height: 420)
         hasSavedFrame = window.setFrameUsingName(Self.frameName)
-        if !hasSavedFrame { window.setContentSize(NSSize(width: 560, height: 640)) }
+        if !hasSavedFrame { window.setContentSize(NSSize(width: 720, height: 560)) }
+        // Frames saved before the Modules sidebar (2026-11-14) are too narrow for it.
+        if let size = window.contentView?.frame.size, size.width < 680 || size.height < 420 {
+            window.setContentSize(NSSize(width: max(size.width, 720), height: max(size.height, 560)))
+        }
         window.setFrameAutosaveName(Self.frameName)
         window.onSelectTab = { [weak self] index in
             guard let self, self.tabs.tabViewItems.indices.contains(index) else { return }
@@ -33,8 +37,8 @@ final class SettingsWindowController: NSWindowController {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError() }
 
-    private func add(_ view: some View, title: String, symbol: String) {
-        let host = NSHostingController(rootView: view.frame(minWidth: 480, maxWidth: .infinity,
+    private func add(_ view: some View, title: String, symbol: String, minWidth: CGFloat = 480) {
+        let host = NSHostingController(rootView: view.frame(minWidth: minWidth, maxWidth: .infinity,
                                                             minHeight: 300, maxHeight: .infinity))
         // The user sets the size; tabs don't resize the window when switching.
         host.sizingOptions = []

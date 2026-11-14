@@ -1,80 +1,153 @@
 import SwiftUI
 
-/// Every function can be turned on and off (R-15). A module that is off uses no resources.
+/// Every function can be turned on and off (R-15). Laid out like System Settings: modules in a
+/// sidebar, the chosen one's switch, description and options on the right (user, 2026-11-14:
+/// the single long list was too big).
 struct ModulesTab: View {
     let manager: ModuleManager
+    @AppStorage("settings.selectedModule") private var selected = ModuleID.jiggler.rawValue
 
     var body: some View {
+        NavigationSplitView {
+            List(ModuleID.allCases, selection: Binding(
+                get: { ModuleID(rawValue: selected) },
+                set: { if let id = $0 { selected = id.rawValue } }
+            )) { id in
+                let on = manager.isEnabled(id)
+                Label {
+                    Text(id.title)
+                        .foregroundStyle(on ? .primary : .secondary)
+                } icon: {
+                    ModuleTile(id: id, enabled: on)
+                }
+                .tag(id)
+                .accessibilityValue(on ? Text("On") : Text("Off"))
+            }
+            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 260)
+            .toolbar(removing: .sidebarToggle)
+        } detail: {
+            ModuleDetail(manager: manager, id: ModuleID(rawValue: selected) ?? .jiggler)
+                .id(selected)
+        }
+    }
+}
+
+/// A System Settings style icon: white symbol on the module's color; gray while off.
+private struct ModuleTile: View {
+    let id: ModuleID
+    let enabled: Bool
+    var size: CGFloat = 22
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+            .fill(enabled ? id.tint.gradient : Color.gray.opacity(0.55).gradient)
+            .frame(width: size, height: size)
+            .overlay {
+                Image(systemName: id.symbol)
+                    .font(.system(size: size * 0.55, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+private extension ModuleID {
+    var tint: Color {
+        switch self {
+        case .jiggler: .blue
+        case .microphone: .orange
+        case .lockScreen: .indigo
+        case .screenshot: .purple
+        case .clipboard: .teal
+        case .music: .pink
+        case .blockAppleMusic: .red
+        case .cpuTemperature: .orange
+        case .weather: .cyan
+        case .speedTest: .green
+        case .touchBar: .gray
+        case .dialogs: .brown
+        }
+    }
+}
+
+/// The right side: the module's switch with its description, then its options.
+private struct ModuleDetail: View {
+    let manager: ModuleManager
+    let id: ModuleID
+
+    var body: some View {
+        let on = manager.isEnabled(id)
         Form {
-            // One section per module, as System Settings groups its options.
-            ForEach(ModuleID.allCases) { id in
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { manager.isEnabled(id) },
-                        set: { manager.setEnabled(id, $0) }
-                    )) {
-                        Label {
-                            Text(id.title)
-                            Text(id.summary)
-                        } icon: {
-                            Image(systemName: id.symbol)
-                                .accessibilityHidden(true)
-                        }
-                    }
-                    if id == .jiggler, let jiggler = manager.module(.jiggler) as? JigglerModule {
-                        Toggle("Turn on when unlocking, off when locking", isOn: Binding(
-                            get: { jiggler.followsLock },
-                            set: { jiggler.followsLock = $0 }
-                        ))
-                        .disabled(!manager.isEnabled(.jiggler))
-                        JigglerIntervalPicker { jiggler.intervalChanged() }
-                            .disabled(!manager.isEnabled(.jiggler))
-                        JigglerKeyPicker()
-                            .disabled(!manager.isEnabled(.jiggler))
-                    }
-                    if id == .clipboard, let clipboard = manager.module(.clipboard) as? ClipboardModule {
-                        ClipboardOptions(store: clipboard.store)
-                            .disabled(!manager.isEnabled(.clipboard))
-                    }
-                    if id == .screenshot {
-                        ScreenshotOptions()
-                            .disabled(!manager.isEnabled(.screenshot))
-                    }
-                    if id == .music {
-                        PlayerPicker()
-                            .disabled(!manager.isEnabled(.music))
-                    }
-                    if id == .blockAppleMusic {
-                        BlockAppleMusicNote()
-                            .disabled(!manager.isEnabled(.blockAppleMusic))
-                    }
-                    if id == .weather {
-                        Text("Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if id == .speedTest {
-                        Text("Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if id == .touchBar {
-                        AutoCloseToggle()
-                            .disabled(!manager.isEnabled(.touchBar))
-                        TouchBarColorOptions()
-                            .disabled(!manager.isEnabled(.touchBar))
-                        BarButtonsRow(manager: manager)
-                            .disabled(!manager.isEnabled(.touchBar))
-                    }
-                } footer: {
-                    if id == ModuleID.allCases.last {
-                        Text("A module that is off uses no CPU or memory.")
-                            .foregroundStyle(.secondary)
+            Section {
+                Toggle(isOn: Binding(
+                    get: { manager.isEnabled(id) },
+                    set: { manager.setEnabled(id, $0) }
+                )) {
+                    Label {
+                        Text(id.title).font(.headline)
+                    } icon: {
+                        ModuleTile(id: id, enabled: on, size: 28)
                     }
                 }
+            } footer: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(id.summary)
+                    if !on {
+                        Text("A module that is off uses no CPU or memory.")
+                    }
+                }
+                .foregroundStyle(.secondary)
             }
+            options
+                .disabled(!on)
         }
         .formStyle(.grouped)
+    }
+
+    @ViewBuilder private var options: some View {
+        switch id {
+        case .jiggler:
+            if let jiggler = manager.module(.jiggler) as? JigglerModule {
+                Section {
+                    Toggle("Turn on when unlocking, off when locking", isOn: Binding(
+                        get: { jiggler.followsLock },
+                        set: { jiggler.followsLock = $0 }
+                    ))
+                    JigglerIntervalPicker { jiggler.intervalChanged() }
+                    JigglerKeyPicker()
+                }
+            }
+        case .clipboard:
+            if let clipboard = manager.module(.clipboard) as? ClipboardModule {
+                Section { ClipboardOptions(store: clipboard.store) }
+            }
+        case .screenshot:
+            Section { ScreenshotOptions() }
+        case .music:
+            Section { PlayerPicker() }
+        case .blockAppleMusic:
+            Section { BlockAppleMusicNote() }
+        case .weather:
+            Section {
+                Text("Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        case .speedTest:
+            Section {
+                Text("Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        case .touchBar:
+            Section {
+                AutoCloseToggle()
+                BarButtonsRow(manager: manager)
+            }
+            Section { TouchBarColorOptions() }
+        case .microphone, .lockScreen, .cpuTemperature, .dialogs:
+            EmptyView()
+        }
     }
 }
 
