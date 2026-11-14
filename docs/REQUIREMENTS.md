@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **R-25** built, reviewed (QA, performance; fixes applied) and installed (2026-11-13); user confirmed the music icon; waiting for the rest of the hands-on test, then commit. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
+Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **R-25** (state icons, battery toggle/hold, tap click) and the smarter Apple Music block (R-6) built, reviewed (QA, performance), tested and approved by the user, committed (2026-11-13; not pushed). **Next:** user's choice; open ideas: Now Playing approach for R-6 (see R-6), Touch Bar game (long press on time). Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
