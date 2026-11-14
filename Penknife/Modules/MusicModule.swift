@@ -1,5 +1,6 @@
 import AppKit
 import CoreAudio
+import MediaPlayer
 import os
 
 /// Which app the music controls drive (R-5): any app the user picks, identified by bundle id.
@@ -78,7 +79,7 @@ final class MusicModule: Module {
     private var taps = 0
     private var tapTimer: Timer?
 
-    enum Command { case playPause, next, previous }
+    enum Command { case playPause, play, pause, next, previous }
 
     var actions: [ModuleAction] {
         [
@@ -120,7 +121,7 @@ final class MusicModule: Module {
         guard player.usesAppleEvents, let bundleID = player.bundleID else {
             guard Permissions.shared.ensureAccessibility() else { return }
             switch command {
-            case .playPause: EventPoster.media(.play)
+            case .playPause, .play, .pause: EventPoster.media(.play)
             case .next: EventPoster.media(.next)
             case .previous: EventPoster.media(.previous)
             }
@@ -128,6 +129,8 @@ final class MusicModule: Module {
         }
         let verb = switch command {
         case .playPause: "playpause"
+        case .play: "play"
+        case .pause: "pause"
         case .next: "next track"
         case .previous: "previous track"
         }
@@ -139,6 +142,15 @@ final class MusicModule: Module {
             NSAppleScript(source: source)?.executeAndReturnError(&error)
             if let error { log.error("\(source, privacy: .public): \(error, privacy: .public)") }
         }
+    }
+
+    /// Headphone clicks (R-6 Now Playing): sent only while the chosen player is running, so
+    /// connecting headphones never opens anything. Returns false when it is closed.
+    func sendFromHeadphones(_ command: Command) -> Bool {
+        guard let bundleID = MusicPlayer.current.bundleID,
+              !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty else { return false }
+        send(command)
+        return true
     }
 
     /// Opens the chosen player when it isn't running. Returns true if it did (the press only opens it).
@@ -165,6 +177,11 @@ final class MusicModule: Module {
 final class BlockAppleMusicModule: Module {
     let id = ModuleID.blockAppleMusic
 
+    private let nowPlaying: NowPlayingBridge
+    private var defaultsObserver: NSObjectProtocol?
+
+    init(music: MusicModule) { nowPlaying = NowPlayingBridge(music: music) }
+
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .allowAppleMusic, title: String(localized: "Allow Apple Music"), symbol: "music.note",
                       state: { [weak self] in self?.allowed ?? false },
@@ -179,7 +196,7 @@ final class BlockAppleMusicModule: Module {
     private var lastRouteChange = Date.distantPast
     private let log = Logger(subsystem: "Penknife", category: "BlockAppleMusic")
 
-    private static let bundleIDs: Set<String> = ["com.apple.Music", "com.apple.iTunes"]
+    nonisolated private static let bundleIDs: Set<String> = ["com.apple.Music", "com.apple.iTunes"]
     /// A click or key press this close before the launch means the user opened it.
     /// Dock/Spotlight launches measured at ~0.8 s; 3 s let a headphone click right after a
     /// menu click pass as the user's.
@@ -210,6 +227,12 @@ final class BlockAppleMusicModule: Module {
             AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
         }
         routeListener = listener
+        nowPlaying.update()
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.nowPlaying.update() }
+        }
     }
 
     func stop() {
@@ -221,6 +244,9 @@ final class BlockAppleMusicModule: Module {
             }
         }
         routeListener = nil
+        if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        defaultsObserver = nil
+        nowPlaying.unregister()
         allowed = false
     }
 
@@ -242,5 +268,72 @@ final class BlockAppleMusicModule: Module {
         log.info("Apple Music opened by itself, closed (\(reason, privacy: .public))")
         // Forced at once, as noTunes: a polite quit lets its window show up first.
         app.forceTerminate()
+    }
+}
+
+/// Penknife as the paused Now Playing app (R-6, tested with AirPods 2026-11-13): headphone
+/// clicks reach Penknife instead of launching Apple Music, and go to the chosen player.
+/// A playing app (Spotify) still takes Now Playing over while it plays. Only for players driven
+/// by Apple Events: media keys would come straight back to Penknife. Not while Apple Music is
+/// the player. No timers, no audio: only command targets.
+@MainActor
+final class NowPlayingBridge {
+    private let music: MusicModule
+    private var registeredFor: String?
+    private var targets: [(MPRemoteCommand, Any)] = []
+    private let log = Logger(subsystem: "Penknife", category: "BlockAppleMusic")
+
+    init(music: MusicModule) { self.music = music }
+
+    /// Registers, re-registers or unregisters for the current player choice.
+    func update() {
+        let player = MusicPlayer.current
+        let wanted = player.usesAppleEvents && !player.isAppleMusic ? player.bundleID : nil
+        guard wanted != registeredFor else { return }
+        unregister()
+        guard let wanted else { return }
+        register(player)
+        registeredFor = wanted
+    }
+
+    func unregister() {
+        guard registeredFor != nil else { return }
+        for (command, target) in targets {
+            command.removeTarget(target)
+            command.isEnabled = false
+        }
+        targets = []
+        let info = MPNowPlayingInfoCenter.default()
+        info.nowPlayingInfo = nil
+        info.playbackState = .stopped
+        registeredFor = nil
+        log.info("Now Playing: unregistered")
+    }
+
+    private func register(_ player: MusicPlayer) {
+        let center = MPRemoteCommandCenter.shared()
+        let map: [(MPRemoteCommand, MusicModule.Command)] = [
+            (center.togglePlayPauseCommand, .playPause),
+            (center.playCommand, .play),
+            (center.pauseCommand, .pause),
+            (center.nextTrackCommand, .next),
+            (center.previousTrackCommand, .previous),
+        ]
+        for (remote, command) in map {
+            remote.isEnabled = true
+            let target = remote.addTarget { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return .commandFailed }
+                    let sent = self.music.sendFromHeadphones(command)
+                    self.log.info("Headphone \(String(describing: command), privacy: .public): \(sent ? "sent to the player" : "ignored, player closed", privacy: .public)")
+                    return sent ? .success : .noActionableNowPlayingItem
+                }
+            }
+            targets.append((remote, target))
+        }
+        let info = MPNowPlayingInfoCenter.default()
+        info.nowPlayingInfo = [MPMediaItemPropertyTitle: player.title, MPNowPlayingInfoPropertyPlaybackRate: 0.0]
+        info.playbackState = .paused
+        log.info("Now Playing: registered for \(player.title, privacy: .public)")
     }
 }

@@ -41,7 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ScreenshotModule(),
             ClipboardModule(),
             music,
-            BlockAppleMusicModule(),
+            BlockAppleMusicModule(music: music),
             cpu,
             weather,
             touchBar,
