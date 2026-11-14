@@ -1,0 +1,167 @@
+import AppKit
+import os
+
+/// Internet speed test (R-10) with macOS `networkQuality -c`. One test at a time (~20–45 s);
+/// only the last result is kept. Nothing runs between tests; the tool is ended if the module
+/// stops or Penknife quits.
+final class SpeedTestModule: Module {
+    let id = ModuleID.speedTest
+
+    struct Result: Codable, Equatable {
+        /// Megabits per second.
+        let download: Double
+        let upload: Double
+        /// Idle latency (ping), milliseconds.
+        let latency: Double
+        /// Responsiveness under load, round-trips per minute.
+        let rpm: Int
+        let date: Date
+
+        /// Low < 300 ≤ Medium < 1000 ≤ High: the bands of the IETF responsiveness draft
+        /// networkQuality comes from (Apple doesn't publish its own cutoffs).
+        var rating: String {
+            switch rpm {
+            case ..<300: String(localized: "rating.low", defaultValue: "Low")
+            case ..<1000: String(localized: "rating.medium", defaultValue: "Medium")
+            default: String(localized: "rating.high", defaultValue: "High")
+            }
+        }
+
+        var speeds: String {
+            String(localized: "↓ \(Int(download.rounded())) Mbps · ↑ \(Int(upload.rounded())) Mbps")
+        }
+        var details: String {
+            String(localized: "Latency \(Int(latency.rounded())) ms · Responsiveness \(rating) (\(rpm) RPM)")
+        }
+    }
+
+    private static let resultKey = "speedTest.lastResult"
+
+    private(set) var isRunning = false
+    private(set) var result: Result?
+    /// Set when the last test failed; cleared when a new one starts.
+    private(set) var failed = false
+    /// The Touch Bar listens; the menu reads the state when it opens.
+    var onChange: (() -> Void)?
+
+    /// The running tool's pid, written from the background thread that waits for it;
+    /// -1 = cancelled before the pid was known (the tool is killed as soon as it starts).
+    private let pid = OSAllocatedUnfairLock<Int32>(initialState: 0)
+    private var quitObserver: NSObjectProtocol?
+    private let log = Logger(subsystem: "Penknife", category: "SpeedTest")
+
+    init() {
+        if let data = UserDefaults.standard.data(forKey: Self.resultKey) {
+            result = try? JSONDecoder().decode(Result.self, from: data)
+        }
+    }
+
+    var actions: [ModuleAction] {
+        [ModuleAction(shortcut: .speedTest, title: String(localized: "Speed test"), symbol: "speedometer") { [weak self] in
+            self?.run()
+        }]
+    }
+
+    func start() {
+        quitObserver = NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.cancel() }
+        }
+    }
+
+    func stop() {
+        if let quitObserver { NotificationCenter.default.removeObserver(quitObserver) }
+        quitObserver = nil
+        cancel()
+    }
+
+    /// Starts a test; does nothing while one is running.
+    func run() {
+        guard !isRunning else {
+            log.notice("Speed test already running; tap ignored")
+            return
+        }
+        log.notice("Speed test started")
+        isRunning = true
+        failed = false
+        onChange?()
+        HUD.shared.show(String(localized: "Testing internet speed…"), symbol: "speedometer", kind: .on, category: .speedTest)
+        let pid = self.pid
+        pid.withLock { $0 = 0 }
+        Task { [weak self] in
+            let output = await Self.measure(pid: pid)
+            self?.finish(output)
+        }
+    }
+
+    private func cancel() {
+        let active = isRunning
+        pid.withLock { running in
+            if running > 0 { kill(running, SIGTERM) } else if active { running = -1 }
+        }
+    }
+
+    private func finish(_ output: (data: Data, status: Int32)?) {
+        isRunning = false
+        // Ended by quitting or turning the module off: not a failure, the last result stays.
+        if output?.status == SIGTERM {
+            onChange?()
+            return
+        }
+        log.notice("Speed test ended, status \(output?.status ?? -1)")
+        if let output, output.status == 0, let parsed = Self.parse(output.data) {
+            result = parsed
+            failed = false
+            if let data = try? JSONEncoder().encode(parsed) {
+                UserDefaults.standard.set(data, forKey: Self.resultKey)
+            }
+            HUD.shared.show(parsed.speeds, detail: parsed.details, symbol: "speedometer", kind: .on, category: .speedTest)
+        } else {
+            failed = true
+            log.error("networkQuality failed, status \(output?.status ?? -1)")
+            HUD.shared.show(String(localized: "Speed test failed"), detail: String(localized: "Check the internet connection."),
+                            symbol: "wifi.exclamationmark", kind: .error, category: .speedTest)
+        }
+        onChange?()
+    }
+
+    /// Runs the tool on a background queue (it blocks for the whole test) and resumes when done.
+    nonisolated private static func measure(pid: OSAllocatedUnfairLock<Int32>) async -> (data: Data, status: Int32)? {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                continuation.resume(returning: runTool(pid: pid))
+            }
+        }
+    }
+
+    /// The output is read while the tool runs (it can be larger than a pipe's buffer).
+    nonisolated private static func runTool(pid: OSAllocatedUnfairLock<Int32>) -> (data: Data, status: Int32)? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/networkQuality")
+        process.arguments = ["-c"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do { try process.run() } catch { return nil }
+        pid.withLock { stored in
+            if stored == -1 { process.terminate() } // cancelled while starting
+            stored = process.processIdentifier
+        }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        pid.withLock { $0 = 0 }
+        let status = process.terminationReason == .uncaughtSignal ? SIGTERM : process.terminationStatus
+        return (data, status)
+    }
+
+    /// Keys of `networkQuality -c`: throughputs in bits/s, `base_rtt` in ms, `responsiveness` in RPM.
+    nonisolated private static func parse(_ data: Data) -> Result? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let down = (json["dl_throughput"] as? NSNumber)?.doubleValue,
+              let up = (json["ul_throughput"] as? NSNumber)?.doubleValue,
+              down > 0 || up > 0 else { return nil }
+        let latency = (json["base_rtt"] as? NSNumber)?.doubleValue ?? 0
+        let rpm = (json["responsiveness"] as? NSNumber)?.doubleValue ?? 0
+        return Result(download: down / 1_000_000, upload: up / 1_000_000, latency: latency,
+                      rpm: Int(rpm.rounded()), date: Date())
+    }
+}

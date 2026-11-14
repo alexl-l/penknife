@@ -53,6 +53,11 @@ struct ModulesTab: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    if id == .speedTest {
+                        Text("Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     if id == .touchBar {
                         AutoCloseToggle()
                             .disabled(!manager.isEnabled(.touchBar))

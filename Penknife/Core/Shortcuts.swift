@@ -18,3 +18,8 @@ extension KeyboardShortcuts.Name {
     static let previousTrack = Self("previousTrack")
     static let allowAppleMusic = Self("allowAppleMusic")
 }
+
+/// Speed test (R-10): no default key.
+extension KeyboardShortcuts.Name {
+    static let speedTest = Self("speedTest")
+}

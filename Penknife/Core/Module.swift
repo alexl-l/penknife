@@ -13,6 +13,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     case blockAppleMusic
     case cpuTemperature
     case weather
+    case speedTest
     case touchBar
     case dialogs
 
@@ -29,6 +30,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .blockAppleMusic: String(localized: "Block Apple Music")
         case .cpuTemperature: String(localized: "CPU temperature")
         case .weather: String(localized: "Weather")
+        case .speedTest: String(localized: "Speed test")
         case .touchBar: String(localized: "Touch Bar")
         case .dialogs: String(localized: "Native dialogs")
         }
@@ -45,6 +47,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself (headphones, play key). Opening it yourself works.")
         case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
         case .weather: String(localized: "Shows the current weather on the Touch Bar and in the menu, using your approximate location.")
+        case .speedTest: String(localized: "Measures download, upload, latency and responsiveness with macOS networkQuality, from the menu, the Touch Bar or a shortcut. Keeps only the last result.")
         case .touchBar: String(localized: "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, music, weather, CPU temperature, volume and time.")
         case .dialogs: String(localized: "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.")
         }
@@ -63,6 +66,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .blockAppleMusic: "nosign"
         case .cpuTemperature: "thermometer.medium"
         case .weather: "cloud.sun"
+        case .speedTest: "speedometer"
         case .touchBar: "rectangle.split.3x1"
         case .dialogs: "macwindow.on.rectangle"
         }

@@ -32,8 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let music = MusicModule()
         let cpu = CPUTemperatureModule()
         let weather = WeatherModule()
+        let speedTest = SpeedTestModule()
         let touchBar = TouchBarModule(jiggler: jiggler, microphone: microphone, dialogs: dialogs,
-                                      music: music, cpu: cpu, weather: weather)
+                                      music: music, cpu: cpu, weather: weather, speedTest: speedTest)
         manager = ModuleManager(modules: [
             jiggler,
             microphone,
@@ -44,6 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             BlockAppleMusicModule(music: music),
             cpu,
             weather,
+            speedTest,
             touchBar,
             dialogs,
         ])

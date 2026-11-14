@@ -2,7 +2,7 @@ import AppKit
 
 /// Which feature an alert belongs to; each type can be hidden in Settings (R-20).
 enum AlertCategory: String, CaseIterable, Identifiable {
-    case jiggler, microphone, screenshot, clipboard, music
+    case jiggler, microphone, screenshot, clipboard, music, speedTest
 
     var id: String { rawValue }
     var key: String { "alerts.\(rawValue)" }
@@ -14,6 +14,7 @@ enum AlertCategory: String, CaseIterable, Identifiable {
         case .screenshot: String(localized: "Screenshots")
         case .clipboard: String(localized: "Clipboard")
         case .music: String(localized: "Music")
+        case .speedTest: String(localized: "Speed test")
         }
     }
 

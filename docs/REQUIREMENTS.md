@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **R-25** (state icons, battery toggle/hold, tap click) and the smarter Apple Music block (R-6) built, reviewed (QA, performance), tested and approved by the user, committed and pushed (2026-11-13). **R-6 Now Playing** (headphone clicks go to the chosen player) built, tested, approved and committed and pushed (2026-11-13). **R-23 slicing game** built, reviewed (QA, performance), played by the user, committed (2026-11-14; not pushed). **Later (user, 2026-11-14):** lower the game's CPU while playing (~18 %) with Core Animation layers (option A, same look, est. 3–5 %); 30 fps, removing glows, and leaving it as is were the other options. **Next:** user's choice of pending items. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
+Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **R-25** (state icons, battery toggle/hold, tap click) and the smarter Apple Music block (R-6) built, reviewed (QA, performance), tested and approved by the user, committed and pushed (2026-11-13). **R-6 Now Playing** (headphone clicks go to the chosen player) built, tested, approved and committed and pushed (2026-11-13). **R-23 slicing game** built, reviewed (QA, performance), played by the user, committed (2026-11-14; not pushed). **Later (user, 2026-11-14):** lower the game's CPU while playing (~18 %) with Core Animation layers (option A, same look, est. 3–5 %); 30 fps, removing glows, and leaving it as is were the other options. **R-10 speed test** built, reviewed (QA, UX), approved (2026-11-14). **Next:** R-26 customizable Touch Bar. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -93,8 +93,19 @@ Select an area, annotate, copy or save. NOTHING is uploaded to the web.
 **R-9 CPU temperature** — agreed
 Read-only, same value as MacFanPro: SMC key `TCMb` truncated to whole degrees (fallback hottest core key). Refresh every 10 s (user, 2026-11-13; was 30 s), only while shown. No fan control.
 
-**R-10 Internet speed test** — agreed
-From the menu bar, using macOS `networkQuality` (replaces Ookla Speedtest).
+**R-10 Internet speed test** — built, approved by the user (2026-11-14)
+Measure the internet speed with macOS `networkQuality` (replaces Ookla Speedtest). Its own module (R-15), can be turned off.
+- Launch from ALL THREE (user, 2026-11-14): the menu bar menu ("Speed test" item), a Touch Bar button, and a keyboard shortcut (Settings → Shortcuts, no default key).
+- Shows EVERYTHING networkQuality gives (user's choice): download, upload, latency (idle ping) and responsiveness (RPM, with Apple's Low / Medium / High rating).
+- Only the last result is kept, with its time (user's choice); no history.
+- Our defaults (to confirm): `networkQuality -c` (machine-readable output), upload and download in parallel (~15–20 s, the tool's default); one test at a time (launching again while one runs does nothing). Menu: the last result under the item, "Testing…" while it runs. Touch Bar (user, 2026-11-14): a new button right before the time (13 buttons, slightly narrower), `speedometer` icon; while testing, a static "…" (no animation, saves CPU); afterwards "↓320 ↑45" for a while, full detail in the menu. When it finishes, a glass alert (R-20, new alert type "Speed test", can be turned off) shows the full result (user, 2026-11-14: yes). No network → a clear error in the menu and the alert. The process is ended if Penknife quits. Mbps, whole numbers.
+- USER FEEDBACK after the first build (2026-11-14), to fix:
+  - A TAP WHILE A TEST RUNS MUST NOT START ANOTHER ONE (user saw it re-trigger; logging added to find out why).
+  - THE BUTTON SHOWS DOWNLOAD, THEN UPLOAD, THEN GOES BACK TO NORMAL (it showed "↓320 ↑45" truncated: only download was visible).
+  - The "speedometer + …" testing look is "very ugly". `ux-ui-designer` proposed: testing = static `gauge.with.dots.needle.67percent` (0 CPU) or a needle sweep 0/33/67/100 % every 0.6 s (~0.1 % CPU); result = `arrow.down.circle.fill` + "320" + small "Mb" for 4 s, then `arrow.up.circle.fill` + "45 Mb" for 4 s (or plain arrows without a unit, 3 s each); then `speedometer`. Animated SF Symbol effects were discarded (60 fps, 2–5 % CPU). Chosen after a live demo (user, 2026-11-14): VARIANT 4, needle sweep while testing, plain `arrow.down` + number (no unit) for 3 s, then `arrow.up` + number for 3 s, then `speedometer`; a failure shows `wifi.exclamationmark` for 6 s. Built.
+  - "It takes too long": networkQuality needs 20–45 s on this connection; capping it with `-M` gives wrong numbers (measured 2026-11-14: 8 s → 4 Mbps down, 12 s → 11 Mbps, full test 29–42 Mbps). Kept uncapped (full test).
+- Out of scope: history (user chose the last result only), choosing servers, Ookla.
+- Acceptance: each of the three entry points starts the test; a second launch while running is ignored; menu, Touch Bar and alert show download, upload, latency and RPM; the last result and its time survive a relaunch; with no network an error shows and nothing hangs; no CPU or processes left after the test.
 
 **R-11 Resources** — agreed, IMPERATIVE
 Minimum possible CPU/RAM/battery: event-driven over polling, timers aligned to when data changes, no repeated process spawning where avoidable.
@@ -180,6 +191,14 @@ The user wants a game where you cut things with the penknife, in the genre of Fr
 - Our defaults: the game takes the whole Touch Bar; score on the left, lives on the right; an X exits at any time (no Esc: the game covers the whole Touch Bar, Esc included); game over shows the score and the record for a few seconds, then the normal buttons come back. Cuts play the tap click when "Click sound on every tap" is on. Zero cost when not playing; animation runs only during a game and stops if the Mac locks or Penknife's Touch Bar is hidden.
 - Out of scope / rejected: a jump-over-obstacles game and a very long press on the time (earlier ideas, 2026-11-13; the time long press stays the easter egg); copying any existing game's art, names or sounds.
 - Acceptance: holding the mouse button 3 s starts the game and leaves the jiggler state unchanged; a short tap still toggles it; swiping through a fruit cuts it and adds points; an escaped fruit removes a life; 3 lost lives or a bomb end the game; the record persists after relaunching; X exits and the normal buttons return; CPU is back to idle after the game.
+
+**R-26 Customizable Touch Bar** — agreed (2026-11-14), not started
+The user wants to choose which buttons appear on the Touch Bar (for example, someone who doesn't need music or the jiggler).
+- Settings: a list of all Touch Bar buttons, each with a checkbox to show or hide it, and drag to reorder (user's choice).
+- Hiding only affects the Touch Bar: the function keeps working from the menu and its shortcut; the Modules switch still turns the whole function off (user's choice).
+- EVERY button can be hidden, including battery, brightness, keyboard light, volume and time (user's choice); at least one always stays.
+- Default: today's order and set (speed test before the time).
+- Acceptance: hiding a button removes it at once and the others widen; the order persists after relaunch; a hidden module's menu item and shortcut still work; the last visible button can't be hidden.
 
 ## Rejected / out of scope
 - Fan control (MacFanPro stays out; risky SMC writes).

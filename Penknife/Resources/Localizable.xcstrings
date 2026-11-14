@@ -361,6 +361,16 @@
         }
       }
     },
+    "Check the internet connection.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisa la conexión a internet."
+          }
+        }
+      }
+    },
     "Choose": {
       "localizations": {
         "es": {
@@ -691,6 +701,16 @@
         }
       }
     },
+    "Download %lld megabits per second": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bajada %lld megabits por segundo"
+          }
+        }
+      }
+    },
     "Drizzle": {
       "localizations": {
         "es": {
@@ -941,6 +961,16 @@
         }
       }
     },
+    "Latency %lld ms · Responsiveness %@ (%lld RPM)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latencia %1$lld ms · Respuesta %2$@ (%3$lld RPM)"
+          }
+        }
+      }
+    },
     "Launch at login": {
       "localizations": {
         "es": {
@@ -967,6 +997,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bloquear pantalla"
+          }
+        }
+      }
+    },
+    "Measures download, upload, latency and responsiveness with macOS networkQuality, from the menu, the Touch Bar or a shortcut. Keeps only the last result.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mide bajada, subida, latencia y capacidad de respuesta con networkQuality de macOS, desde el menú, la Touch Bar o un atajo. Guarda solo el último resultado."
           }
         }
       }
@@ -1941,12 +1981,82 @@
         }
       }
     },
+    "Speed (%@): %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocidad (%1$@): %2$@"
+          }
+        }
+      }
+    },
+    "Speed test": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test de velocidad"
+          }
+        }
+      }
+    },
+    "Speed test failed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falló el test de velocidad"
+          }
+        }
+      }
+    },
+    "Speed test failed. Check the internet connection.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falló el test de velocidad. Revisa la conexión a internet."
+          }
+        }
+      }
+    },
+    "Speed test failed. Tap to try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falló el test de velocidad. Toca para reintentar."
+          }
+        }
+      }
+    },
+    "Speed test: testing…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Test de velocidad: midiendo…"
+          }
+        }
+      }
+    },
     "Tap to play again": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Toca para jugar otra vez"
+          }
+        }
+      }
+    },
+    "Testing internet speed…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Midiendo la velocidad de internet…"
           }
         }
       }
@@ -2121,6 +2231,26 @@
         }
       }
     },
+    "Upload %lld megabits per second": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subida %lld megabits por segundo"
+          }
+        }
+      }
+    },
+    "Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usa los servidores de prueba de Apple. Cada test tarda 20–45 segundos y transfiere unos cientos de MB."
+          }
+        }
+      }
+    },
     "Version": {
       "localizations": {
         "es": {
@@ -2267,6 +2397,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "Amarillo"
+          }
+        }
+      }
+    },
+    "rating.high": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "High"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alta"
+          }
+        }
+      }
+    },
+    "rating.low": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Baja"
+          }
+        }
+      }
+    },
+    "rating.medium": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Medium"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        }
+      }
+    },
+    "↓ %lld Mbps · ↑ %lld Mbps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "↓ %1$lld Mbps · ↑ %2$lld Mbps"
           }
         }
       }

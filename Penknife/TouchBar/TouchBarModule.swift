@@ -18,6 +18,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private let music: MusicModule
     private let cpu: CPUTemperatureModule
     private let weather: WeatherModule
+    private let speedTest: SpeedTestModule
+    /// Needle sweep while testing, then the download → upload → normal sequence.
+    private var speedTimer: Timer?
     private let log = Logger(subsystem: "Penknife", category: "TouchBar")
 
     private var bar: NSTouchBar?
@@ -65,13 +68,14 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     }
 
     init(jiggler: JigglerModule, microphone: MicrophoneModule, dialogs: DialogsModule,
-         music: MusicModule, cpu: CPUTemperatureModule, weather: WeatherModule) {
+         music: MusicModule, cpu: CPUTemperatureModule, weather: WeatherModule, speedTest: SpeedTestModule) {
         self.jiggler = jiggler
         self.microphone = microphone
         self.dialogs = dialogs
         self.music = music
         self.cpu = cpu
         self.weather = weather
+        self.speedTest = speedTest
         super.init()
     }
 
@@ -139,6 +143,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             })
         }
         weather.onChange = { [weak self] in self?.updateWeather() }
+        speedTest.onChange = { [weak self] in self?.speedTestChanged() }
         // Turning another module on or off changes which buttons exist.
         observers.append(NotificationCenter.default.addObserver(forName: ModuleManager.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rebuildButtons() }
@@ -165,6 +170,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         running = false
         dialogs.onChange = nil
         weather.onChange = nil
+        speedTest.onChange = nil
+        speedTimer?.invalidate()
+        speedTimer = nil
         observers.forEach {
             NSWorkspace.shared.notificationCenter.removeObserver($0)
             NotificationCenter.default.removeObserver($0)
@@ -203,7 +211,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     // MARK: Buttons
 
     private enum Item: String {
-        case battery, brightness, keyboardLight, jiggler, microphone, screenshot, lock, music, weather, cpu, volume, time
+        case battery, brightness, keyboardLight, jiggler, microphone, screenshot, lock, music, weather, cpu, volume, speedTest, time
     }
 
     private func isOn(_ module: ModuleID) -> Bool { manager?.isEnabled(module) ?? false }
@@ -243,6 +251,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             add(.cpu, 0xFFAE02) { [weak self] _ in self?.updateTemperature() }
         }
         add(.volume, 0xFFAE02) { [weak self] in self?.openSlider($0, OutputVolume(), String(localized: "Volume")) }
+        if isOn(.speedTest) {
+            add(.speedTest, 0x34C759) { [weak self] _ in self?.speedTest.run() }
+        }
         add(.time, 0xFFFFFF) { [weak self] _ in self?.toggleDate() }
         barView.setButtons(buttons)
         if let time = barView.button(Item.time.rawValue) {
@@ -280,6 +291,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         updateClock()
         updateWeather()
         updateTemperature()
+        updateSpeedTest()
     }
 
     private func run(_ module: ModuleID) {
@@ -355,6 +367,71 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         keyboardWatcher.stop()
         volumeWatcher.stop()
         playbackWatcher.stop()
+    }
+
+    // MARK: Speed test (R-10)
+
+    private enum SpeedPhase { case normal, testing, download, upload, failed }
+    private var speedPhase = SpeedPhase.normal
+    private var needleStep = 0
+    private static let needles = ["gauge.with.dots.needle.0percent", "gauge.with.dots.needle.33percent",
+                                  "gauge.with.dots.needle.67percent", "gauge.with.dots.needle.100percent"]
+
+    /// Design chosen by the user (variant 4, 2026-11-14): while testing the needle sweeps
+    /// (one symbol change every 0.6 s); then download for 3 s, upload for 3 s, back to normal.
+    private func speedTestChanged() {
+        speedTimer?.invalidate()
+        speedTimer = nil
+        if speedTest.isRunning {
+            needleStep = 0
+            setSpeedPhase(.testing)
+            speedTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.needleStep = (self.needleStep + 1) % Self.needles.count
+                    self.updateSpeedTest()
+                }
+            }
+        } else if speedTest.failed {
+            setSpeedPhase(.failed, then: [(6, .normal)])
+        } else if speedTest.result != nil {
+            setSpeedPhase(.download, then: [(3, .upload), (6, .normal)])
+        } else {
+            setSpeedPhase(.normal)
+        }
+    }
+
+    /// Shows `phase` now and the next ones after the given seconds (counted from now).
+    private func setSpeedPhase(_ phase: SpeedPhase, then steps: [(TimeInterval, SpeedPhase)] = []) {
+        speedPhase = phase
+        updateSpeedTest()
+        guard let (delay, next) = steps.first else { return }
+        let rest = steps.dropFirst().map { ($0.0 - delay, $0.1) }
+        speedTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.speedTimer = nil
+                self?.setSpeedPhase(next, then: rest)
+            }
+        }
+    }
+
+    private func updateSpeedTest() {
+        guard let button = barView?.button(Item.speedTest.rawValue) else { return }
+        let result = speedTest.result
+        switch speedPhase {
+        case .testing:
+            button.show(symbol: Self.needles[needleStep], label: String(localized: "Speed test: testing…"))
+        case .download where result != nil:
+            button.show(symbol: "arrow.down", text: "\(Int(result!.download.rounded()))",
+                        label: String(localized: "Download \(Int(result!.download.rounded())) megabits per second"))
+        case .upload where result != nil:
+            button.show(symbol: "arrow.up", text: "\(Int(result!.upload.rounded()))",
+                        label: String(localized: "Upload \(Int(result!.upload.rounded())) megabits per second"))
+        case .failed:
+            button.show(symbol: "wifi.exclamationmark", label: String(localized: "Speed test failed. Tap to try again."))
+        default:
+            button.show(symbol: "speedometer", label: String(localized: "Speed test"))
+        }
     }
 
     // MARK: Weather and CPU
