@@ -30,13 +30,33 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private var dateTimer: Timer?
     private var showingDate = false
     private lazy var micWatcher = MicrophoneWatcher { [weak self] in self?.updateMicrophone() }
+    private lazy var brightnessWatcher = BrightnessWatcher { [weak self] in self?.levelChanged(.brightness) }
+    private lazy var keyboardWatcher = KeyboardLightWatcher { [weak self] in self?.levelChanged(.keyboardLight) }
+    private lazy var volumeWatcher = VolumeWatcher { [weak self] in self?.levelChanged(.volume) }
+    /// Levels changed since the last update; a burst of key presses or a drag becomes one read.
+    private var pendingLevels: Set<Item> = []
+    private var refreshScheduled = false
+    private lazy var playbackWatcher = PlaybackWatcher { [weak self] in self?.updateMusic() }
+    private var playerID = ""
     private var cpuTimer: Timer?
     private var screensAsleep = false
 
     private static let barItemID = NSTouchBarItem.Identifier("io.github.alexl-l.Penknife.bar")
     private static let trayItemID = NSTouchBarItem.Identifier("io.github.alexl-l.Penknife.tray")
-    private static let colorModeKey = "touchBar.colorMode"
+    static let colorModeKey = "touchBar.colorMode"
+    static let monochromeKey = "touchBar.monochromeColor"
+    static let batteryIconKey = "touchBar.batteryIcon"
     static let autoCloseKey = "touchBar.autoClose"
+
+    /// Monochrome color as "RRGGBB" (R-25); white until the user picks another.
+    static var monochromeColor: NSColor {
+        let hex = UserDefaults.standard.string(forKey: monochromeKey).flatMap { UInt32($0, radix: 16) }
+        return NSColor(hex: hex ?? 0xFFFFFF)
+    }
+
+    private static var storedColorMode: BarColorMode {
+        BarColorMode(rawValue: UserDefaults.standard.integer(forKey: colorModeKey)) ?? .multicolor
+    }
 
     /// Sliders and the date close by themselves; off means only a tap closes them (R-19).
     static var autoClose: Bool {
@@ -66,7 +86,13 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         running = true
 
         let view = BarView(width: 1004)
-        view.colorMode = BarColorMode(rawValue: UserDefaults.standard.integer(forKey: Self.colorModeKey)) ?? .own
+        view.onSliderClose = { [weak self] in
+            guard let self, !self.pendingLevels.isEmpty else { return }
+            self.refreshLevels()
+        }
+        view.monochromeColor = Self.monochromeColor
+        view.colorMode = Self.storedColorMode
+        playerID = MusicPlayer.current.id
         barView = view
         let bar = NSTouchBar()
         bar.delegate = self
@@ -79,6 +105,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         tray.view.setAccessibilityLabel("Penknife")
         TouchBarPrivate.addTrayItem(tray)
 
+        TapSound.prepare()
         rebuildButtons()
         startSources()
 
@@ -104,6 +131,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
                 MainActor.assumeIsolated {
                     self?.screensAsleep = asleep
                     self?.updateTemperature()
+                    if !asleep { self?.refreshLevels() }
                 }
             })
         }
@@ -111,6 +139,10 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         // Turning another module on or off changes which buttons exist.
         observers.append(NotificationCenter.default.addObserver(forName: ModuleManager.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rebuildButtons() }
+        })
+        // Settings: color mode, monochrome color, music player. Other writes change nothing here.
+        observers.append(NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.settingsChanged() }
         })
         present()
         #if DEBUG
@@ -175,7 +207,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             button.onPress = press
             buttons.append(button)
         }
-        add(.battery, 0xFFFFFF) { [weak self] _ in self?.nextColorMode() }
+        add(.battery, 0xFFFFFF) { [weak self] _ in self?.toggleBatteryIcon() }
         add(.brightness, 0xFFDB00) { [weak self] in self?.openSlider($0, DisplayBrightness(), String(localized: "Brightness")) }
         add(.keyboardLight, 0x4AD1E6) { [weak self] in self?.openSlider($0, KeyboardBrightness(), String(localized: "Keyboard backlight")) }
         if isOn(.jiggler) {
@@ -208,15 +240,22 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             press.minimumPressDuration = 0.8
             time.addGestureRecognizer(press)
         }
+        // A hold on the old battery button may never report its end.
+        endBatteryHold()
+        if let battery = barView.button(Item.battery.rawValue) {
+            let press = NSPressGestureRecognizer(target: self, action: #selector(batteryLongPressed(_:)))
+            press.allowedTouchTypes = .direct
+            press.minimumPressDuration = 1
+            battery.addGestureRecognizer(press)
+        }
 
-        barView.button(Item.brightness.rawValue)?.show(symbol: "sun.max.fill", label: String(localized: "Brightness"))
-        barView.button(Item.keyboardLight.rawValue)?.show(symbol: "light.min", label: String(localized: "Keyboard backlight"))
         barView.button(Item.screenshot.rawValue)?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
         barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock screen"))
-        barView.button(Item.volume.rawValue)?.show(symbol: "speaker.wave.2.fill", label: String(localized: "Volume"))
-        barView.button(Item.music.rawValue)?.show(
-            symbol: "music.note",
-            label: String(localized: "Music. One tap plays or pauses, two go to the next song, three to the previous one."))
+        isOn(.music) ? playbackWatcher.start() : playbackWatcher.stop()
+        updateBrightness()
+        updateKeyboardLight()
+        updateVolume()
+        updateMusic()
         updateBattery()
         updateJiggler()
         updateMicrophone()
@@ -235,10 +274,29 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         barView?.openSlider(from: button, control: control, label: label, autoClose: Self.autoClose)
     }
 
+    /// Long press on the battery: next color mode, remembered (R-25).
     private func nextColorMode() {
         guard let barView else { return }
         barView.colorMode = barView.colorMode.next
         UserDefaults.standard.set(barView.colorMode.rawValue, forKey: Self.colorModeKey)
+        if let battery = barView.button(Item.battery.rawValue) {
+            NSAccessibility.post(element: battery, notification: .announcementRequested, userInfo: [
+                .announcement: barView.colorMode.title, .priority: NSAccessibilityPriorityLevel.high.rawValue,
+            ])
+        }
+    }
+
+    private func settingsChanged() {
+        guard let barView else { return }
+        let mode = Self.storedColorMode
+        if mode != barView.colorMode { barView.colorMode = mode }
+        let mono = Self.monochromeColor
+        if mono != barView.monochromeColor { barView.monochromeColor = mono }
+        let player = MusicPlayer.current.id
+        if player != playerID {
+            playerID = player
+            playbackWatcher.reset()
+        }
     }
 
     // MARK: Sources
@@ -255,6 +313,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             batterySource = source
         }
         micWatcher.start()
+        brightnessWatcher.start()
+        keyboardWatcher.start()
+        volumeWatcher.start()
         trackJiggler()
     }
 
@@ -270,7 +331,12 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         showingDate = false
         cpuTimer?.invalidate()
         cpuTimer = nil
+        endBatteryHold()
         micWatcher.stop()
+        brightnessWatcher.stop()
+        keyboardWatcher.stop()
+        volumeWatcher.stop()
+        playbackWatcher.stop()
     }
 
     // MARK: Weather and CPU
@@ -294,7 +360,8 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         cpuTimer = nil
         guard running, !screensAsleep, let button = barView?.button(Item.cpu.rawValue) else { return }
         if let celsius = cpu.read() {
-            button.show(symbol: "thermometer.medium", text: TemperatureText.short(celsius: Double(celsius)),
+            let symbol = celsius < 50 ? "thermometer.low" : celsius < 75 ? "thermometer.medium" : "thermometer.high"
+            button.show(symbol: symbol, text: TemperatureText.short(celsius: Double(celsius)),
                         label: String(localized: "CPU temperature: \(TemperatureText.long(celsius: Double(celsius)))"))
         } else {
             button.show(symbol: "thermometer.medium", text: "—", label: String(localized: "CPU temperature not available"))
@@ -307,17 +374,112 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         cpuTimer = timer
     }
 
+    /// Tap on the battery: percentage ↔ icon, remembered (R-25).
+    private func toggleBatteryIcon() {
+        if batteryLongPressing || Date().timeIntervalSince(batteryLongPressEnded) < 0.5 { return }
+        UserDefaults.standard.set(!UserDefaults.standard.bool(forKey: Self.batteryIconKey), forKey: Self.batteryIconKey)
+        updateBattery()
+    }
+
     private func updateBattery() {
-        guard let button = barView?.button(Item.battery.rawValue) else { return }
+        guard let barView, let button = barView.button(Item.battery.rawValue) else { return }
         let info = IOPSCopyPowerSourcesInfo().takeRetainedValue()
         let list = IOPSCopyPowerSourcesList(info).takeRetainedValue() as [CFTypeRef]
-        let percent = list.lazy.compactMap { source -> Int? in
-            let description = IOPSGetPowerSourceDescription(info, source).takeUnretainedValue() as? [String: Any]
-            return description?[kIOPSCurrentCapacityKey] as? Int
-        }.first
+        let description = list.lazy.compactMap {
+            IOPSGetPowerSourceDescription(info, $0).takeUnretainedValue() as? [String: Any]
+        }.first { $0[kIOPSCurrentCapacityKey] != nil }
+        let percent = description?[kIOPSCurrentCapacityKey] as? Int
+        let charging = description?[kIOPSIsChargingKey] as? Bool ?? false
         let text = percent.map { "\($0)%" } ?? "—"
-        button.show(symbol: nil, text: text,
-                    label: String(localized: "Battery \(text). Tap to change the icon colors."))
+        let label = charging
+            ? String(localized: "Battery \(text), charging. Tap to switch between percentage and icon; hold to change the colors.")
+            : String(localized: "Battery \(text). Tap to switch between percentage and icon; hold to change the colors.")
+
+        // Level colors only in multicolor mode, on the icon (green > 50 %, yellow 20–50 %, red < 20 %).
+        let showIcon = UserDefaults.standard.bool(forKey: Self.batteryIconKey) && percent != nil
+        let stateColor: NSColor? = switch (showIcon, percent) {
+        case (true, let p?) where p > 50: .systemGreen
+        case (true, let p?) where p >= 20: .systemYellow
+        case (true, _?): .systemRed
+        default: nil
+        }
+        if stateColor != button.stateColor {
+            button.stateColor = stateColor
+            barView.applyColors()
+        }
+        if showIcon, let percent {
+            button.show(drawing: { BatteryIcon.image(fraction: CGFloat(percent) / 100, charging: charging, color: $0) },
+                        key: "\(percent)\(charging)", label: label)
+        } else {
+            button.show(symbol: nil, text: text, label: label)
+        }
+    }
+
+    // MARK: Levels and music
+
+    /// Coalesces level notifications (~0.1 s). Nothing is read while the screens sleep;
+    /// they are read again on wake.
+    private func levelChanged(_ item: Item) {
+        guard running, !screensAsleep else { return }
+        pendingLevels.insert(item)
+        // While a slider is open the buttons are hidden: read once when it closes, so dragging
+        // never waits for CoreAudio / DisplayServices reads.
+        if barView?.isSliderOpen == true { return }
+        guard !refreshScheduled else { return }
+        refreshScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            MainActor.assumeIsolated {
+                self?.refreshScheduled = false
+                self?.refreshLevels()
+            }
+        }
+    }
+
+    /// Reads the pending levels, or all of them when none is pending (after wake).
+    private func refreshLevels() {
+        let items: Set<Item> = pendingLevels.isEmpty ? [.brightness, .keyboardLight, .volume] : pendingLevels
+        pendingLevels = []
+        if items.contains(.brightness) { updateBrightness() }
+        if items.contains(.keyboardLight) { updateKeyboardLight() }
+        if items.contains(.volume) { updateVolume() }
+    }
+
+    private func updateBrightness() {
+        let level = DisplayBrightness().level ?? 1
+        barView?.button(Item.brightness.rawValue)?.show(
+            symbol: level < 0.5 ? "sun.min.fill" : "sun.max.fill",
+            label: String(localized: "Brightness \(Self.percent(level))"))
+    }
+
+    private func updateKeyboardLight() {
+        let level = KeyboardBrightness().level ?? 0
+        barView?.button(Item.keyboardLight.rawValue)?.show(
+            symbol: level < 0.5 ? "light.min" : "light.max",
+            label: String(localized: "Keyboard backlight \(Self.percent(level))"))
+    }
+
+    private func updateVolume() {
+        let output = OutputVolume()
+        // Outputs without volume control (HDMI, some DACs) have no level: not shown as muted.
+        let level = output.level ?? 0.5
+        let muted = output.isMuted || level == 0
+        let symbol = muted ? "speaker.slash.fill"
+            : level < 0.34 ? "speaker.wave.1.fill" : level < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
+        barView?.button(Item.volume.rawValue)?.show(
+            symbol: symbol,
+            label: muted ? String(localized: "Volume, muted") : String(localized: "Volume \(Self.percent(level))"))
+    }
+
+    private func updateMusic() {
+        let playing = playbackWatcher.isPlaying
+        let hint = String(localized: "One tap plays or pauses, two go to the next song, three to the previous one.")
+        barView?.button(Item.music.rawValue)?.show(
+            symbol: playing ? "music.quarternote.3" : "music.note",
+            label: (playing ? String(localized: "Music, playing.") : String(localized: "Music, paused.")) + " " + hint)
+    }
+
+    private static func percent(_ level: Float) -> String {
+        Double(level).formatted(.percent.precision(.fractionLength(0)))
     }
 
     /// The jiggler is @Observable: re-arm the tracking after every change.
@@ -399,6 +561,33 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .ended, .cancelled, .failed:
             longPressing = false
             longPressEnded = Date()
+        default: break
+        }
+    }
+
+    private var batteryLongPressEnded = Date.distantPast
+    private var batteryLongPressing = false
+    private var batteryRepeatTimer: Timer?
+
+    private func endBatteryHold() {
+        batteryRepeatTimer?.invalidate()
+        batteryRepeatTimer = nil
+        batteryLongPressing = false
+    }
+
+    @objc private func batteryLongPressed(_ recognizer: NSPressGestureRecognizer) {
+        switch recognizer.state {
+        case .began:
+            batteryLongPressing = true
+            nextColorMode()
+            // Still held: the next mode every second, until the finger lifts.
+            batteryRepeatTimer?.invalidate()
+            batteryRepeatTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.nextColorMode() }
+            }
+        case .ended, .cancelled, .failed:
+            endBatteryHold()
+            batteryLongPressEnded = Date()
         default: break
         }
     }

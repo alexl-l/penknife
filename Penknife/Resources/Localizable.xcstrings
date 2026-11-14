@@ -141,6 +141,16 @@
         }
       }
     },
+    "Allow Apple Music": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir Apple Music"
+          }
+        }
+      }
+    },
     "Allow Penknife, then reopen it": {
       "localizations": {
         "es": {
@@ -201,12 +211,22 @@
         }
       }
     },
-    "Battery %@. Tap to change the icon colors.": {
+    "Battery %@, charging. Tap to switch between percentage and icon; hold to change the colors.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Batería %@. Toca para cambiar los colores de los iconos."
+            "value": "Batería %@, cargando. Toca para alternar entre porcentaje e icono; mantén pulsado para cambiar los colores."
+          }
+        }
+      }
+    },
+    "Battery %@. Tap to switch between percentage and icon; hold to change the colors.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería %@. Toca para alternar entre porcentaje e icono; mantén pulsado para cambiar los colores."
           }
         }
       }
@@ -257,6 +277,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brillo"
+          }
+        }
+      }
+    },
+    "Brightness %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brillo %@"
           }
         }
       }
@@ -411,6 +441,16 @@
         }
       }
     },
+    "Click sound on every tap": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido de clic en cada toque"
+          }
+        }
+      }
+    },
     "Clipboard": {
       "localizations": {
         "es": {
@@ -451,12 +491,12 @@
         }
       }
     },
-    "Closes Apple Music when it opens by itself, e.g. with the play key.": {
+    "Closes Apple Music when it opens by itself (headphones, play key). Opening it yourself works.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cierra Apple Music cuando se abre solo, por ejemplo con la tecla de reproducir."
+            "value": "Cierra Apple Music cuando se abre sola (audífonos, tecla de reproducir). Abrirla tú funciona."
           }
         }
       }
@@ -771,6 +811,26 @@
         }
       }
     },
+    "Holding the battery button also changes the colors, one every second.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener pulsado el botón de la batería también cambia los colores, uno cada segundo."
+          }
+        }
+      }
+    },
+    "Icon colors": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colores de los iconos"
+          }
+        }
+      }
+    },
     "Image": {
       "localizations": {
         "es": {
@@ -827,6 +887,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Luz del teclado"
+          }
+        }
+      }
+    },
+    "Keyboard backlight %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luz del teclado %@"
           }
         }
       }
@@ -951,6 +1021,26 @@
         }
       }
     },
+    "Monochrome": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monocromo"
+          }
+        }
+      }
+    },
+    "Monochrome color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color del monocromo"
+          }
+        }
+      }
+    },
     "Mouse jiggler": {
       "localizations": {
         "es": {
@@ -1031,6 +1121,16 @@
         }
       }
     },
+    "Multicolor": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Multicolor"
+          }
+        }
+      }
+    },
     "Music": {
       "localizations": {
         "es": {
@@ -1041,12 +1141,22 @@
         }
       }
     },
-    "Music. One tap plays or pauses, two go to the next song, three to the previous one.": {
+    "Music, paused.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Música. Un toque reproduce o pausa, dos pasan a la siguiente canción, tres a la anterior."
+            "value": "Música, en pausa."
+          }
+        }
+      }
+    },
+    "Music, playing.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Música, reproduciendo."
           }
         }
       }
@@ -1157,6 +1267,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aún no has copiado nada"
+          }
+        }
+      }
+    },
+    "One tap plays or pauses, two go to the next song, three to the previous one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un toque reproduce o pausa, dos pasan a la siguiente canción, tres a la anterior."
           }
         }
       }
@@ -1407,6 +1527,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lluvia"
+          }
+        }
+      }
+    },
+    "Rainbow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arcoíris"
           }
         }
       }
@@ -1841,6 +1971,16 @@
         }
       }
     },
+    "Touch Bar click sound": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido de clic del Touch Bar"
+          }
+        }
+      }
+    },
     "Turn on when unlocking, off when locking": {
       "localizations": {
         "es": {
@@ -1937,6 +2077,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Volumen"
+          }
+        }
+      }
+    },
+    "Volume %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen %@"
+          }
+        }
+      }
+    },
+    "Volume, muted": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volumen, silenciado"
           }
         }
       }

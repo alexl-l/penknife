@@ -180,6 +180,16 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
+        // Touch Bar click on/off, at hand (also in Settings → Modules → Touch Bar).
+        if manager.isEnabled(.touchBar), TouchBarPrivate.hasTouchBar {
+            let click = NSMenuItem(title: String(localized: "Touch Bar click sound"), action: #selector(toggleTapSound), keyEquivalent: "")
+            click.target = self
+            click.image = NSImage(systemSymbolName: "hand.tap", accessibilityDescription: nil)
+            click.state = TapSound.isOn ? .on : .off
+            menu.addItem(click)
+            menu.addItem(.separator())
+        }
+
         let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -202,6 +212,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         let action = actions[sender.tag]
         // Run after the menu has closed (the screenshot must not capture the menu).
         DispatchQueue.main.async { action.perform() }
+    }
+
+    @objc private func toggleTapSound() {
+        TapSound.isOn.toggle()
     }
 
     @objc private func showSettings() {

@@ -2,7 +2,7 @@
 
 All-in-one personal macOS menu bar app ("the pocket knife for your Mac") that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Swift, Apple Silicon, latest macOS. May be published later.
 
-Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **Next: R-25** (Touch Bar icons that follow state, battery toggle/long press, color mode settings), approved to build by the user (2026-11-13); first check whether macOS notifies brightness / keyboard light changes. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
+Status: **phase 4 done** (2026-11-13). **R-20 alerts + R-24 jiggler interval** built, reviewed (QA, accessibility, performance; fixes applied), approved by the user, committed and pushed (2026-11-13). **R-25** built, reviewed (QA, performance; fixes applied) and installed (2026-11-13); user confirmed the music icon; waiting for the rest of the hands-on test, then commit. Still pending: uninstalling MTMR + Hammerspoon. Open idea: colored icon tiles in Settings (offered, user kept the current look).
 
 ## Phases (plan agreed 2026-11-13)
 1. Base: Xcode project (menu bar only, macOS 26, es/en), module architecture (R-15), menu bar icon + keyboard menu (R-14), Settings: General / Modules / Shortcuts (R-12, R-16), stable signing, actions (R-3), dialog handoff groundwork (R-4). Review: qa, security, accessibility, performance.
@@ -55,6 +55,7 @@ Music button and taps: 1 play/pause, 2 next, 3 previous; opens the player if clo
 
 **R-6 Block Apple Music (noTunes)** — agreed
 Prevent Apple Music (and iTunes) from launching on play; MUST NOT CLASH with the player choice: paused automatically while Apple Music or iTunes is the chosen player, and Settings says so.
+- CLARIFIED (user, 2026-11-13): the goal is noTunes (github.com/tombonez/noTunes) — Apple Music opening BY ITSELF when headphones connect or are clicked. Opening it manually MUST work (it was blocked: the user couldn't open Music or play a .wav). noTunes blocks every launch and has a menu bar toggle; agreed: block only automatic launches + "Allow Apple Music" menu toggle as backup (until Penknife quits). Built 2026-11-13: a launch counts as the user's when a click or key press happened ≤ 1.5 s before (3 s let a headphone click right after a menu click through; Dock launch measured 0.8 s) and the audio output didn't change in the last 4 s; every decision is logged (`BlockAppleMusic` category) to tune the windows. User's test: Dock launch kept, headphone clicks detected and closed, but Music still showed up (polite quit, forced 2 s later); now force-quit at once as noTunes does. User: "perfecto" (2026-11-13). Open idea, to investigate later (user, 2026-11-13): register Penknife as the Now Playing app (MediaPlayer remote commands) so headphone clicks reach Penknife and go to the chosen player, and Music never launches; cost: Penknife may show in Control Center's Now Playing.
 
 **R-7 Clipboard (Maccy)** — agreed (updated 2026-11-13)
 History with search, pin the most used items, global shortcut to open it. Skip concealed/transient items (passwords).
@@ -145,13 +146,17 @@ THE CURRENT ON/OFF ALERTS (HUD panel "Mover ratón activado/desactivado", etc.) 
 - MENU BAR DOTS (IMPERATIVE): two small dots stacked beside the menu bar icon. User's spec (2026-11-13): TOP = MICROPHONE, BOTTOM = MOUSE JIGGLER, always in those slots; each with its own color; a dot shows only while its function is on, otherwise nothing (one, the other, both or none). Reason: the user can't tell whether the jiggler is on without waiting for the mouse to move. Reviewed by `ux-ui-designer`. Chosen after a live demo (2026-11-13, variant 3): both dots always visible, filled = on, 1 pt ring = off. Mic: orange (as Apple's mic indicator), filled = mic open, ring = muted. Mouse: system blue, filled = jiggler on, ring = off. 4 pt dots, 2 pt gap, 3 pt right of the glyph, fixed-width column. Same look under Increase Contrast (the outlined version was "horrible"). Green (= camera on Apple) and purple discarded. VoiceOver: status item value states both ("Mouse jiggler on, microphone muted"). Setting to hide the dots.
 - Alert types (agreed): mouse jiggler, microphone, screenshots, clipboard, music; turning a type off hides all its alerts, errors included.
 
-**R-25 Touch Bar icons that follow state; battery button** — agreed, approved to build (2026-11-13), not started
+**R-25 Touch Bar icons that follow state; battery button** — agreed, built (2026-11-13)
 The user loved that the jiggler icon changes with its state; ALL ICONS SHOULD DO THE SAME.
 - Screen brightness: many rays when high (`sun.max`), few when low (`sun.min`). Keyboard light: same idea, 2–3 levels. Volume: 3/2/1 waves, crossed speaker when muted. CPU temperature (our proposal): thermometer fills with the temperature. Music: different static icon while playing vs paused (note with waves / plain note); no animation (battery).
 - Battery TAP toggles percentage ↔ battery icon that fills/empties (remembered). Icon color: green > 50 %, yellow 20–50 %, red < 20 % (our thresholds, red explicitly asked here), bolt while charging. Only in multicolor mode: in monochrome and rainbow the battery follows the mode's color.
-- Battery LONG PRESS (several seconds) cycles the color mode: multicolor → monochrome → rainbow.
-- Settings: monochrome color (user picks it; today all white) and the default mode (monochrome, rainbow, multicolor).
-- Open: does macOS notify brightness / keyboard light changes made with the keys? If not, refresh when our sliders change and when the Touch Bar reappears, never polling every few seconds. Check before designing.
+- Battery LONG PRESS cycles the color mode: multicolor → monochrome → rainbow. Changed by the user (2026-11-13): first change after 1 s, then one more every second while held.
+- Default mode: MULTICOLOR (user, 2026-11-13).
+- Built (2026-11-13): brightness `sun.min`/`sun.max`, keyboard `light.min`/`light.max` (2 levels), volume 1/2/3 waves or slash, CPU thermometer low < 50 °C ≤ medium < 75 °C ≤ high, music `music.note` paused / `music.quarternote.3` playing (user liked it). Monochrome also colors the texts.
+- Known limit: playing state comes only from Spotify and Apple Music notifications; at launch, and for other players, the icon shows "paused" until the next change.
+- TAP FEEDBACK (user, 2026-11-13): wanted a haptic like the trackpad click; the Touch Bar has no haptic engine (the trackpad's only vibrates under a finger), so every tap plays a short dry click like the trackpad actuator (synthesized `TapClick.wav`, variant "seco" chosen by the user from three; "Tink" rejected). Setting "Click sound on every tap" (on by default), also a checkable item "Touch Bar click sound" in the menu bar menu (user, 2026-11-13); sounds on touch-down; silent when macOS UI sound effects are off.
+- Settings: monochrome color (user picks it; white by default) and the mode (same value the long press changes).
+- Answered: macOS notifies brightness and keyboard light changes (see DECISIONS), so nothing polls.
 
 **R-24 Jiggler interval** — agreed (2026-11-13), IMPERATIVE
 THE TIME WITHOUT INPUT BEFORE THE JIGGLER MOVES THE MOUSE MUST BE A SETTING (today fixed at 10 s). Options agreed: 10 s (default), 30 s, 1 min, 2 min, 5 min.

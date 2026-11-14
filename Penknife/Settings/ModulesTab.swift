@@ -56,6 +56,8 @@ struct ModulesTab: View {
                     if id == .touchBar {
                         AutoCloseToggle()
                             .disabled(!manager.isEnabled(.touchBar))
+                        TouchBarColorOptions()
+                            .disabled(!manager.isEnabled(.touchBar))
                     }
                 } footer: {
                     if id == ModuleID.allCases.last {
@@ -200,9 +202,36 @@ private struct ScreenshotOptions: View {
 
 private struct AutoCloseToggle: View {
     @AppStorage(TouchBarModule.autoCloseKey) private var autoClose = true
+    @AppStorage(TapSound.key) private var tapSound = true
 
     var body: some View {
         Toggle("Close sliders and the date automatically", isOn: $autoClose)
+        Toggle("Click sound on every tap", isOn: $tapSound)
+    }
+}
+
+/// Touch Bar icon colors (R-25): the mode (also changed by holding the battery) and the
+/// monochrome color.
+private struct TouchBarColorOptions: View {
+    @AppStorage(TouchBarModule.colorModeKey) private var mode = BarColorMode.multicolor.rawValue
+    @AppStorage(TouchBarModule.monochromeKey) private var monochrome = "FFFFFF"
+
+    var body: some View {
+        Picker("Icon colors", selection: $mode) {
+            ForEach(BarColorMode.allCases, id: \.rawValue) { Text($0.title).tag($0.rawValue) }
+        }
+        ColorPicker("Monochrome color", selection: Binding(
+            get: { Color(nsColor: NSColor(hex: UInt32(monochrome, radix: 16) ?? 0xFFFFFF)) },
+            set: { color in
+                guard let rgb = NSColor(color).usingColorSpace(.sRGB) else { return }
+                let hex = [rgb.redComponent, rgb.greenComponent, rgb.blueComponent]
+                    .map { String(format: "%02X", Int(($0 * 255).rounded())) }.joined()
+                monochrome = hex
+            }
+        ), supportsOpacity: false)
+        Text("Holding the battery button also changes the colors, one every second.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 }
 

@@ -22,7 +22,7 @@ struct DisplayBrightness: LevelControl {
     }()
 
     /// The built-in panel (the one the Touch Bar belongs to), else the main display.
-    private static var display: CGDirectDisplayID {
+    static var display: CGDirectDisplayID {
         var ids = [CGDirectDisplayID](repeating: 0, count: 8)
         var count: UInt32 = 0
         if CGGetOnlineDisplayList(8, &ids, &count) == .success,
@@ -62,6 +62,9 @@ struct KeyboardBrightness: LevelControl {
     private static let setSelector = NSSelectorFromString("setBrightness:forKeyboard:")
     private static let autoSelector = NSSelectorFromString("enableAutoBrightness:forKeyboard:")
 
+    /// Auto-brightness is turned off on the first manual change of each slider session.
+    nonisolated(unsafe) static var autoTurnedOff = false
+
     private static let client: Client? = {
         guard dlopen("/System/Library/PrivateFrameworks/CoreBrightness.framework/CoreBrightness", RTLD_LAZY) != nil,
               let type = NSClassFromString("KeyboardBrightnessClient") as? NSObject.Type else { return nil }
@@ -78,6 +81,11 @@ struct KeyboardBrightness: LevelControl {
                       setAuto: setAuto)
     }()
 
+    /// The client object and keyboard id, for `KeyboardLightWatcher`.
+    static var clientAndKeyboard: (NSObject, UInt64)? {
+        client.map { ($0.object, $0.keyboard) }
+    }
+
     var level: Float? {
         guard let client = Self.client else { return nil }
         return client.get(client.object, Self.getSelector, client.keyboard)
@@ -87,14 +95,17 @@ struct KeyboardBrightness: LevelControl {
         guard let client = Self.client else { return }
         // With "Adjust keyboard brightness in low light" on, a bright room keeps the light off
         // and ignores manual changes, so a manual change turns that option off.
-        _ = client.setAuto?(client.object, Self.autoSelector, false, client.keyboard)
+        if !Self.autoTurnedOff {
+            _ = client.setAuto?(client.object, Self.autoSelector, false, client.keyboard)
+            Self.autoTurnedOff = true
+        }
         _ = client.set(client.object, Self.setSelector, min(max(value, 0), 1), client.keyboard)
     }
 }
 
 /// Output volume of the default output device (public CoreAudio).
 struct OutputVolume: LevelControl {
-    private static var device: AudioObjectID? {
+    static var device: AudioObjectID? {
         var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
                                                  mScope: kAudioObjectPropertyScopeGlobal,
                                                  mElement: kAudioObjectPropertyElementMain)
@@ -120,6 +131,15 @@ struct OutputVolume: LevelControl {
         var size = UInt32(MemoryLayout<Float32>.size)
         var address = Self.volumeAddress
         return AudioObjectGetPropertyData(device, &address, 0, nil, &size, &value) == noErr ? value : nil
+    }
+
+    var isMuted: Bool {
+        guard let device = Self.device else { return false }
+        var mute = UInt32(0)
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        var address = Self.muteAddress
+        guard AudioObjectHasProperty(device, &address) else { return false }
+        return AudioObjectGetPropertyData(device, &address, 0, nil, &size, &mute) == noErr && mute != 0
     }
 
     func setLevel(_ value: Float) {

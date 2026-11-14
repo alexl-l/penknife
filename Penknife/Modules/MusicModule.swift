@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 import os
 
 /// Which app the music controls drive (R-5): any app the user picks, identified by bundle id.
@@ -155,34 +156,91 @@ final class MusicModule: Module {
     }
 }
 
-/// Block Apple Music (R-6, as noTunes): closes Apple Music or iTunes as soon as it launches (e.g.
-/// when the play key wakes it up). Paused while one of them is the chosen player, so the two never
-/// clash. Event-driven.
+/// Block Apple Music (R-6, like noTunes, but smarter): closes Apple Music or iTunes only when it
+/// opens by itself — headphones connecting, a headphone click, the play key. Opening it yourself
+/// (Dock, Spotlight, Finder) works: such a launch follows a click or a key press, while automatic
+/// ones follow an audio route change or no input at all. "Allow Apple Music" in the menu turns
+/// the block off until Penknife quits (noTunes' toggle). Paused while Apple Music is the chosen
+/// player. Event-driven: launch notifications and CoreAudio route listeners only.
 final class BlockAppleMusicModule: Module {
     let id = ModuleID.blockAppleMusic
-    let actions: [ModuleAction] = []
+
+    var actions: [ModuleAction] {
+        [ModuleAction(shortcut: .allowAppleMusic, title: String(localized: "Allow Apple Music"), symbol: "music.note",
+                      state: { [weak self] in self?.allowed ?? false },
+                      perform: { [weak self] in self?.allowed.toggle() })]
+    }
+
+    /// Menu toggle: Apple Music may open freely until Penknife quits.
+    var allowed = false
+
     private var observer: NSObjectProtocol?
+    private var routeListener: AudioObjectPropertyListenerBlock?
+    private var lastRouteChange = Date.distantPast
+    private let log = Logger(subsystem: "Penknife", category: "BlockAppleMusic")
+
+    private static let bundleIDs: Set<String> = ["com.apple.Music", "com.apple.iTunes"]
+    /// A click or key press this close before the launch means the user opened it.
+    /// Dock/Spotlight launches measured at ~0.8 s; 3 s let a headphone click right after a
+    /// menu click pass as the user's.
+    private static let inputWindow: TimeInterval = 1.5
+    /// A launch this close after an audio route change (headphones) is automatic.
+    private static let routeWindow: TimeInterval = 4
+
+    private static let routeAddresses = [
+        AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
+                                   mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain),
+        AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDevices,
+                                   mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain),
+    ]
 
     func start() {
         guard observer == nil else { return }
         observer = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main
-        ) { note in
+            forName: NSWorkspace.willLaunchApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
             guard let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-                  let id = app.bundleIdentifier, ["com.apple.Music", "com.apple.iTunes"].contains(id) else { return }
-            MainActor.assumeIsolated {
-                guard !MusicPlayer.current.isAppleMusic else { return }
-                // Ask nicely first; force it only if it is still there 2 s later.
-                app.terminate()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    if !app.isTerminated { app.forceTerminate() }
-                }
-            }
+                  let id = app.bundleIdentifier, Self.bundleIDs.contains(id) else { return }
+            MainActor.assumeIsolated { self?.launched(app) }
         }
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.lastRouteChange = Date() }
+        }
+        for var address in Self.routeAddresses {
+            AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
+        }
+        routeListener = listener
     }
 
     func stop() {
         if let observer { NSWorkspace.shared.notificationCenter.removeObserver(observer) }
         observer = nil
+        if let routeListener {
+            for var address in Self.routeAddresses {
+                AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, routeListener)
+            }
+        }
+        routeListener = nil
+        allowed = false
+    }
+
+    private func launched(_ app: NSRunningApplication) {
+        guard !MusicPlayer.current.isAppleMusic else { return }
+        if allowed {
+            log.info("Apple Music opened: allowed from the menu")
+            return
+        }
+        let click = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .leftMouseDown)
+        let key = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown)
+        let route = Date().timeIntervalSince(lastRouteChange)
+        let byUser = min(click, key) <= Self.inputWindow && route > Self.routeWindow
+        let reason = String(format: "click %.1f s ago, key %.1f s ago, audio route change %.1f s ago", click, key, route)
+        guard !byUser else {
+            log.info("Apple Music opened by the user, kept (\(reason, privacy: .public))")
+            return
+        }
+        log.info("Apple Music opened by itself, closed (\(reason, privacy: .public))")
+        // Forced at once, as noTunes: a polite quit lets its window show up first.
+        app.forceTerminate()
     }
 }

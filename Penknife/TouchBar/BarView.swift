@@ -1,22 +1,109 @@
 import AppKit
+import AudioToolbox
 
-/// How the Touch Bar icons are colored; tapping the battery moves to the next one (R-1).
+/// How the Touch Bar icons are colored; a long press on the battery moves to the next one
+/// (R-1, R-25). Raw values are stored: 0 was "own", 1 "white".
 enum BarColorMode: Int, CaseIterable {
-    case own, white, rainbow
+    case multicolor, monochrome, rainbow
 
-    var next: BarColorMode { BarColorMode(rawValue: (rawValue + 1) % BarColorMode.allCases.count) ?? .own }
+    var next: BarColorMode { BarColorMode(rawValue: (rawValue + 1) % BarColorMode.allCases.count) ?? .multicolor }
+
+    var title: String {
+        switch self {
+        case .multicolor: String(localized: "Multicolor")
+        case .monochrome: String(localized: "Monochrome")
+        case .rainbow: String(localized: "Rainbow")
+        }
+    }
+}
+
+/// A short dry click on every Touch Bar tap: the Touch Bar has no haptic engine, so a sound like
+/// the trackpad's actuator stands in (user, 2026-11-13). `TapClick.wav` is synthesized: a 240 Hz
+/// sine decaying in 4 ms plus a 3 kHz transient, 45 ms. Off in Settings, and silent when macOS
+/// "Play user interface sound effects" is off.
+enum TapSound {
+    static let key = "touchBar.tapSound"
+
+    /// A system sound: decoded once, played by the system with minimal latency (NSSound took
+    /// a noticeable moment to start).
+    private static let sound: SystemSoundID? = {
+        guard let url = Bundle.main.url(forResource: "TapClick", withExtension: "wav") else { return nil }
+        var id: SystemSoundID = 0
+        return AudioServicesCreateSystemSoundID(url as CFURL, &id) == noErr ? id : nil
+    }()
+
+    static var isOn: Bool {
+        get { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
+    }
+
+    /// Loads the sound ahead of the first tap (the first play could be lost while it loads).
+    static func prepare() { _ = sound }
+
+    static func play() {
+        let defaults = UserDefaults.standard
+        guard isOn,
+              defaults.object(forKey: "com.apple.sound.uiaudio.enabled") as? Bool ?? true,
+              let sound else { return }
+        AudioServicesPlaySystemSound(sound)
+    }
+}
+
+/// Battery drawn like the menu bar's: dimmed outline, a fill as long as the charge, and a bolt
+/// cut out of it while charging (SF Symbols only has fixed quarter steps).
+enum BatteryIcon {
+    static func image(fraction: CGFloat, charging: Bool, color: NSColor) -> NSImage {
+        let size = NSSize(width: 27, height: 13)
+        let image = NSImage(size: size, flipped: false) { _ in
+            let body = NSRect(x: 0.6, y: 0.6, width: 23.4, height: 11.8)
+            let outline = NSBezierPath(roundedRect: body, xRadius: 3.6, yRadius: 3.6)
+            outline.lineWidth = 1.2
+            color.withAlphaComponent(0.5).setStroke()
+            outline.stroke()
+            color.withAlphaComponent(0.5).setFill()
+            NSBezierPath(roundedRect: NSRect(x: 25, y: 4.2, width: 1.6, height: 4.6), xRadius: 0.8, yRadius: 0.8).fill()
+
+            let inner = body.insetBy(dx: 2, dy: 2)
+            var fill = inner
+            fill.size.width = max(inner.width * min(max(fraction, 0), 1), 2)
+            color.setFill()
+            NSBezierPath(roundedRect: fill, xRadius: 1.8, yRadius: 1.8).fill()
+
+            if charging, let bolt = NSImage(systemSymbolName: "bolt.fill", accessibilityDescription: nil)?
+                .withSymbolConfiguration(.init(pointSize: 11, weight: .bold)) {
+                let boltRect = NSRect(x: body.midX - bolt.size.width / 2, y: body.midY - bolt.size.height / 2,
+                                      width: bolt.size.width, height: bolt.size.height)
+                // A clear edge around the bolt, then the bolt in the icon's color.
+                bolt.draw(in: boltRect.insetBy(dx: -1.5, dy: -1.5), from: .zero, operation: .destinationOut, fraction: 1)
+                let tinted = NSImage(size: boltRect.size, flipped: false) { rect in
+                    bolt.draw(in: rect)
+                    color.setFill()
+                    rect.fill(using: .sourceAtop)
+                    return true
+                }
+                tinted.draw(in: boltRect)
+            }
+            return true
+        }
+        return image
+    }
 }
 
 /// One Touch Bar button: an SF Symbol in the item's color and an optional text.
 final class BarButton: NSButton {
     let itemID: String
     let ownColor: NSColor
+    /// Replaces `ownColor` in multicolor mode when the state has a color (battery level).
+    var stateColor: NSColor?
     var onPress: ((BarButton) -> Void)?
     /// Color used right now (depends on the color mode); sliders take it for their track.
     private(set) var tint: NSColor
     private var textColor: NSColor = .white
     private var symbol: String?
     private var text = ""
+    /// A drawn icon instead of a symbol (the battery), made in the current tint.
+    private var drawing: ((NSColor) -> NSImage)?
+    private var drawingKey = ""
 
     init(itemID: String, color: NSColor) {
         self.itemID = itemID
@@ -37,18 +124,43 @@ final class BarButton: NSButton {
 
     @objc private func pressed() { onPress?(self) }
 
+    /// The click sounds when the finger lands, as the trackpad's does; the action still runs on
+    /// release (standard button behavior, lets a long press take over).
+    override func touchesBegan(with event: NSEvent) {
+        TapSound.play()
+        super.touchesBegan(with: event)
+    }
+
     /// Updates what the button shows. `label` is what VoiceOver reads (R-19).
     func show(symbol: String?, text: String = "", label: String) {
-        guard symbol != self.symbol || text != self.text || label != accessibilityLabel() else { return }
+        // A label-only change (e.g. a new percentage under the same symbol) needs no redraw.
+        if label != accessibilityLabel() { setAccessibilityLabel(label) }
+        guard symbol != self.symbol || text != self.text || drawing != nil else { return }
         self.symbol = symbol
         self.text = text
+        drawing = nil
+        drawingKey = ""
+        setAccessibilityLabel(label)
+        render()
+    }
+
+    /// Shows a drawn icon. `key` identifies what it shows, so an unchanged state isn't redrawn.
+    func show(drawing: @escaping (NSColor) -> NSImage, key: String, label: String) {
+        if label != accessibilityLabel() { setAccessibilityLabel(label) }
+        guard key != drawingKey else { return }
+        symbol = nil
+        text = ""
+        self.drawing = drawing
+        drawingKey = key
         setAccessibilityLabel(label)
         render()
     }
 
     func setTint(_ color: NSColor, colorText: Bool) {
+        let newText = colorText ? color : .white
+        guard color != tint || newText != textColor else { return }
         tint = color
-        textColor = colorText ? color : .white
+        textColor = newText
         render()
     }
 
@@ -57,7 +169,10 @@ final class BarButton: NSButton {
             .foregroundColor: textColor,
             .font: NSFont.systemFont(ofSize: 15),
         ])
-        if let symbol, let base = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
+        if let drawing {
+            image = drawing(tint)
+            imagePosition = .imageOnly
+        } else if let symbol, let base = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
             let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
                 .applying(NSImage.SymbolConfiguration(paletteColors: [tint]))
             image = base.withSymbolConfiguration(config)
@@ -74,9 +189,17 @@ final class BarView: NSView {
     private let stack = NSStackView()
     private(set) var buttons: [BarButton] = []
     private var panel: SliderPanel?
+    var isSliderOpen: Bool { panel != nil }
+    /// Called after a slider closes (the module re-reads the levels once).
+    var onSliderClose: (() -> Void)?
 
-    var colorMode: BarColorMode = .own {
+    var colorMode: BarColorMode = .multicolor {
         didSet { applyColors() }
+    }
+
+    /// The single color of monochrome mode (Settings, R-25).
+    var monochromeColor: NSColor = .white {
+        didSet { if colorMode == .monochrome { applyColors() } }
     }
 
     init(width: CGFloat) {
@@ -111,12 +234,12 @@ final class BarView: NSView {
         buttons.first { $0.itemID == id }
     }
 
-    private func applyColors() {
+    func applyColors() {
         let count = max(buttons.count - 1, 1)
         for (index, button) in buttons.enumerated() {
             switch colorMode {
-            case .own: button.setTint(button.ownColor, colorText: false)
-            case .white: button.setTint(.white, colorText: false)
+            case .multicolor: button.setTint(button.stateColor ?? button.ownColor, colorText: false)
+            case .monochrome: button.setTint(monochromeColor, colorText: true)
             case .rainbow:
                 // Red to violet, left to right, texts included.
                 let hue = CGFloat(index) / CGFloat(count) * 0.83
@@ -131,6 +254,7 @@ final class BarView: NSView {
     /// The close ✕ takes the button's place, so tapping the same spot again closes it.
     func openSlider(from button: BarButton, control: LevelControl, label: String, autoClose: Bool) {
         closeSlider()
+        KeyboardBrightness.autoTurnedOff = false
         let opensRight = button.frame.midX < bounds.midX
         let panel = SliderPanel(control: control, tint: button.tint, label: label,
                                 closeOnRight: !opensRight, autoClose: autoClose)
@@ -157,6 +281,7 @@ final class BarView: NSView {
         panel.removeFromSuperview()
         self.panel = nil
         setButtonsHidden(false)
+        onSliderClose?()
     }
 
     private func setButtonsHidden(_ hidden: Bool) {

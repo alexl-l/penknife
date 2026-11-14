@@ -42,7 +42,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .screenshot: String(localized: "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Nothing is uploaded.")
         case .clipboard: String(localized: "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.")
         case .music: String(localized: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.")
-        case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself, e.g. with the play key.")
+        case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself (headphones, play key). Opening it yourself works.")
         case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
         case .weather: String(localized: "Shows the current weather on the Touch Bar and in the menu, using your approximate location.")
         case .touchBar: String(localized: "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, music, weather, CPU temperature, volume and time.")
