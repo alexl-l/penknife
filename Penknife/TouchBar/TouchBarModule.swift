@@ -41,6 +41,8 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private var refreshScheduled = false
     private lazy var playbackWatcher = PlaybackWatcher { [weak self] in self?.updateMusic() }
     private var playerID = ""
+    /// The buttons on the bar now, to rebuild only when the layout really changes.
+    private var shownItems: [BarItem] = []
     private var cpuTimer: Timer?
     private var screensAsleep = false
 
@@ -148,7 +150,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         observers.append(NotificationCenter.default.addObserver(forName: ModuleManager.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.rebuildButtons() }
         })
-        // Settings: color mode, monochrome color, music player. Other writes change nothing here.
+        // Settings: color mode, monochrome color, music player, button layout. Other writes change nothing here.
         observers.append(NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.settingsChanged() }
         })
@@ -210,51 +212,21 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     // MARK: Buttons
 
-    private enum Item: String {
-        case battery, brightness, keyboardLight, jiggler, microphone, screenshot, lock, music, weather, cpu, volume, speedTest, time
-    }
+    private typealias Item = BarItem
 
     private func isOn(_ module: ModuleID) -> Bool { manager?.isEnabled(module) ?? false }
 
-    /// 12 equal buttons in the order of the previous MTMR setup; buttons of modules that are off
-    /// are left out.
+    /// The buttons the user chose, in their order (R-26); buttons of modules that are off are
+    /// left out. Equal widths, so the others widen when one is hidden.
     private func rebuildButtons() {
         guard let barView else { return }
-        var buttons: [BarButton] = []
-        func add(_ item: Item, _ hex: UInt32, _ press: @escaping (BarButton) -> Void) {
-            let button = BarButton(itemID: item.rawValue, color: NSColor(hex: hex))
-            button.onPress = press
-            buttons.append(button)
+        let items = BarLayout.visible(isOn: isOn)
+        shownItems = items
+        let buttons = items.map { item in
+            let button = BarButton(itemID: item.rawValue, color: NSColor(hex: item.hex))
+            button.onPress = press(for: item)
+            return button
         }
-        add(.battery, 0xFFFFFF) { [weak self] _ in self?.toggleBatteryIcon() }
-        add(.brightness, 0xFFDB00) { [weak self] in self?.openSlider($0, DisplayBrightness(), String(localized: "Brightness")) }
-        add(.keyboardLight, 0x4AD1E6) { [weak self] in self?.openSlider($0, KeyboardBrightness(), String(localized: "Keyboard backlight")) }
-        if isOn(.jiggler) {
-            add(.jiggler, 0x0099FF) { [weak self] _ in self?.jigglerTapped() }
-        }
-        if isOn(.microphone) {
-            add(.microphone, 0xFF5D49) { [weak self] _ in self?.run(.microphone) }
-        }
-        if isOn(.screenshot) {
-            add(.screenshot, 0xCC77F4) { [weak self] _ in self?.run(.screenshot) }
-        }
-        if isOn(.lockScreen) {
-            add(.lock, 0x7176EB) { [weak self] _ in self?.run(.lockScreen) }
-        }
-        if isOn(.music) {
-            add(.music, 0x08DA73) { [weak self] _ in self?.music.tap() }
-        }
-        if isOn(.weather) {
-            add(.weather, 0x75DAD8) { [weak self] _ in self?.weather.refresh(ifOlderThan: 60) }
-        }
-        if isOn(.cpuTemperature) {
-            add(.cpu, 0xFFAE02) { [weak self] _ in self?.updateTemperature() }
-        }
-        add(.volume, 0xFFAE02) { [weak self] in self?.openSlider($0, OutputVolume(), String(localized: "Volume")) }
-        if isOn(.speedTest) {
-            add(.speedTest, 0x34C759) { [weak self] _ in self?.speedTest.run() }
-        }
-        add(.time, 0xFFFFFF) { [weak self] _ in self?.toggleDate() }
         barView.setButtons(buttons)
         if let time = barView.button(Item.time.rawValue) {
             let press = NSPressGestureRecognizer(target: self, action: #selector(timeLongPressed(_:)))
@@ -294,6 +266,24 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         updateSpeedTest()
     }
 
+    private func press(for item: Item) -> (BarButton) -> Void {
+        switch item {
+        case .battery: { [weak self] _ in self?.toggleBatteryIcon() }
+        case .brightness: { [weak self] in self?.openSlider($0, DisplayBrightness(), String(localized: "Brightness")) }
+        case .keyboardLight: { [weak self] in self?.openSlider($0, KeyboardBrightness(), String(localized: "Keyboard backlight")) }
+        case .jiggler: { [weak self] _ in self?.jigglerTapped() }
+        case .microphone: { [weak self] _ in self?.run(.microphone) }
+        case .screenshot: { [weak self] _ in self?.run(.screenshot) }
+        case .lock: { [weak self] _ in self?.run(.lockScreen) }
+        case .music: { [weak self] _ in self?.music.tap() }
+        case .weather: { [weak self] _ in self?.weather.refresh(ifOlderThan: 60) }
+        case .cpu: { [weak self] _ in self?.updateTemperature() }
+        case .volume: { [weak self] in self?.openSlider($0, OutputVolume(), String(localized: "Volume")) }
+        case .speedTest: { [weak self] _ in self?.speedTest.run() }
+        case .time: { [weak self] _ in self?.toggleDate() }
+        }
+    }
+
     private func run(_ module: ModuleID) {
         guard let manager, let action = manager.module(module)?.actions.first else { return }
         manager.run(action)
@@ -322,6 +312,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         if mode != barView.colorMode { barView.colorMode = mode }
         let mono = Self.monochromeColor
         if mono != barView.monochromeColor { barView.monochromeColor = mono }
+        if BarLayout.visible(isOn: isOn) != shownItems { rebuildButtons() }
         let player = MusicPlayer.current.id
         if player != playerID {
             playerID = player

@@ -211,12 +211,32 @@
         }
       }
     },
+    "At least one button must stay visible": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al menos un botón debe quedar visible"
+          }
+        }
+      }
+    },
     "At the pointer": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Junto al puntero"
+          }
+        }
+      }
+    },
+    "Battery": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Batería"
           }
         }
       }
@@ -297,6 +317,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brillo %@"
+          }
+        }
+      }
+    },
+    "Buttons": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Botones"
           }
         }
       }
@@ -631,6 +661,26 @@
         }
       }
     },
+    "Customize Touch Bar": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizar Touch Bar"
+          }
+        }
+      }
+    },
+    "Customize…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizar…"
+          }
+        }
+      }
+    },
     "Cut": {
       "localizations": {
         "es": {
@@ -701,12 +751,42 @@
         }
       }
     },
+    "Done": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo"
+          }
+        }
+      }
+    },
     "Download %lld megabits per second": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Bajada %lld megabits por segundo"
+          }
+        }
+      }
+    },
+    "Drag to reorder": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastra para reordenar"
+          }
+        }
+      }
+    },
+    "Drag to reorder. At least one button stays visible. Hiding a button doesn't turn its function off: it still works from the menu and its shortcut.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastra para cambiar el orden. Al menos un botón queda visible. Ocultar un botón no apaga su función: sigue funcionando desde el menú y su atajo."
           }
         }
       }
@@ -1091,6 +1171,16 @@
         }
       }
     },
+    "Module off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Módulo apagado"
+          }
+        }
+      }
+    },
     "Modules": {
       "localizations": {
         "es": {
@@ -1171,12 +1261,32 @@
         }
       }
     },
+    "Move down": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover abajo"
+          }
+        }
+      }
+    },
     "Move the mouse after": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Mover el ratón tras"
+          }
+        }
+      }
+    },
+    "Move up": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover arriba"
           }
         }
       }
@@ -1691,6 +1801,16 @@
         }
       }
     },
+    "Restore Defaults": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar"
+          }
+        }
+      }
+    },
     "Save": {
       "localizations": {
         "es": {
@@ -2131,6 +2251,16 @@
         }
       }
     },
+    "Time": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora"
+          }
+        }
+      }
+    },
     "To paste it too, allow Accessibility": {
       "localizations": {
         "es": {
@@ -2157,6 +2287,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sonido de clic del Touch Bar"
+          }
+        }
+      }
+    },
+    "Touch Bar preview: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista previa de la Touch Bar: %@"
           }
         }
       }

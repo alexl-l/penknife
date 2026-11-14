@@ -63,6 +63,8 @@ struct ModulesTab: View {
                             .disabled(!manager.isEnabled(.touchBar))
                         TouchBarColorOptions()
                             .disabled(!manager.isEnabled(.touchBar))
+                        BarButtonsRow(manager: manager)
+                            .disabled(!manager.isEnabled(.touchBar))
                     }
                 } footer: {
                     if id == ModuleID.allCases.last {
