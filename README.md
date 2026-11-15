@@ -71,6 +71,7 @@ Hold the jiggler button for 3 seconds and slice fruit on the Touch Bar.
 
 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
 2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings → Privacy & Security** and click **Open Anyway**.
+3. That's it: from 1.1 on, Penknife checks for updates once a day and asks before installing them (menu → **Check for Updates…**).
 
 <details>
 <summary><b>Requirements</b></summary>

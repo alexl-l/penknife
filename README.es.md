@@ -71,6 +71,7 @@ Mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touc
 
 1. [Descarga la última versión](https://github.com/alexl-l/penknife/releases/latest), descomprímela y mueve `Penknife.app` a `/Aplicaciones`.
 2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente**.
+3. Listo: desde la 1.1, Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
 
 <details>
 <summary><b>Requisitos</b></summary>
