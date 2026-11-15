@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Penknife — the pocket knife for your Mac</title>
+<meta name="description" content="One small macOS menu bar app that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot. Free and open source.">
+<meta name="color-scheme" content="dark light">
+<link rel="icon" href="screenshots/icon.png">
+<meta property="og:title" content="Penknife — the pocket knife for your Mac">
+<meta property="og:description" content="One small macOS menu bar app that replaces five utilities. Free and open source.">
+<meta property="og:image" content="https://alexl-l.github.io/penknife/screenshots/social-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+*{box-sizing:border-box;margin:0}
+:root{--bg:#0a0a0c;--fg:#f5f5f7;--mut:#9a9aa3;--card:#16161a;--ln:#26262c;--acc:#ff6a3d;--glow:.35}
+@media(prefers-color-scheme:light){:root{--bg:#fbfbfd;--fg:#1d1d1f;--mut:#6e6e73;--card:#fff;--ln:#e3e3e8;--glow:.18}}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%;height:auto}
+.hero{position:relative;text-align:center;padding:96px 16px 72px;overflow:hidden}
+.hero:before{content:"";position:absolute;inset:-20% 10% auto;height:520px;background:radial-gradient(closest-side,rgba(255,90,60,var(--glow)),transparent),radial-gradient(closest-side at 80% 40%,rgba(120,80,255,calc(var(--glow)*.7)),transparent);filter:blur(40px);z-index:0}
+.hero>*{position:relative}
+.ic{width:112px;margin:0 auto}
+.eyebrow{font:600 13px ui-monospace,Menlo,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);margin:28px 0 14px}
+h1{font-size:clamp(44px,7.5vw,84px);letter-spacing:-.045em;line-height:1.03;font-weight:700}
+h1 em{font-style:normal;background:linear-gradient(90deg,#ff5a4d,#ffb340,#34c759,#32ade6,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:clamp(18px,2.4vw,22px);color:var(--mut);max-width:640px;margin:18px auto 30px}
+.btn{display:inline-block;padding:13px 26px;border-radius:12px;background:var(--fg);color:var(--bg);font-weight:600;margin:6px}
+.btn.o{background:none;border:1px solid var(--ln);color:var(--fg)}
+.btn:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
+.strip{max-width:1100px;margin:56px auto 0;background:#000;border-radius:14px;padding:10px;box-shadow:0 30px 80px rgba(255,90,60,.2),0 0 0 1px #2a2a2e}
+.strip img{border-radius:6px;width:100%}
+.sec{max-width:1040px;margin:0 auto;padding:40px 16px 0}
+.row{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:center;padding:48px 0;border-top:1px solid var(--ln)}
+.row:nth-child(even) .txt{order:2}
+.row.wide{grid-template-columns:1fr}
+.fi{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--acc) 18%,transparent);color:var(--acc);font-size:18px}
+h3{font-size:clamp(26px,3.6vw,34px);letter-spacing:-.03em;margin:10px 0 8px}
+.txt p{color:var(--mut);font-size:18px}
+.shot img{margin:0 auto;max-height:560px;width:auto}
+.wide .shot{background:#000;border-radius:12px;padding:8px;box-shadow:0 0 0 1px #2a2a2e}
+.wide .shot img{width:100%;max-height:none;border-radius:4px}
+.dl{max-width:760px;margin:96px auto;padding:48px 24px;border-radius:24px;background:var(--card);border:1px solid var(--ln);text-align:center}
+.dl .ic{width:88px}
+.dl h2{font-size:clamp(30px,5vw,40px);letter-spacing:-.03em;margin:16px 0 6px}
+.dl p{color:var(--mut);margin-bottom:22px}
+.dl ol{background:rgba(128,128,128,.12);border-radius:10px;padding:14px 14px 14px 34px;font:13px/1.7 ui-monospace,Menlo,monospace;margin:22px auto 0;max-width:460px;text-align:left;color:var(--mut)}
+footer{text-align:center;color:var(--mut);font-size:13px;padding:0 16px 48px}
+footer a{text-decoration:underline}
+@media(max-width:760px){.row{grid-template-columns:1fr;gap:24px}.row:nth-child(even) .txt{order:0}}
+</style>
+</head>
+<body>
+<section class="hero">
+  <img class="ic" src="screenshots/icon.png" alt="Penknife icon" width="112" height="112">
+  <div class="eyebrow">Menu bar · Touch Bar · Modules</div>
+  <h1>Your Mac, <em>sharpened.</em></h1>
+  <p class="lead">Penknife is one small app that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot.</p>
+  <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download for macOS</a><a class="btn o" href="https://github.com/alexl-l/penknife">GitHub ›</a>
+  <div class="strip"><img src="screenshots/touchbar-rainbow.png" alt="Penknife's Touch Bar in rainbow mode" width="2008" height="60"></div>
+</section>
+
+<main class="sec">
+  <div class="row wide">
+    <div class="txt"><div class="fi" aria-hidden="true">▭</div><h3>Touch Bar</h3><p>Brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time. Icons follow state, and you choose the buttons and their order.</p></div>
+    <div class="shot"><img src="screenshots/touchbar.png" alt="Penknife's Touch Bar" width="2008" height="60" loading="lazy"></div>
+  </div>
+  <div class="row">
+    <div class="txt"><div class="fi" aria-hidden="true">⌗</div><h3>Screenshot editor</h3><p>Arrows, text, highlighter, shapes, pen and blur. Frozen or live, area or window.</p></div>
+    <div class="shot"><img src="screenshots/screenshot-editor.jpg" alt="Screenshot editor with an arrow, a rectangle and a circle" width="1600" height="1108" loading="lazy"></div>
+  </div>
+  <div class="row">
+    <div class="txt"><div class="fi" aria-hidden="true">❏</div><h3>Clipboard history</h3><p>Search, pinned items and ⌘1–⌘9. Password managers are never saved.</p></div>
+    <div class="shot"><img src="screenshots/clipboard.png" alt="Clipboard history panel" width="960" height="920" loading="lazy"></div>
+  </div>
+  <div class="row">
+    <div class="txt"><div class="fi" aria-hidden="true">♪</div><h3>Music</h3><p>Play, next and previous for the player you choose. Headphone clicks go there, and Apple Music stays closed.</p></div>
+    <div class="shot"><img src="screenshots/settings-music.png" alt="Music settings" width="1200" height="942" loading="lazy"></div>
+  </div>
+  <div class="row">
+    <div class="txt"><div class="fi" aria-hidden="true">☰</div><h3>Menu bar</h3><p>Mouse jiggler, microphone mute, lock screen, speed test and CPU temperature, each with its own shortcut.</p></div>
+    <div class="shot"><img src="screenshots/menu.png" alt="Penknife's menu bar menu" width="922" height="946" loading="lazy"></div>
+  </div>
+  <div class="row">
+    <div class="txt"><div class="fi" aria-hidden="true">◧</div><h3>Settings</h3><p>One System Settings style sidebar. Every module on or off.</p></div>
+    <div class="shot"><img src="screenshots/settings.png" alt="Penknife Settings" width="1200" height="942" loading="lazy"></div>
+  </div>
+  <div class="row wide">
+    <div class="txt"><div class="fi" aria-hidden="true">◉</div><h3>Touch Bar game</h3><p>Hold the jiggler for 3 seconds and slice. About 4 % CPU.</p></div>
+    <div class="shot"><img src="screenshots/touchbar-game.png" alt="Slicing game on the Touch Bar" width="2008" height="60" loading="lazy"></div>
+  </div>
+</main>
+
+<section class="dl">
+  <img class="ic" src="screenshots/icon.png" alt="" width="88" height="88">
+  <h2>Free. Open source. Quiet.</h2>
+  <p>macOS 26+ · MIT · no account, no analytics</p>
+  <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download Penknife</a>
+  <ol><li>Move Penknife.app to /Applications</li><li>System Settings → Privacy &amp; Security → Open Anyway</li></ol>
+</section>
+
+<footer>
+  <p><a href="https://github.com/alexl-l/penknife">Source on GitHub</a> · <a href="https://github.com/alexl-l/penknife/blob/main/README.es.md">Español</a></p>
+  <p>Not affiliated with Apple, Spotify, Hammerspoon, MTMR, noTunes, Maccy or Lightshot.</p>
+</footer>
+</body>
+</html>
