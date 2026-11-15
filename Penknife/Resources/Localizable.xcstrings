@@ -1611,6 +1611,16 @@
         }
       }
     },
+    "Penknife Settings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajustes de Penknife"
+          }
+        }
+      }
+    },
     "Penknife — the pocket knife for your Mac": {
       "localizations": {
         "es": {
@@ -2007,6 +2017,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ajustes…"
+          }
+        }
+      }
+    },
+    "Shortcut": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajo"
           }
         }
       }

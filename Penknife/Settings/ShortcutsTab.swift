@@ -2,7 +2,7 @@ import KeyboardShortcuts
 import SwiftUI
 
 /// Every function has a customizable global shortcut (R-15, R-19).
-struct ShortcutsTab: View {
+struct ShortcutsPage: View {
     let manager: ModuleManager
 
     var body: some View {

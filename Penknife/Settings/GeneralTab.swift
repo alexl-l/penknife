@@ -1,14 +1,10 @@
 import SwiftUI
 
-struct GeneralTab: View {
+/// General: start, menu bar dots and alerts.
+struct GeneralPage: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @AppStorage(HUD.durationKey) private var hudDuration = 4.0
     @AppStorage(StatusMenu.dotsKey) private var statusDots = true
-    private var permissions = Permissions.shared
-
-    private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
-    }
 
     var body: some View {
         Form {
@@ -36,8 +32,18 @@ struct GeneralTab: View {
                 Text("VoiceOver announces them even when they are hidden.")
                     .foregroundStyle(.secondary)
             }
+        }
+        .formStyle(.grouped)
+    }
+}
 
-            Section("Permissions") {
+/// Permissions Penknife asks for, and their state.
+struct PermissionsPage: View {
+    private var permissions = Permissions.shared
+
+    var body: some View {
+        Form {
+            Section {
                 LabeledContent {
                     if permissions.accessibilityGranted {
                         Label {
@@ -58,8 +64,20 @@ struct GeneralTab: View {
                     Text("Needed for the mouse jiggler, the Teams microphone sync and dialog detection.")
                 }
             }
+        }
+        .formStyle(.grouped)
+    }
+}
 
-            Section("About") {
+/// Version and acknowledgements.
+struct AboutPage: View {
+    private var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+    }
+
+    var body: some View {
+        Form {
+            Section {
                 LabeledContent("Version", value: version)
                 DisclosureGroup("Acknowledgements") {
                     Text(Acknowledgements.text)

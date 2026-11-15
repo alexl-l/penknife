@@ -1,53 +1,158 @@
+import KeyboardShortcuts
 import SwiftUI
 
-/// Every function can be turned on and off (R-15). Laid out like System Settings: modules in a
-/// sidebar, the chosen one's switch, description and options on the right (user, 2026-11-14:
-/// the single long list was too big).
-struct ModulesTab: View {
+/// The whole Settings window as one System Settings style sidebar (user, 2026-11-14):
+/// General, Permissions, Shortcuts; then every module (R-15); then About.
+struct SettingsView: View {
     let manager: ModuleManager
-    @AppStorage("settings.selectedModule") private var selected = ModuleID.jiggler.rawValue
+    @AppStorage("settings.selectedPage") private var selected = SettingsPage.general.rawValue
 
     var body: some View {
+        let page = SettingsPage(rawValue: selected) ?? .general
         NavigationSplitView {
-            List(ModuleID.allCases, selection: Binding(
-                get: { ModuleID(rawValue: selected) },
-                set: { if let id = $0 { selected = id.rawValue } }
-            )) { id in
-                let on = manager.isEnabled(id)
-                Label {
-                    Text(id.title)
-                        .foregroundStyle(on ? .primary : .secondary)
-                } icon: {
-                    ModuleTile(id: id, enabled: on)
+            List(selection: Binding(
+                get: { SettingsPage(rawValue: selected) },
+                set: { if let page = $0 { selected = page.rawValue } }
+            )) {
+                Section {
+                    ForEach([SettingsPage.general, .permissions, .shortcuts], id: \.self) { page in
+                        Label { Text(page.title) } icon: { SettingsTile(symbol: page.symbol, tint: page.tint) }
+                            .tag(page)
+                    }
                 }
-                .tag(id)
-                .accessibilityValue(on ? Text("On") : Text("Off"))
+                Section {
+                    ForEach(ModuleID.allCases) { id in
+                        let on = manager.isEnabled(id)
+                        Label {
+                            Text(id.title)
+                                .foregroundStyle(on ? .primary : .secondary)
+                        } icon: {
+                            ModuleTile(id: id, enabled: on)
+                        }
+                        .tag(SettingsPage.module(id))
+                        .accessibilityValue(on ? Text("On") : Text("Off"))
+                    }
+                } header: {
+                    SectionGap()
+                }
+                Section {
+                    Label { Text(SettingsPage.about.title) } icon: { SettingsTile(symbol: SettingsPage.about.symbol, tint: SettingsPage.about.tint) }
+                        .tag(SettingsPage.about)
+                } header: {
+                    SectionGap()
+                }
             }
-            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 260)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
             .toolbar(removing: .sidebarToggle)
         } detail: {
-            ModuleDetail(manager: manager, id: ModuleID(rawValue: selected) ?? .jiggler)
-                .id(selected)
+            Group {
+                switch page {
+                case .general: GeneralPage()
+                case .permissions: PermissionsPage()
+                case .shortcuts: ShortcutsPage(manager: manager)
+                case .about: AboutPage()
+                case .module(let id): ModuleDetail(manager: manager, id: id)
+                }
+            }
+            .id(selected)
+            .navigationTitle(page.title)
         }
     }
 }
 
-/// A System Settings style icon: white symbol on the module's color; gray while off.
-private struct ModuleTile: View {
-    let id: ModuleID
-    let enabled: Bool
-    var size: CGFloat = 22
+/// A little more room between the sidebar groups than the system gives (user's request).
+private struct SectionGap: View {
+    var body: some View {
+        Color.clear.frame(height: 6).accessibilityHidden(true)
+    }
+}
+
+/// A sidebar page; modules are stored as "module.<id>".
+enum SettingsPage: Hashable {
+    case general, permissions, shortcuts, about
+    case module(ModuleID)
+
+    init?(rawValue: String) {
+        switch rawValue {
+        case "general": self = .general
+        case "permissions": self = .permissions
+        case "shortcuts": self = .shortcuts
+        case "about": self = .about
+        default:
+            guard rawValue.hasPrefix("module."),
+                  let id = ModuleID(rawValue: String(rawValue.dropFirst(7))) else { return nil }
+            self = .module(id)
+        }
+    }
+
+    var rawValue: String {
+        switch self {
+        case .general: "general"
+        case .permissions: "permissions"
+        case .shortcuts: "shortcuts"
+        case .about: "about"
+        case .module(let id): "module.\(id.rawValue)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .general: String(localized: "General")
+        case .permissions: String(localized: "Permissions")
+        case .shortcuts: String(localized: "Shortcuts")
+        case .about: String(localized: "About")
+        case .module(let id): id.title
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .general: "gearshape.fill"
+        case .permissions: "hand.raised.fill"
+        case .shortcuts: "keyboard.fill"
+        case .about: "info.circle.fill"
+        case .module(let id): id.symbol
+        }
+    }
+
+    /// Graphite for General and About, so they don't read as a module that is off (gray).
+    var tint: Color {
+        switch self {
+        case .general, .about: Color(white: 0.42)
+        case .permissions: .blue
+        case .shortcuts: .indigo
+        case .module(let id): id.tint
+        }
+    }
+}
+
+/// A System Settings style icon: white symbol on a color.
+private struct SettingsTile: View {
+    let symbol: String
+    let tint: Color
+    var size: CGFloat = 18
 
     var body: some View {
         RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
-            .fill(enabled ? id.tint.gradient : Color.gray.opacity(0.55).gradient)
+            .fill(tint.gradient)
             .frame(width: size, height: size)
             .overlay {
-                Image(systemName: id.symbol)
+                Image(systemName: symbol)
                     .font(.system(size: size * 0.55, weight: .semibold))
                     .foregroundStyle(.white)
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// A module's icon: its color while on, gray while off.
+private struct ModuleTile: View {
+    let id: ModuleID
+    let enabled: Bool
+    var size: CGFloat = 18
+
+    var body: some View {
+        SettingsTile(symbol: id.symbol, tint: enabled ? id.tint : Color.gray.opacity(0.55), size: size)
     }
 }
 
@@ -86,7 +191,7 @@ private struct ModuleDetail: View {
                     Label {
                         Text(id.title).font(.headline)
                     } icon: {
-                        ModuleTile(id: id, enabled: on, size: 28)
+                        ModuleTile(id: id, enabled: on, size: 24)
                     }
                 }
             } footer: {
@@ -100,6 +205,14 @@ private struct ModuleDetail: View {
             }
             options
                 .disabled(!on)
+            if let actions = manager.module(id)?.actions, !actions.isEmpty {
+                Section(actions.count == 1 ? "Shortcut" : "Shortcuts") {
+                    ForEach(actions, id: \.shortcut) { action in
+                        KeyboardShortcuts.Recorder(action.title, name: action.shortcut)
+                    }
+                }
+                .disabled(!on)
+            }
         }
         .formStyle(.grouped)
     }

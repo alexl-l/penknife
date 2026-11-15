@@ -24,12 +24,6 @@ enum MainMenu {
 
         let window = NSMenu(title: String(localized: "Window"))
         window.addItem(withTitle: String(localized: "Close"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-        window.addItem(.separator())
-        let tabs = [String(localized: "General"), String(localized: "Modules"), String(localized: "Shortcuts")]
-        for (index, title) in tabs.enumerated() {
-            let item = window.addItem(withTitle: title, action: #selector(SettingsWindow.selectSettingsTab(_:)), keyEquivalent: "\(index + 1)")
-            item.tag = index
-        }
         main.addItem(submenu: window, title: window.title)
         NSApp.windowsMenu = window
 
