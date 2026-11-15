@@ -1,0 +1,20 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Penknife</title>
+        <item>
+            <title>1.1</title>
+            <pubDate>Sat, 14 Nov 2026 22:27:30 -0500</pubDate>
+            <sparkle:version>44</sparkle:version>
+            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>Automatic updates with Sparkle: one check a day, always asks before installing.</li>
+<li>"Check for Updates…" in the menu bar menu.</li>
+<li>Updates are signed (EdDSA) and verified before they are unpacked.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.1/Penknife-1.1.zip" length="4173919" type="application/octet-stream" sparkle:edSignature="Le5gxRCKN9WCe0PRH6OkHlyczDJen8ULLjKrTv7lXCC8Yyk/10HgtMB9Ezue9QqOi3gxnRk/iKli1e26PdhiCg=="/>
+        </item>
+    </channel>
+</rss>
