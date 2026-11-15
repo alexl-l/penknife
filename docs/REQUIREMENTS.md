@@ -136,6 +136,7 @@ No paid Apple Developer account (user's decision). Without it there is no notari
 - Personal use: self-signed certificate, as now.
 - If published: open source on GitHub (build from source, or download a release that Gatekeeper warns about the first time; user opens it via System Settings → Privacy & Security → Open Anyway).
 - Updates: Sparkle (works without the paid account; its signing key never goes in the repo). Manual until published.
+- Versions (user, 2026-11-14): version number + build number shown in About ("1.0 (N)"), `CHANGELOG.md`, git tag per version. 1.0 = phases 1–4.
 - Mac App Store discarded: needs the paid account and doesn't allow the private APIs.
 
 **R-18 Open source** — agreed

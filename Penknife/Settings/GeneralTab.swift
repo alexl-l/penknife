@@ -71,8 +71,12 @@ struct PermissionsPage: View {
 
 /// Version and acknowledgements.
 struct AboutPage: View {
+    /// "1.0 (32)": version and build, as in Finder's Get Info.
     private var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? ""
+        let build = info?["CFBundleVersion"] as? String ?? ""
+        return build.isEmpty ? short : "\(short) (\(build))"
     }
 
     var body: some View {
