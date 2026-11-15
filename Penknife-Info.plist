@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sparkle (R-17). Merged with the keys Xcode generates. -->
+	<key>SUFeedURL</key>
+	<string>https://alexl-l.github.io/penknife/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>10QVECU7kxAjC2dy5eDX1JVzFZKZUmC8Uay+Cpg1Y7g=</string>
+	<!-- Check once a day without asking first; never install without asking. -->
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUAllowsAutomaticUpdates</key>
+	<false/>
+	<!-- Check the EdDSA signature before unpacking the download. -->
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+</dict>
+</plist>

@@ -11,6 +11,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private let menu = NSMenu()
     private let manager: ModuleManager
     private let openSettings: () -> Void
+    private let updater: Updater
     private var actions: [ModuleAction] = []
     private let glyph: NSImage? = {
         let image = NSImage(named: "MenuBarIcon")
@@ -24,8 +25,9 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     /// What the icon shows now (nil = no dot), to redraw only on a real change.
     private var shown: (mic: Bool?, jiggler: Bool?)?
 
-    init(manager: ModuleManager, openSettings: @escaping () -> Void) {
+    init(manager: ModuleManager, updater: Updater, openSettings: @escaping () -> Void) {
         self.manager = manager
+        self.updater = updater
         self.openSettings = openSettings
         super.init()
 
@@ -202,6 +204,12 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
+        // Next to Settings, as in the app menu of most Mac apps (R-17). No icon, like its neighbors.
+        let updates = NSMenuItem(title: String(localized: "Check for Updates…"), action: #selector(checkForUpdates), keyEquivalent: "")
+        updates.target = self
+        updates.isEnabled = updater.canCheck
+        menu.addItem(updates)
+
         let settings = NSMenuItem(title: String(localized: "Settings…"), action: #selector(showSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -228,6 +236,10 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
     @objc private func toggleTapSound() {
         TapSound.isOn.toggle()
+    }
+
+    @objc private func checkForUpdates() {
+        updater.checkForUpdates()
     }
 
     @objc private func showSettings() {

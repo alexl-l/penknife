@@ -6,7 +6,6 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-IDENTITY="${PENKNIFE_SIGN_IDENTITY:-Penknife Local Signing}"
 APP=build/Build/Products/Release/Penknife.app
 # Build number = number of commits, so every committed change gets a higher one with no
 # file to edit. The version (1.0, 1.1…) is MARKETING_VERSION in the project; see CHANGELOG.md.
@@ -17,9 +16,7 @@ xcodebuild -quiet -project Penknife.xcodeproj -scheme Penknife -configuration Re
   CURRENT_PROJECT_VERSION="$BUILD" build
 
 # Sign the product before copying it (re-signing the copy in /Applications breaks launch).
-codesign --force --options runtime --sign "$IDENTITY" \
-  --entitlements Penknife.entitlements "$APP"
-codesign --verify --strict "$APP"
+scripts/sign-app.sh "$APP"
 
 osascript -e 'tell application id "io.github.alexl-l.Penknife" to quit' 2>/dev/null || true
 pkill -x Penknife 2>/dev/null || true
