@@ -24,22 +24,19 @@ struct SettingsView: View {
                     ForEach(ModuleID.allCases) { id in
                         let on = manager.isEnabled(id)
                         Label {
-                            Text(id.title)
-                                .foregroundStyle(on ? .primary : .secondary)
+                            // Only off modules get a style, so on ones dim with the rest of
+                            // the sidebar when the window is inactive.
+                            if on { Text(id.title) } else { Text(id.title).foregroundStyle(.secondary) }
                         } icon: {
                             ModuleTile(id: id, enabled: on)
                         }
                         .tag(SettingsPage.module(id))
                         .accessibilityValue(on ? Text("On") : Text("Off"))
                     }
-                } header: {
-                    SectionGap()
                 }
                 Section {
                     Label { Text(SettingsPage.about.title) } icon: { SettingsTile(symbol: SettingsPage.about.symbol, tint: SettingsPage.about.tint) }
                         .tag(SettingsPage.about)
-                } header: {
-                    SectionGap()
                 }
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
@@ -57,13 +54,6 @@ struct SettingsView: View {
             .id(selected)
             .navigationTitle(page.title)
         }
-    }
-}
-
-/// A little more room between the sidebar groups than the system gives (user's request).
-private struct SectionGap: View {
-    var body: some View {
-        Color.clear.frame(height: 6).accessibilityHidden(true)
     }
 }
 

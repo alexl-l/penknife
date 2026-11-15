@@ -40,7 +40,10 @@ final class SettingsWindowController: NSWindowController {
             window.center()
             hasSavedFrame = true
         }
-        NSApp.activate()
+        // The cooperative `activate()` can be refused for a menu bar app: the window then opened
+        // inactive and its sidebar jumped ~10 pt on the first click (user, 2026-11-14).
+        // Opening Settings is always the user's request, so take focus.
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 }
