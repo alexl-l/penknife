@@ -223,7 +223,13 @@ The user finds the repo too plain and wants it to look beautiful and make people
 - Fix: the v1.0 release notes say "right-click → Open"; on macOS 26 it is System Settings → Privacy & Security → Open Anyway.
 - Acceptance: README shows icon, tagline, download button, real screenshots per module, works in light and dark GitHub themes; the repo card has description, topics and social preview; the landing page loads at the Pages URL; nothing personal in any image.
 
+## Public copy (user, 2026-11-15)
+- Tagline (GitHub description, README, web, release notes): "Your Touch Bar, clipboard, screenshots and music controls, finally done right. One tiny menu bar app, free and open source." Spanish README: "Tu Touch Bar, el portapapeles, las capturas y el control de la música, por fin bien hechos."
+- Public text is written by the `copywriter` agent: benefit first, no hype. Other apps are named once only (README "Coming from…" line).
+- English menu items and buttons use Title Case (Apple style); Spanish uses sentence case and Spain wording (tiempo, auriculares, pulsa, la Touch Bar, desactivado).
+
 ## Rejected / out of scope
+- Tagline "The pocket knife for your Mac" and describing the app as "replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot" (user disliked it, 2026-11-15).
 - Fan control (MacFanPro stays out; risky SMC writes).
 - Long press on the time to sleep the Mac (MTMR had it; user said no, 2026-11-13).
 - Uploading screenshots to the web.
