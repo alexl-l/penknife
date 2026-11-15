@@ -57,7 +57,7 @@ final class SpeedTestModule: Module {
     }
 
     var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .speedTest, title: String(localized: "Speed test"), symbol: "speedometer") { [weak self] in
+        [ModuleAction(shortcut: .speedTest, title: String(localized: "Speed Test"), symbol: "speedometer") { [weak self] in
             self?.run()
         }]
     }

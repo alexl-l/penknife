@@ -4,8 +4,8 @@
 
 # Penknife
 
-**La navaja de bolsillo para tu Mac.**<br>
-Una pequeña app de la barra de menús que sustituye a Hammerspoon, MTMR, noTunes, Maccy y Lightshot.
+**Tu Touch Bar, el portapapeles, las capturas y el control de la música, por fin bien hechos.**<br>
+Una app diminuta de la barra de menús. Gratis y de código abierto.
 
 <a href="https://github.com/alexl-l/penknife/releases/latest"><img src="https://img.shields.io/badge/Descargar_para_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Descargar para macOS"></a>
 
@@ -23,10 +23,10 @@ Una pequeña app de la barra de menús que sustituye a Hammerspoon, MTMR, noTune
 
 ## Qué incluye
 
-Cada parte es un módulo que puedes activar o desactivar.
+Cada parte es un módulo. Desactiva lo que no necesites y no gastará CPU ni memoria.
 
 ### Touch Bar
-Brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora. Los iconos siguen el estado actual, y tú eliges qué botones aparecen y en qué orden.
+Brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual y tú eliges qué botones aparecen y en qué orden.
 
 <img src="docs/screenshots/touchbar.png" alt="Touch Bar de Penknife">
 
@@ -35,12 +35,12 @@ Brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, bater�
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
 <h3>Capturas de pantalla</h3>
-Un editor con flechas, texto, resaltador, formas, lápiz y desenfoque. Congelada o en vivo, zona o ventana. Copia o guarda.
+Selecciona una zona o una ventana, márcala con flechas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. No se sube nada a internet.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">
 <h3>Historial del portapapeles</h3>
-Búsqueda, elementos fijados y pegar con ⌘1–⌘9. Nunca guarda lo que viene de gestores de contraseñas ni los elementos ocultos.
+Busca, fija lo que más usas y pega con ⌘1–⌘9. Nunca guarda contraseñas ni otros elementos ocultos.
 </td>
 </tr>
 <tr>
@@ -52,13 +52,13 @@ Reproduce, pausa y salta canciones en el reproductor que elijas. Los clics de lo
 <td width="50%" valign="top">
 <img src="docs/screenshots/menu.png" alt="Menú de la barra de menús">
 <h3>Barra de menús</h3>
-Mover el ratón, silenciar el micrófono, bloquear la pantalla, test de velocidad y temperatura de la CPU, cada uno con su atajo. Unos puntos de estado muestran lo que está activo.
+Mover el ratón, silenciar el micrófono (sincronizado con Teams y Meet), bloquear la pantalla, test de velocidad y temperatura de la CPU, cada uno con su atajo. Unos puntos de estado muestran lo que está activado.
 </td>
 </tr>
 </table>
 
 ### Ajustes
-Una sola ventana al estilo de Ajustes del Sistema: cada módulo se activa o desactiva y tiene sus propios atajos.
+Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo.
 
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
@@ -71,7 +71,7 @@ Mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touc
 
 1. [Descarga la última versión](https://github.com/alexl-l/penknife/releases/latest), descomprímela y mueve `Penknife.app` a `/Aplicaciones`.
 2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente**.
-3. Listo: desde la 1.1, Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
+3. Listo. Desde la 1.1, Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
 
 <details>
 <summary><b>Requisitos</b></summary>
@@ -121,8 +121,10 @@ Penknife no es una app de la App Store. Usa algunos frameworks privados de macOS
 
 Consulta [CHANGELOG.md](CHANGELOG.md) para ver los cambios de cada versión.
 
+¿Vienes de Hammerspoon, MTMR, noTunes, Maccy o Lightshot? Penknife cubre las mismas tareas de cada día en una sola app.
+
 ## Licencia
 
 [MIT](LICENSE). Avisos de terceros: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-Penknife no está afiliada ni respaldada por Apple, Spotify, Hammerspoon, MTMR, noTunes, Maccy ni Lightshot. Los nombres se usan solo para describir la compatibilidad.
+Penknife no está afiliada ni respaldada por Apple ni Spotify. Los nombres se usan solo para describir la compatibilidad.

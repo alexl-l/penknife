@@ -135,7 +135,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
         delegate = self
         model.announcer = self
-        setAccessibilityLabel(String(localized: "Clipboard history"))
+        setAccessibilityLabel(String(localized: "Clipboard History"))
 
         let view = ClipboardView(model: model,
                                  use: { [weak self] id, paste in self?.module?.use(id, paste: paste) },

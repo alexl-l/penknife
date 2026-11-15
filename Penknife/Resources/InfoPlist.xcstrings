@@ -28,7 +28,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Penknife muestra el clima de tu ubicación aproximada. Solo se envían coordenadas redondeadas a Open-Meteo."
+            "value": "Penknife muestra el tiempo de tu ubicación aproximada. Solo se envían coordenadas redondeadas a Open-Meteo."
           }
         }
       }
@@ -39,7 +39,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Penknife muestra el clima de tu ubicación aproximada. Solo se envían coordenadas redondeadas a Open-Meteo."
+            "value": "Penknife muestra el tiempo de tu ubicación aproximada. Solo se envían coordenadas redondeadas a Open-Meteo."
           }
         }
       }

@@ -763,7 +763,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             needsDisplay = true
             announceSoon(flags.contains(.option)
                 ? String(localized: "\(Int(rect.width * scale)) by \(Int(rect.height * scale)) pixels")
-                : String(localized: "Moved"))
+                : String(localized: "Selection moved"))
             return true
         default: break
         }

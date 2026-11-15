@@ -13,7 +13,7 @@ final class MicrophoneModule: Module {
     private var savedVolume: Float32?
 
     var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .toggleMicrophone, title: String(localized: "Mute microphone"), symbol: "mic.slash",
+        [ModuleAction(shortcut: .toggleMicrophone, title: String(localized: "Mute Microphone"), symbol: "mic.slash",
                       state: { [weak self] in self?.isMuted ?? false },
                       perform: { [weak self] in self?.toggle() })]
     }

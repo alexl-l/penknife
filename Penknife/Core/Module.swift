@@ -21,34 +21,34 @@ enum ModuleID: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .jiggler: String(localized: "Mouse jiggler")
+        case .jiggler: String(localized: "Mouse Jiggler")
         case .microphone: String(localized: "Microphone")
-        case .lockScreen: String(localized: "Lock screen")
+        case .lockScreen: String(localized: "Lock Screen")
         case .screenshot: String(localized: "Screenshot")
-        case .clipboard: String(localized: "Clipboard history")
+        case .clipboard: String(localized: "Clipboard History")
         case .music: String(localized: "Music")
         case .blockAppleMusic: String(localized: "Block Apple Music")
-        case .cpuTemperature: String(localized: "CPU temperature")
+        case .cpuTemperature: String(localized: "CPU Temperature")
         case .weather: String(localized: "Weather")
-        case .speedTest: String(localized: "Speed test")
+        case .speedTest: String(localized: "Speed Test")
         case .touchBar: String(localized: "Touch Bar")
-        case .dialogs: String(localized: "Native dialogs")
+        case .dialogs: String(localized: "Native Dialogs")
         }
     }
 
     var summary: String {
         switch self {
-        case .jiggler: String(localized: "Moves the mouse after 10 seconds without activity, so you stay active.")
+        case .jiggler: String(localized: "Moves the mouse after a pause in activity, so you stay shown as active.")
         case .microphone: String(localized: "Mutes and unmutes the microphone, in sync with Microsoft Teams and Google Meet.")
         case .lockScreen: String(localized: "Turns off the mouse jiggler and locks the screen.")
         case .screenshot: String(localized: "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Nothing is uploaded.")
         case .clipboard: String(localized: "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.")
         case .music: String(localized: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.")
-        case .blockAppleMusic: String(localized: "Closes Apple Music when it opens by itself (headphones, play key). Opening it yourself works.")
+        case .blockAppleMusic: String(localized: "Keeps Apple Music from opening by itself (headphones, play key). Opening it yourself still works.")
         case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
         case .weather: String(localized: "Shows the current weather on the Touch Bar and in the menu, using your approximate location.")
         case .speedTest: String(localized: "Measures download, upload, latency and responsiveness with macOS networkQuality, from the menu, the Touch Bar or a shortcut. Keeps only the last result.")
-        case .touchBar: String(localized: "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, music, weather, CPU temperature, volume and time.")
+        case .touchBar: String(localized: "Your own Touch Bar buttons: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, plus one-tap actions. You choose which ones show and in what order.")
         case .dialogs: String(localized: "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.")
         }
     }

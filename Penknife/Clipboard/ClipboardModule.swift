@@ -28,7 +28,7 @@ final class ClipboardModule: Module {
     }
 
     var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .clipboardHistory, title: String(localized: "Clipboard history"), symbol: id.symbol,
+        [ModuleAction(shortcut: .clipboardHistory, title: String(localized: "Clipboard History"), symbol: id.symbol,
                       perform: { [weak self] in self?.showPanel() })]
     }
 

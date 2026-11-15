@@ -251,7 +251,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }
 
         barView.button(Item.screenshot.rawValue)?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
-        barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock screen"))
+        barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock Screen"))
         isOn(.music) ? playbackWatcher.start() : playbackWatcher.stop()
         updateBrightness()
         updateKeyboardLight()
@@ -421,7 +421,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .failed:
             button.show(symbol: "wifi.exclamationmark", label: String(localized: "Speed test failed. Tap to try again."))
         default:
-            button.show(symbol: "speedometer", label: String(localized: "Speed test"))
+            button.show(symbol: "speedometer", label: String(localized: "Speed Test"))
         }
     }
 

@@ -9,8 +9,8 @@
             <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <description><![CDATA[<ul>
-<li>Automatic updates with Sparkle: one check a day, always asks before installing.</li>
-<li>"Check for Updates…" in the menu bar menu.</li>
+<li>Penknife checks for updates once a day and always asks before installing.</li>
+<li><b>Check for Updates…</b> is now in the menu bar menu.</li>
 <li>Updates are signed (EdDSA) and verified before they are unpacked.</li>
 </ul>
 ]]></description>

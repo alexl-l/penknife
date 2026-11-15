@@ -106,7 +106,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un módulo apagado no usa CPU ni memoria."
+            "value": "Un módulo desactivado no usa CPU ni memoria."
           }
         }
       }
@@ -171,12 +171,12 @@
         }
       }
     },
-    "Also used by images pasted from the clipboard history into Finder. When it is full, the oldest are deleted; a bigger image is copied only as an image. In use: %@": {
+    "Also holds images you paste into Finder from the clipboard history. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "También lo usan las imágenes del historial pegadas en Finder. Cuando se llena, se borran las más antiguas; una imagen más grande se copia solo como imagen. En uso: %@"
+            "value": "También guarda las imágenes que pegas en Finder desde el historial. Cuando se llena, se borran las más antiguas; una imagen que no cabe se copia solo como imagen. En uso: %@"
           }
         }
       }
@@ -331,7 +331,27 @@
         }
       }
     },
-    "CPU temperature": {
+    "Clear sky": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Despejado"
+          }
+        }
+      }
+    },
+    "Control": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control"
+          }
+        }
+      }
+    },
+    "CPU Temperature": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -411,7 +431,7 @@
         }
       }
     },
-    "Choose another app…": {
+    "Choose Another App…": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -466,7 +486,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Despejado"
+            "value": "Borrar"
           }
         }
       }
@@ -511,7 +531,7 @@
         }
       }
     },
-    "Clipboard history": {
+    "Clipboard History": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -541,12 +561,12 @@
         }
       }
     },
-    "Closes Apple Music when it opens by itself (headphones, play key). Opening it yourself works.": {
+    "Keeps Apple Music from opening by itself (headphones, play key). Opening it yourself still works.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cierra Apple Music cuando se abre sola (audífonos, tecla de reproducir). Abrirla tú funciona."
+            "value": "Impide que Apple Music se abra sola (auriculares, tecla de reproducir). Abrirla tú sigue funcionando."
           }
         }
       }
@@ -711,12 +731,12 @@
         }
       }
     },
-    "Delete these files now": {
+    "Delete These Files Now": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Borrar estos archivos ahora"
+            "value": "Eliminar estos archivos ahora"
           }
         }
       }
@@ -876,7 +896,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fin · %1$lld puntos · Récord %2$lld"
+            "value": "Fin del juego · %1$lld puntos · Récord %2$lld"
           }
         }
       }
@@ -926,7 +946,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marcador"
+            "value": "Resaltador"
           }
         }
       }
@@ -1016,7 +1036,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tecla que oprime"
+            "value": "Tecla que pulsa"
           }
         }
       }
@@ -1071,7 +1091,7 @@
         }
       }
     },
-    "Lock screen": {
+    "Lock Screen": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -1136,7 +1156,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Micrófono abierto"
+            "value": "Micrófono activado"
           }
         }
       }
@@ -1176,7 +1196,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Módulo apagado"
+            "value": "Módulo desactivado"
           }
         }
       }
@@ -1206,12 +1226,12 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Color del monocromo"
+            "value": "Color del modo monocromo"
           }
         }
       }
     },
-    "Mouse jiggler": {
+    "Mouse Jiggler": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -1291,22 +1311,32 @@
         }
       }
     },
-    "Moved": {
+    "Option": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Movida"
+            "value": "Opción"
           }
         }
       }
     },
-    "Moves the mouse after 10 seconds without activity, so you stay active.": {
+    "Selection moved": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mueve el ratón tras 10 segundos sin actividad, para que sigas como activo."
+            "value": "Selección movida"
+          }
+        }
+      }
+    },
+    "Moves the mouse after a pause in activity, so you stay shown as active.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mueve el ratón tras una pausa sin actividad, para que sigas apareciendo como activo."
           }
         }
       }
@@ -1351,7 +1381,7 @@
         }
       }
     },
-    "Mute microphone": {
+    "Mute Microphone": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -1371,7 +1401,7 @@
         }
       }
     },
-    "Native dialogs": {
+    "Native Dialogs": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -1506,7 +1536,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Solo se envía una ubicación aproximada (unos 11 km). [Datos del clima de Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)."
+            "value": "Solo se envía una ubicación aproximada (unos 11 km). [Datos meteorológicos de Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)."
           }
         }
       }
@@ -1556,7 +1586,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Parcialmente nublado"
+            "value": "Poco nuboso"
           }
         }
       }
@@ -1621,22 +1651,22 @@
         }
       }
     },
-    "Penknife — the pocket knife for your Mac": {
+    "Shift": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Penknife — la navaja para tu Mac"
+            "value": "Mayúsculas"
           }
         }
       }
     },
-    "Penknife's own Touch Bar: battery, brightness, keyboard light, actions, music, weather, CPU temperature, volume and time.": {
+    "Your own Touch Bar buttons: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, plus one-tap actions. You choose which ones show and in what order.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Touch Bar propia de Penknife: batería, brillo, luz del teclado, acciones, música, clima, temperatura de la CPU, volumen y hora."
+            "value": "Botones propios para tu Touch Bar: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, además de acciones a un toque. Tú eliges cuáles se muestran y en qué orden."
           }
         }
       }
@@ -1836,7 +1866,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Restaurar"
+            "value": "Restaurar valores"
           }
         }
       }
@@ -2056,7 +2086,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los atajos de los módulos apagados están desactivados. En un Mac sin Touch Bar, las teclas F necesitan Fn o «Usar las teclas F1, F2, etc. como teclas de función estándar»."
+            "value": "Los atajos de los módulos desactivados no funcionan. En un Mac sin Touch Bar, las teclas F necesitan Fn o «Usar las teclas F1, F2, etc. como teclas de función estándar»."
           }
         }
       }
@@ -2096,7 +2126,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Muestra el clima actual en la Touch Bar y en el menú, con tu ubicación aproximada."
+            "value": "Muestra el tiempo actual en la Touch Bar y en el menú, según tu ubicación aproximada."
           }
         }
       }
@@ -2161,7 +2191,7 @@
         }
       }
     },
-    "Speed test": {
+    "Speed Test": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -2331,12 +2361,12 @@
         }
       }
     },
-    "Touch Bar click sound": {
+    "Touch Bar Click Sound": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sonido de clic del Touch Bar"
+            "value": "Sonido de clic de la Touch Bar"
           }
         }
       }
@@ -2496,7 +2526,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clima"
+            "value": "Tiempo"
           }
         }
       }
@@ -2506,7 +2536,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clima: %1$@, %2$@"
+            "value": "Tiempo: %1$@, %2$@"
           }
         }
       }
@@ -2516,7 +2546,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clima: ubicación no permitida. Toca para abrir los ajustes."
+            "value": "Tiempo: ubicación no permitida. Toca para abrir los ajustes."
           }
         }
       }
@@ -2526,7 +2556,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Clima: aún sin datos"
+            "value": "Tiempo: aún sin datos"
           }
         }
       }
@@ -2536,7 +2566,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mientras haya un diálogo o aviso del sistema delante, el Touch Bar muestra sus propios botones."
+            "value": "Mientras haya un diálogo o aviso del sistema delante, la Touch Bar muestra sus propios botones."
           }
         }
       }

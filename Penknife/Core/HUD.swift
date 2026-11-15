@@ -9,12 +9,12 @@ enum AlertCategory: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .jiggler: String(localized: "Mouse jiggler")
+        case .jiggler: String(localized: "Mouse Jiggler")
         case .microphone: String(localized: "Microphone")
         case .screenshot: String(localized: "Screenshots")
         case .clipboard: String(localized: "Clipboard")
         case .music: String(localized: "Music")
-        case .speedTest: String(localized: "Speed test")
+        case .speedTest: String(localized: "Speed Test")
         }
     }
 

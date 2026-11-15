@@ -220,7 +220,7 @@ extension WeatherModule.Report {
     /// What VoiceOver and the menu say.
     var summary: String {
         switch code {
-        case 0: String(localized: "Clear")
+        case 0: String(localized: "Clear sky")
         case 1, 2: String(localized: "Partly cloudy")
         case 3: String(localized: "Cloudy")
         case 45, 48: String(localized: "Fog")

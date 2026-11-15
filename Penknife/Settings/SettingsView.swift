@@ -337,13 +337,13 @@ private struct ScreenshotOptions: View {
             }
         } label: {
             Text("Space for images to paste as files")
-            Text("Also used by images pasted from the clipboard history into Finder. When it is full, the oldest are deleted; a bigger image is copied only as an image. In use: \(ByteCountFormatter.string(fromByteCount: pastableUsed, countStyle: .file))")
+            Text("Also holds images you paste into Finder from the clipboard history. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: \(ByteCountFormatter.string(fromByteCount: pastableUsed, countStyle: .file))")
         }
         .onChange(of: pastableLimit) {
             PastableImage.makeRoom()
             pastableUsed = PastableImage.used
         }
-        Button("Delete these files now") {
+        Button("Delete These Files Now") {
             PastableImage.removeAll()
             pastableUsed = 0
         }
@@ -428,7 +428,7 @@ private struct PlayerPicker: View {
         Picker("Player", selection: $playerID) {
             ForEach(MusicPlayer.choices(including: current)) { Text($0.title).tag($0.id) }
         }
-        Button("Choose another app…", action: chooseApp)
+        Button("Choose Another App…", action: chooseApp)
     }
 
     private func chooseApp() {

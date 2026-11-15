@@ -29,7 +29,7 @@ final class LockScreenModule: Module {
     }
 
     var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .lockScreen, title: String(localized: "Lock screen"), symbol: id.symbol,
+        [ModuleAction(shortcut: .lockScreen, title: String(localized: "Lock Screen"), symbol: id.symbol,
                       perform: { [weak self] in
                           if let jiggler = self?.jiggler, jiggler.followsLock { jiggler.deactivate() }
                           ScreenLocker.lock()

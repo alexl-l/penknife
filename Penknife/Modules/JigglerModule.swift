@@ -15,9 +15,9 @@ enum JigglerKey: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .capsLock: String(localized: "Caps Lock (twice)")
-        case .shift: "Shift"
-        case .control: "Control"
-        case .option: "Option"
+        case .shift: String(localized: "Shift")
+        case .control: String(localized: "Control")
+        case .option: String(localized: "Option")
         case .f18: "F18"
         case .none: String(localized: "None (mouse only)")
         }
@@ -77,7 +77,7 @@ final class JigglerModule: Module {
     }
 
     var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .toggleJiggler, title: String(localized: "Mouse jiggler"), symbol: id.symbol,
+        [ModuleAction(shortcut: .toggleJiggler, title: String(localized: "Mouse Jiggler"), symbol: id.symbol,
                       state: { [weak self] in self?.isActive ?? false },
                       perform: { [weak self] in self?.toggle() })]
     }
@@ -107,7 +107,7 @@ final class JigglerModule: Module {
     private func activate() {
         guard !isActive else { return }
         guard Permissions.shared.ensureAccessibility() else {
-            HUD.shared.show(String(localized: "Mouse jiggler"), detail: String(localized: "Needs the Accessibility permission"),
+            HUD.shared.show(String(localized: "Mouse Jiggler"), detail: String(localized: "Needs the Accessibility permission"),
                              symbol: "lock.fill", kind: .permission, category: .jiggler)
             return
         }

@@ -196,7 +196,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
         // Touch Bar click on/off, at hand (also in Settings → Modules → Touch Bar).
         if manager.isEnabled(.touchBar), TouchBarPrivate.hasTouchBar {
-            let click = NSMenuItem(title: String(localized: "Touch Bar click sound"), action: #selector(toggleTapSound), keyEquivalent: "")
+            let click = NSMenuItem(title: String(localized: "Touch Bar Click Sound"), action: #selector(toggleTapSound), keyEquivalent: "")
             click.target = self
             click.image = NSImage(systemSymbolName: "hand.tap", accessibilityDescription: nil)
             click.state = TapSound.isOn ? .on : .off

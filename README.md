@@ -4,8 +4,8 @@
 
 # Penknife
 
-**The pocket knife for your Mac.**<br>
-One small menu bar app that replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot.
+**Your Touch Bar, clipboard, screenshots and music controls, finally done right.**<br>
+One tiny menu bar app. Free and open source.
 
 <a href="https://github.com/alexl-l/penknife/releases/latest"><img src="https://img.shields.io/badge/Download_for_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS"></a>
 
@@ -23,10 +23,10 @@ One small menu bar app that replaces Hammerspoon, MTMR, noTunes, Maccy and Light
 
 ## What's inside
 
-Every part is a module you can turn on or off.
+Every part is a module. Turn off what you don't need and it uses no CPU or memory.
 
 ### Touch Bar
-Brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time. Icons follow the current state, and you choose which buttons appear and in what order.
+Brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state, and you choose which buttons appear and in what order.
 
 <img src="docs/screenshots/touchbar.png" alt="Penknife's Touch Bar">
 
@@ -35,12 +35,12 @@ Brightness, keyboard light, volume, music, weather, CPU temperature, battery, sp
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
 <h3>Screenshots</h3>
-An editor with arrows, text, highlighter, shapes, pen and blur. Frozen or live, area or window. Copy or save.
+Select an area or a window, mark it with arrows, text, highlighter, shapes, pen and blur, then copy or save. Nothing is uploaded.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Clipboard history">
 <h3>Clipboard history</h3>
-Search, pinned items and paste with ⌘1–⌘9. Password managers and concealed items are never saved.
+Search, pin what you reuse and paste with ⌘1–⌘9. Passwords and other concealed items are never saved.
 </td>
 </tr>
 <tr>
@@ -52,18 +52,18 @@ Play, pause and skip in the player you choose. Headphone clicks go to that playe
 <td width="50%" valign="top">
 <img src="docs/screenshots/menu.png" alt="Menu bar menu">
 <h3>Menu bar</h3>
-Mouse jiggler, microphone mute, lock screen, speed test and CPU temperature, each with its own shortcut. Status dots show what is on.
+Mouse jiggler, microphone mute (in sync with Teams and Meet), lock screen, speed test and CPU temperature, each with its own shortcut. Status dots show what is on.
 </td>
 </tr>
 </table>
 
 ### Settings
-One System Settings style window: every module on or off, with its own shortcuts.
+One window in the style of System Settings: turn any module on or off and give it its own shortcut.
 
 <img src="docs/screenshots/settings.png" alt="Penknife Settings">
 
 ### A little extra
-Hold the jiggler button for 3 seconds and slice fruit on the Touch Bar.
+Hold the mouse jiggler button for 3 seconds and slice fruit on the Touch Bar.
 
 <img src="docs/screenshots/touchbar-game.png" alt="Slicing game on the Touch Bar">
 
@@ -71,7 +71,7 @@ Hold the jiggler button for 3 seconds and slice fruit on the Touch Bar.
 
 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
 2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings → Privacy & Security** and click **Open Anyway**.
-3. That's it: from 1.1 on, Penknife checks for updates once a day and asks before installing them (menu → **Check for Updates…**).
+3. That's it. From 1.1 on, Penknife checks for updates once a day and asks before installing (menu → **Check for Updates…**).
 
 <details>
 <summary><b>Requirements</b></summary>
@@ -121,8 +121,10 @@ Penknife is not an App Store app. It uses some private macOS frameworks, for exa
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
+Coming from Hammerspoon, MTMR, noTunes, Maccy or Lightshot? Penknife covers the same everyday jobs in one app.
+
 ## License
 
 [MIT](LICENSE). Third-party notices: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
-Penknife is not affiliated with or endorsed by Apple, Spotify, Hammerspoon, MTMR, noTunes, Maccy or Lightshot. Names are used only to describe compatibility.
+Penknife is not affiliated with or endorsed by Apple or Spotify. Names are used only to describe compatibility.
