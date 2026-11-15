@@ -202,6 +202,18 @@ The user wants to choose which buttons appear on the Touch Bar (for example, som
 - Design chosen after a live demo (user, 2026-11-14), `ux-ui-designer` pick (variant 1 of 3): in Modules → Touch Bar a "Buttons: Customize…" button opens a sheet with a live preview strip of the bar, the list (checkbox, icon in the button's color, name, ≡ handle), a caption, "Restore Defaults" and "Done". Changes apply at once. A button whose module is off is dimmed with "Module off" and keeps its place. The last visible button's checkbox is disabled. Reorder by dragging any row: the system List drag didn't work for the user, so it is a custom drag gesture (row lifts with a shadow, others make room); VoiceOver gets "Move up"/"Move down". Discarded: own Settings tab (variant 2), inline in Modules (variant 3, too long, unreliable drag).
 - Acceptance: hiding a button removes it at once and the others widen; the order persists after relaunch; a hidden module's menu item and shortcut still work; the last visible button can't be hidden.
 
+**R-27 Attractive GitHub presence** — in progress (2026-11-14): design chosen, captures under way
+The user finds the repo too plain and wants it to look beautiful and make people want to download Penknife.
+- Scope (user's choice): visual README, repo card (description, topics, social preview image), nicer release page, and a landing page on GitHub Pages (`alexl-l.github.io/penknife`).
+- README in English (`README.md`) plus Spanish (`README.es.md`), linked to each other at the top (user's choice).
+- Screenshots and GIFs taken by Claude from the running app (user's choice). No personal data may appear (clipboard contents, file names, location, email, other apps); every image is checked before anything is uploaded.
+- Look chosen by the user (2026-11-14) from 3 `ux-ui-designer` variants: VARIANT 2 "Dark stage" — the Touch Bar strip is the hero (glow, rainbow battery mode as accent), alternating feature rows, black social preview with a rainbow strip. Discarded: variant 1 "Apple product page" (designer's pick) and variant 3 "warm indie spec sheet". Mock kept in `docs/design/github-presence.html`.
+- Touch Bar images are real captures (`screencapture -b`, 2008×60).
+- Progress (2026-11-14): done and approved in `docs/screenshots/`: `touchbar.png` (normal), `touchbar-rainbow.png` (hero; the user keeps the low red battery as is), `touchbar-game.png` (best of 10 shots). The user cleaned the desktop and the clipboard history (so sample clipboard items can be copied for the shot).
+- Next: user gives Screen Recording permission to the terminal app and restarts it; then capture the menu bar menu, Settings, music, screenshot editor, clipboard history (sample items only); then build README/README.es, landing page (GitHub Pages), social preview, repo description/topics and fixed v1.0 release notes; show every image to the user before uploading.
+- Fix: the v1.0 release notes say "right-click → Open"; on macOS 26 it is System Settings → Privacy & Security → Open Anyway.
+- Acceptance: README shows icon, tagline, download button, real screenshots per module, works in light and dark GitHub themes; the repo card has description, topics and social preview; the landing page loads at the Pages URL; nothing personal in any image.
+
 ## Rejected / out of scope
 - Fan control (MacFanPro stays out; risky SMC writes).
 - Long press on the time to sleep the Mac (MTMR had it; user said no, 2026-11-13).
