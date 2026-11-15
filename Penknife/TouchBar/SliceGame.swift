@@ -5,6 +5,8 @@ import QuartzCore
 /// through one cuts it in two. 3 lives (an uncut fruit that falls back costs one), a cut bomb
 /// ends the game, the best score is kept. Three looks the user picks inside the game.
 /// It only costs anything while a game is open: one 60 Hz timer, stopped by `finish()`.
+/// The play field is Core Animation layers showing pre-drawn sprites; each tick only moves
+/// them, and `draw(_:)` paints just the controls when the score, lives or style change.
 final class SliceGameView: NSView {
     enum Style: Int, CaseIterable {
         case glossy, flat, neon
@@ -62,7 +64,7 @@ final class SliceGameView: NSView {
 
     private struct Thing { var kind: Int; var bomb: Bool; var p: CGPoint; var v: CGVector; var r: CGFloat; var angle: CGFloat; var spin: CGFloat; var risen = false }
     private struct Half { var kind: Int; var p: CGPoint; var v: CGVector; var r: CGFloat; var angle: CGFloat; var spin: CGFloat; var side: CGFloat; var life: CGFloat }
-    private struct Drop { var p: CGPoint; var v: CGVector; var color: NSColor; var life: CGFloat }
+    private struct Drop { var p: CGPoint; var v: CGVector; var color: CGColor; var life: CGFloat }
     private struct Floater { var text: String; var p: CGPoint; var life: CGFloat }
 
     private var style: Style
@@ -79,6 +81,20 @@ final class SliceGameView: NSView {
     private var lastTouch: CGPoint?, swipeCuts = 0, swipeCutTime: CFTimeInterval = 0
     private var timer: Timer?
 
+    // Layers: the field clips to `fieldRect` and uses view coordinates (bounds origin = rect origin).
+    private struct SpriteKey: Hashable { var kind: Int; var r: CGFloat; var part: Int } // part: 0 whole, ±1 half, 2/3 bomb, 4 knife
+    private static let spritePad: CGFloat = 8
+    private var sprites: [SpriteKey: CGImage] = [:] // current style only, built on first use
+    private let field = CALayer(), flashLayer = CALayer(), knifeLayer = CALayer()
+    private let halfGroup = CALayer(), thingGroup = CALayer(), dropGroup = CALayer(), trailGroup = CALayer(), floaterGroup = CALayer()
+    private var halfLayers: [CALayer] = [], thingLayers: [CALayer] = [], dropLayers: [CALayer] = []
+    private var trailLayers: [CAShapeLayer] = [], floaterLayers: [CATextLayer] = []
+    private let overlay = CALayer(), overlayText = CATextLayer()
+    private var overlayString: String?
+    private var layersReady = false
+    private var renderedEmpty = false // the field showed nothing last time: idle ticks skip the work
+    private var scale: CGFloat { window?.backingScaleFactor ?? 2 }
+
     private let height: CGFloat = 30
     private let gravity: CGFloat = 95
     // Layout: [X][score][styles] ........ play field ........ [lives]
@@ -90,6 +106,8 @@ final class SliceGameView: NSView {
     override init(frame: NSRect) {
         style = Style(rawValue: UserDefaults.standard.integer(forKey: Self.styleKey)) ?? .glossy
         super.init(frame: frame)
+        wantsLayer = true
+        layerContentsRedrawPolicy = .onSetNeedsDisplay
         allowedTouchTypes = [.direct]
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
@@ -123,6 +141,11 @@ final class SliceGameView: NSView {
         saveBest() // leaving mid-game (X, lock, sleep) keeps a new record too
         timer?.invalidate()
         timer = nil
+        sprites = [:]
+        field.removeFromSuperlayer()
+        overlay.removeFromSuperlayer()
+        halfLayers = []; thingLayers = []; dropLayers = []; trailLayers = []; floaterLayers = []
+        layersReady = false
         let done = onFinish
         onFinish = nil
         done?()
@@ -133,6 +156,8 @@ final class SliceGameView: NSView {
         score = 0; lives = 3; gameOverAt = nil; flash = 0; newRecord = false
         startTime = CACurrentMediaTime(); last = startTime; nextSpawn = startTime + 0.6
         needsDisplay = true
+        renderedEmpty = false
+        render(now: startTime)
         startTicking()
     }
 
@@ -147,7 +172,7 @@ final class SliceGameView: NSView {
         let x = CGFloat.random(in: (fieldMinX + 30)...(fieldMaxX - 30))
         let toCenter: CGFloat = x < (fieldMinX + fieldMaxX) / 2 ? 1 : -1
         let speed = 1 + difficulty(now) * 0.6
-        let r: CGFloat = bomb ? 10 : .random(in: 10...12)
+        let r: CGFloat = bomb ? 10 : CGFloat(Int.random(in: 20...24)) / 2 // half-point steps: few sprites
         // The center peaks 14–20 pt up the bar.
         let peak = CGFloat.random(in: 14...20) + r
         let vy = sqrt(2 * gravity * peak) * sqrt(speed)
@@ -172,7 +197,7 @@ final class SliceGameView: NSView {
                 timer = Timer.scheduledTimer(withTimeInterval: max(0, 6 - (now - over)), repeats: false) { [weak self] _ in
                     MainActor.assumeIsolated { self?.finish() }
                 }
-                needsDisplay = true
+                render(now: now)
                 return
             }
         } else if now >= nextSpawn {
@@ -213,7 +238,7 @@ final class SliceGameView: NSView {
         floaters = floaters.compactMap { var f = $0; f.life -= dt * 1.2; return f.life > 0 ? f : nil }
         trail.removeAll { now - $0.1 > 0.16 }
         flash = max(0, flash - dt * 2)
-        setNeedsDisplay(fieldRect) // score, lives and style redraw only when they change
+        render(now: now) // score, lives and style redraw only when they change
     }
 
     private var fieldRect: CGRect { CGRect(x: fieldMinX - 14, y: 0, width: fieldMaxX - fieldMinX + 28, height: height) }
@@ -249,7 +274,9 @@ final class SliceGameView: NSView {
             TapSound.play()
             style = chosen
             UserDefaults.standard.set(index, forKey: Self.styleKey)
+            sprites = [:]
             needsDisplay = true
+            render(now: CACurrentMediaTime())
             return
         }
         if let over = gameOverAt {
@@ -286,7 +313,7 @@ final class SliceGameView: NSView {
             if t.bomb {
                 flash = 1
                 for _ in 0..<18 {
-                    drops.append(Drop(p: t.p, v: CGVector(dx: .random(in: -160...160), dy: .random(in: -40...120)), color: .systemOrange, life: 1))
+                    drops.append(Drop(p: t.p, v: CGVector(dx: .random(in: -160...160), dy: .random(in: -40...120)), color: NSColor.systemOrange.cgColor, life: 1))
                 }
                 lives = 0
                 things = survivors + things[(index + 1)...]
@@ -302,7 +329,7 @@ final class SliceGameView: NSView {
             }
             for _ in 0..<7 {
                 drops.append(Drop(p: t.p, v: CGVector(dx: dir.dx / len * 90 + .random(in: -50...50), dy: .random(in: 0...80)),
-                                  color: Self.fruits[t.kind].flesh, life: 1))
+                                  color: Self.fruits[t.kind].flesh.cgColor, life: 1))
             }
             score += 1
             swipeCuts = now - swipeCutTime < 0.35 ? swipeCuts + 1 : 1
@@ -319,31 +346,9 @@ final class SliceGameView: NSView {
     // MARK: Drawing
 
     override func draw(_ dirtyRect: NSRect) {
-        guard let c = NSGraphicsContext.current?.cgContext else { return }
         NSColor.black.setFill()
         dirtyRect.fill()
-        let field = fieldRect
-        if flash > 0, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            NSColor.systemRed.withAlphaComponent(flash * 0.35).setFill()
-            field.fill()
-        }
         drawControls(in: dirtyRect)
-        c.saveGState()
-        c.clip(to: field)
-        for h in halves { drawHalf(c, h) }
-        for t in things { t.bomb ? drawBomb(c, t) : drawFruit(c, kind: t.kind, at: t.p, r: t.r, angle: t.angle) }
-        for d in drops {
-            d.color.withAlphaComponent(max(0, d.life)).setFill()
-            NSBezierPath(ovalIn: CGRect(x: d.p.x - 1.3, y: d.p.y - 1.3, width: 2.6, height: 2.6)).fill()
-        }
-        drawTrail(c)
-        for f in floaters {
-            let attributes: [NSAttributedString.Key: Any] = [.font: Self.comboFont,
-                                                             .foregroundColor: NSColor.systemYellow.withAlphaComponent(f.life)]
-            NSAttributedString(string: f.text, attributes: attributes).draw(at: CGPoint(x: f.p.x - 20, y: 8 + (1 - f.life) * 8))
-        }
-        c.restoreGState()
-        if gameOverAt != nil { drawGameOver() }
     }
 
     private func drawControls(in dirty: CGRect) {
@@ -394,7 +399,7 @@ final class SliceGameView: NSView {
             c.fillPath(using: .evenOdd)
             if fruit.leaf { drawLeaf(c, r: r, color: Self.flatLeaf) }
         case .neon:
-            c.setShadow(offset: .zero, blur: 6, color: fruit.skin.cgColor)
+            c.setShadow(offset: .zero, blur: 6 * scale, color: fruit.skin.cgColor) // bitmap shadows are in pixels
             c.setStrokeColor(Self.neonStrokes[kind])
             c.setLineWidth(2)
             c.setFillColor(fruit.skin.withAlphaComponent(0.18).cgColor)
@@ -427,7 +432,6 @@ final class SliceGameView: NSView {
     private func drawHalf(_ c: CGContext, _ h: Half) {
         let fruit = Self.fruits[h.kind], r = h.r
         c.saveGState()
-        c.setAlpha(min(1, h.life * 1.5))
         c.translateBy(x: h.p.x, y: h.p.y)
         c.rotate(by: h.angle)
         c.clip(to: h.side > 0 ? CGRect(x: -r - 4, y: 0.6, width: r * 2 + 8, height: r + 6)
@@ -446,7 +450,7 @@ final class SliceGameView: NSView {
                 c.fillEllipse(in: CGRect(x: s * r - 1, y: h.side * r * 0.3 - 1.2, width: 2, height: 2.4))
             }
         case .neon:
-            c.setShadow(offset: .zero, blur: 6, color: fruit.skin.cgColor)
+            c.setShadow(offset: .zero, blur: 6 * scale, color: fruit.skin.cgColor)
             c.setStrokeColor(Self.neonStrokes[h.kind])
             c.setLineWidth(2)
             c.addEllipse(in: body.insetBy(dx: 1, dy: 1)); c.strokePath()
@@ -456,12 +460,11 @@ final class SliceGameView: NSView {
         c.restoreGState()
     }
 
-    private func drawBomb(_ c: CGContext, _ t: Thing) {
+    private func drawBomb(_ c: CGContext, r: CGFloat, spark sparkOn: Bool) {
         c.saveGState()
-        c.translateBy(x: t.p.x, y: t.p.y)
-        let r = t.r, body = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
+        let body = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
         if style == .neon {
-            c.setShadow(offset: .zero, blur: 6, color: NSColor.systemRed.cgColor)
+            c.setShadow(offset: .zero, blur: 6 * scale, color: NSColor.systemRed.cgColor)
             c.setStrokeColor(NSColor.systemRed.cgColor)
             c.setLineWidth(2)
             c.addEllipse(in: body.insetBy(dx: 1, dy: 1)); c.strokePath()
@@ -486,50 +489,220 @@ final class SliceGameView: NSView {
         c.move(to: CGPoint(x: r * 0.5, y: r * 0.75))
         c.addQuadCurve(to: CGPoint(x: r, y: r * 1.3), control: CGPoint(x: r, y: r * 0.8))
         c.strokePath()
-        let sparkOn = Int(CACurrentMediaTime() * 12) % 2 == 0
         c.setFillColor((sparkOn ? NSColor.systemYellow : NSColor.systemOrange).cgColor)
         c.fillEllipse(in: CGRect(x: r - 2, y: r * 1.3 - 2, width: 4, height: 4))
         c.restoreGState()
     }
 
-    private func drawTrail(_ c: CGContext) {
-        guard trail.count >= 2 else { return }
-        let now = CACurrentMediaTime()
-        c.saveGState()
-        c.setLineCap(.round)
-        for i in 1..<trail.count {
-            let (a, ta) = trail[i - 1], (b, _) = trail[i]
-            let k = CGFloat(1 - (now - ta) / 0.16)
+    /// Flat look: a small penknife (silver blade, red handle), pointing right from the origin.
+    private func drawKnife(_ c: CGContext) {
+        c.setFillColor(NSColor(white: 0.9, alpha: 1).cgColor)
+        c.move(to: CGPoint(x: 6, y: 0)); c.addLine(to: CGPoint(x: -4, y: 2.5)); c.addLine(to: CGPoint(x: -4, y: -1))
+        c.closePath(); c.fillPath()
+        c.setFillColor(NSColor.systemRed.cgColor)
+        c.fill(CGRect(x: -10, y: -1.2, width: 6, height: 3.4))
+    }
+
+    // MARK: Layers
+
+    /// A sprite for the current style, drawn once with the same CoreGraphics code as before,
+    /// centered in a square of `r + spritePad` each side.
+    private func sprite(_ key: SpriteKey, draw: (CGContext) -> Void) -> CGImage? {
+        if let image = sprites[key] { return image }
+        let half = key.r + Self.spritePad, px = Int((half * 2 * scale).rounded(.up))
+        guard let c = CGContext(data: nil, width: px, height: px, bitsPerComponent: 8, bytesPerRow: 0,
+                                space: Self.sRGB ?? CGColorSpaceCreateDeviceRGB(),
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        c.scaleBy(x: scale, y: scale)
+        c.translateBy(x: half, y: half)
+        draw(c)
+        let image = c.makeImage()
+        sprites[key] = image
+        return image
+    }
+
+    private func ensureLayers() {
+        guard !layersReady, let root = layer else { return }
+        layersReady = true
+        field.masksToBounds = true
+        for sub in [flashLayer, halfGroup, thingGroup, dropGroup, trailGroup, knifeLayer, floaterGroup] { field.addSublayer(sub) }
+        flashLayer.backgroundColor = NSColor.systemRed.cgColor
+        flashLayer.opacity = 0
+        knifeLayer.isHidden = true
+        knifeLayer.contentsScale = scale
+        overlay.backgroundColor = NSColor.black.withAlphaComponent(0.75).cgColor
+        overlay.isHidden = true
+        overlayText.contentsScale = scale
+        overlay.addSublayer(overlayText)
+        root.addSublayer(field)
+        root.addSublayer(overlay)
+        layoutLayers()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        guard layersReady else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        layoutLayers()
+        CATransaction.commit()
+    }
+
+    private func layoutLayers() {
+        let rect = fieldRect
+        for sub in [field, flashLayer, halfGroup, thingGroup, dropGroup, trailGroup, floaterGroup] {
+            sub.bounds = rect
+            sub.position = CGPoint(x: rect.midX, y: rect.midY)
+        }
+        overlay.frame = CGRect(x: fieldMinX, y: 0, width: fieldMaxX - fieldMinX, height: height)
+        overlayString = nil // re-center the text
+    }
+
+    /// Shows `count` layers of a pool, adding more as needed (they are never freed mid-game).
+    private func pool<L: CALayer>(_ pool: inout [L], _ count: Int, in group: CALayer, make: () -> L) {
+        while pool.count < count {
+            let sub = make()
+            group.addSublayer(sub)
+            pool.append(sub)
+        }
+        for (index, sub) in pool.enumerated() where sub.isHidden != (index >= count) { sub.isHidden = index >= count }
+    }
+
+    private func spriteLayer() -> CALayer {
+        let sub = CALayer()
+        sub.contentsScale = scale
+        return sub
+    }
+
+    private func place(_ sub: CALayer, _ image: CGImage?, at p: CGPoint, angle: CGFloat, r: CGFloat) {
+        if (sub.contents as AnyObject?) !== image { sub.contents = image }
+        let side = (r + Self.spritePad) * 2
+        if sub.bounds.width != side { sub.bounds = CGRect(x: 0, y: 0, width: side, height: side) }
+        sub.position = p
+        sub.setAffineTransform(CGAffineTransform(rotationAngle: angle))
+    }
+
+    /// Moves the layers to the current state; no drawing happens here once the sprites exist.
+    private func render(now: CFTimeInterval) {
+        let empty = things.isEmpty && halves.isEmpty && drops.isEmpty && floaters.isEmpty && trail.isEmpty && flash == 0
+        if empty && renderedEmpty && layersReady && overlay.isHidden == (gameOverAt == nil) { return }
+        renderedEmpty = empty
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        defer { CATransaction.commit() }
+        ensureLayers()
+        flashLayer.opacity = flash > 0 && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? Float(flash * 0.35) : 0
+
+        pool(&halfLayers, halves.count, in: halfGroup, make: spriteLayer)
+        for (h, sub) in zip(halves, halfLayers) {
+            let image = sprite(SpriteKey(kind: h.kind, r: h.r, part: h.side > 0 ? 1 : -1)) { c in
+                var still = h
+                still.p = .zero
+                still.angle = 0
+                drawHalf(c, still)
+            }
+            place(sub, image, at: h.p, angle: h.angle, r: h.r)
+            sub.opacity = Float(min(1, h.life * 1.5))
+        }
+
+        pool(&thingLayers, things.count, in: thingGroup, make: spriteLayer)
+        let spark = Int(now * 12) % 2 == 0
+        for (t, sub) in zip(things, thingLayers) {
+            if t.bomb {
+                let image = sprite(SpriteKey(kind: 0, r: t.r, part: spark ? 3 : 2)) { drawBomb($0, r: t.r, spark: spark) }
+                place(sub, image, at: t.p, angle: 0, r: t.r)
+            } else {
+                let image = sprite(SpriteKey(kind: t.kind, r: t.r, part: 0)) { drawFruit($0, kind: t.kind, at: .zero, r: t.r, angle: 0) }
+                place(sub, image, at: t.p, angle: t.angle, r: t.r)
+            }
+        }
+
+        pool(&dropLayers, drops.count, in: dropGroup) {
+            let sub = CALayer()
+            sub.bounds = CGRect(x: 0, y: 0, width: 2.6, height: 2.6)
+            sub.cornerRadius = 1.3
+            return sub
+        }
+        for (d, sub) in zip(drops, dropLayers) {
+            sub.position = d.p
+            sub.backgroundColor = d.color
+            sub.opacity = Float(max(0, d.life))
+        }
+
+        renderTrail(now: now)
+
+        pool(&floaterLayers, floaters.count, in: floaterGroup) {
+            let sub = CATextLayer()
+            sub.contentsScale = scale
+            sub.anchorPoint = .zero
+            return sub
+        }
+        for (f, sub) in zip(floaters, floaterLayers) {
+            if sub.name != f.text { // text is laid out only when a layer gets a new combo
+                sub.name = f.text
+                let text = NSAttributedString(string: f.text, attributes: [.font: Self.comboFont, .foregroundColor: NSColor.systemYellow])
+                sub.string = text
+                let size = text.size()
+                sub.bounds = CGRect(x: 0, y: 0, width: ceil(size.width), height: ceil(size.height))
+            }
+            sub.position = CGPoint(x: f.p.x - 20, y: 8 + (1 - f.life) * 8)
+            sub.opacity = Float(f.life)
+        }
+
+        renderOverlay()
+    }
+
+    /// One shape layer per segment, as the old per-segment strokes. The glow is a layer shadow
+    /// with an explicit path, so it needs no offscreen pass.
+    private func renderTrail(now: CFTimeInterval) {
+        let segments = max(0, trail.count - 1)
+        pool(&trailLayers, segments, in: trailGroup) {
+            let sub = CAShapeLayer()
+            sub.lineCap = .round
+            sub.fillColor = nil
+            sub.shadowOffset = .zero
+            sub.contentsScale = scale
+            return sub
+        }
+        for i in 0..<segments {
+            let sub = trailLayers[i]
+            let (a, ta) = trail[i], (b, _) = trail[i + 1]
+            let k = max(0, CGFloat(1 - (now - ta) / 0.16))
             let width = max(0.5, k * 4)
+            let path = CGMutablePath()
+            path.move(to: a)
+            path.addLine(to: b)
+            sub.path = path
             switch style {
             case .glossy:
-                c.setShadow(offset: .zero, blur: 5, color: NSColor.white.cgColor)
-                c.setStrokeColor(NSColor.white.withAlphaComponent(k).cgColor)
-                c.setLineWidth(width)
+                sub.strokeColor = NSColor.white.withAlphaComponent(k).cgColor
+                sub.lineWidth = width
+                sub.shadowColor = NSColor.white.cgColor
+                sub.shadowRadius = 2.5
+                sub.shadowOpacity = Float(k)
             case .flat:
-                c.setStrokeColor(NSColor(white: 0.85, alpha: k).cgColor)
-                c.setLineWidth(width * 0.6)
+                sub.strokeColor = NSColor(white: 0.85, alpha: k).cgColor
+                sub.lineWidth = width * 0.6
+                sub.shadowOpacity = 0
             case .neon:
-                let hue = (CGFloat(i) / CGFloat(trail.count) + CGFloat(now * 0.5)).truncatingRemainder(dividingBy: 1)
-                c.setShadow(offset: .zero, blur: 6, color: NSColor(hue: hue, saturation: 1, brightness: 1, alpha: 1).cgColor)
-                c.setStrokeColor(NSColor(hue: hue, saturation: 0.8, brightness: 1, alpha: k).cgColor)
-                c.setLineWidth(width)
+                let hue = (CGFloat(i + 1) / CGFloat(trail.count) + CGFloat(now * 0.5)).truncatingRemainder(dividingBy: 1)
+                sub.strokeColor = NSColor(hue: hue, saturation: 0.8, brightness: 1, alpha: k).cgColor
+                sub.lineWidth = width
+                sub.shadowColor = NSColor(hue: hue, saturation: 1, brightness: 1, alpha: 1).cgColor
+                sub.shadowRadius = 3
+                sub.shadowOpacity = Float(k)
             }
-            c.move(to: a)
-            c.addLine(to: b)
-            c.strokePath()
+            sub.shadowPath = sub.shadowOpacity > 0
+                ? path.copy(strokingWithWidth: sub.lineWidth, lineCap: .round, lineJoin: .round, miterLimit: 10) : nil
         }
-        // Flat look: a small penknife (silver blade, red handle) at the finger.
-        if style == .flat, let tip = trail.last?.0, let previous = trail.dropLast().last?.0 {
-            c.translateBy(x: tip.x, y: tip.y)
-            c.rotate(by: atan2(tip.y - previous.y, tip.x - previous.x))
-            c.setFillColor(NSColor(white: 0.9, alpha: 1).cgColor)
-            c.move(to: CGPoint(x: 6, y: 0)); c.addLine(to: CGPoint(x: -4, y: 2.5)); c.addLine(to: CGPoint(x: -4, y: -1))
-            c.closePath(); c.fillPath()
-            c.setFillColor(NSColor.systemRed.cgColor)
-            c.fill(CGRect(x: -10, y: -1.2, width: 6, height: 3.4))
+        if style == .flat, segments > 0, let tip = trail.last?.0 {
+            let previous = trail[trail.count - 2].0
+            let image = sprite(SpriteKey(kind: 0, r: 4, part: 4)) { drawKnife($0) }
+            place(knifeLayer, image, at: tip, angle: atan2(tip.y - previous.y, tip.x - previous.x), r: 4)
+            knifeLayer.isHidden = false
+        } else if !knifeLayer.isHidden {
+            knifeLayer.isHidden = true
         }
-        c.restoreGState()
     }
 
     private func gameOverText(withHint: Bool) -> String {
@@ -538,12 +711,20 @@ final class SliceGameView: NSView {
         return withHint ? result + "   —   " + String(localized: "Tap to play again") : result
     }
 
-    private func drawGameOver() {
-        let field = CGRect(x: fieldMinX, y: 0, width: fieldMaxX - fieldMinX, height: height)
-        NSColor.black.withAlphaComponent(0.75).setFill()
-        field.fill()
-        let text = NSAttributedString(string: gameOverText(withHint: true), attributes: Self.gameOverAttributes)
+    private func renderOverlay() {
+        guard gameOverAt != nil else {
+            if !overlay.isHidden { overlay.isHidden = true }
+            overlayString = nil
+            return
+        }
+        overlay.isHidden = false
+        let string = gameOverText(withHint: true)
+        guard string != overlayString else { return }
+        overlayString = string
+        let text = NSAttributedString(string: string, attributes: Self.gameOverAttributes)
         let size = text.size()
-        text.draw(at: CGPoint(x: field.midX - size.width / 2, y: field.midY - size.height / 2))
+        overlayText.string = text
+        overlayText.frame = CGRect(x: ((overlay.bounds.width - size.width) / 2).rounded(), y: ((overlay.bounds.height - size.height) / 2).rounded(),
+                                   width: ceil(size.width), height: ceil(size.height))
     }
 }
