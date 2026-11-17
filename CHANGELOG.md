@@ -3,6 +3,12 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.6 — 2026-11-17
+
+Unmuting with Penknife's shortcut now works in Teams meetings that ask for recording consent.
+
+- **Teams unmute works when consent is required.** With "Remember my choice for Teams' unmute dialog" on, Teams used to ignore its own mute shortcut until you consented, so nothing happened. Penknife still sends the shortcut first; if Teams ignores it, Penknife presses Teams' mic button for you, bringing Teams forward for a moment if it was behind and then returning to your app, so the consent dialog appears and gets answered. Normal meetings are unchanged: Teams isn't brought forward and your typing focus isn't touched. You remain responsible for consent.
+
 ## 1.5 — 2026-11-17
 
 The mic shortcut now follows the call, and the Teams unmute setting works in any language.
