@@ -3,6 +3,16 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.3 — 2026-11-17
+
+Meeting mute now stays in sync with your call, and the Mac's microphone is muted along with it.
+
+- **Mic mute follows the call's own button.** Each press checks the mic button in Meet or Teams and only changes it when needed, so clicking the mic inside the call no longer leaves the call and your Mac out of step. Where the button can't be read (Firefox, for example), it uses the app's shortcut as before.
+- **The Mac's microphone is now muted too during a meeting**, so the menu bar icon matches the call. You can turn this off with "Also mute the Mac's microphone" in Settings.
+- Meetings in the browser are detected in Chrome, Chrome Dev, Opera, Safari and Firefox, with no permission prompt. In Chrome-based browsers, accessibility must not be turned off in chrome://accessibility.
+- Fixed: shortcut presses being ignored during calls.
+- Fixed: Google Meet in Safari muting the Mac but not the call.
+
 ## 1.2 — 2026-11-16
 
 The microphone shortcut now mutes the meeting you are in.
