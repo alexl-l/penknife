@@ -45,6 +45,7 @@ h3{font-size:clamp(26px,3.6vw,34px);letter-spacing:-.03em;margin:10px 0 8px}
 .dl .ic{width:88px}
 .dl h2{font-size:clamp(30px,5vw,40px);letter-spacing:-.03em;margin:16px 0 6px}
 .dl p{color:var(--mut);margin-bottom:22px}
+.dl code{font:12px ui-monospace,Menlo,monospace;background:rgba(128,128,128,.12);border-radius:6px;padding:2px 6px;overflow-wrap:anywhere}
 .dl ol{background:rgba(128,128,128,.12);border-radius:10px;padding:14px 14px 14px 34px;font:13px/1.7 ui-monospace,Menlo,monospace;margin:22px auto 0;max-width:460px;text-align:left;color:var(--mut)}
 footer{text-align:center;color:var(--mut);font-size:13px;padding:0 16px 48px}
 footer a{text-decoration:underline}
@@ -55,8 +56,8 @@ footer a{text-decoration:underline}
 <section class="hero">
   <img class="ic" src="screenshots/icon.png" alt="Penknife icon" width="112" height="112">
   <div class="eyebrow">Menu bar · Meetings · Modules</div>
-  <h1>Your Mac, <em>finally done right.</em></h1>
-  <p class="lead">Meeting-aware mic mute, clipboard history, screenshots and music controls in one tiny menu bar app. Turn on only what you need.</p>
+  <h1>Mute the meeting you're in. <em>Find anything you copied.</em></h1>
+  <p class="lead">Mark up any screenshot, control your music, keep your Mac awake. One tiny, free menu bar app. Turn on only what you need.</p>
   <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download for macOS</a><a class="btn o" href="https://github.com/alexl-l/penknife">GitHub ›</a>
 </section>
 
@@ -96,7 +97,9 @@ footer a{text-decoration:underline}
   <h2>Free. Open source. Quiet.</h2>
   <p>macOS 26+ · MIT · no account, no analytics</p>
   <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download Penknife</a>
-  <ol><li>Unzip and move Penknife.app to /Applications</li><li>System Settings → Privacy &amp; Security → Open Anyway</li><li>Updates arrive by themselves (Penknife asks first)</li></ol>
+  <p>Prefer Homebrew? <code>brew trust alexl-l/tap &amp;&amp; brew install --cask alexl-l/tap/penknife</code></p>
+  <ol><li>Unzip and move Penknife.app to /Applications</li><li>Open it once. macOS will say it can't verify it, then go to System Settings → Privacy &amp; Security → Open Anyway</li><li>Updates arrive by themselves (Penknife asks first)</li></ol>
+  <p>Why the warning? Penknife isn't notarized because there's no paid Apple Developer account behind it. The code is open, so you can read it or build it yourself.</p>
 </section>
 
 <footer>

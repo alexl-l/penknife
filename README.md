@@ -69,6 +69,8 @@ A little extra: hold the mouse jiggler button for 3 seconds and slice fruit on t
 
 ## Install
 
+Prefer Homebrew? Run `brew trust alexl-l/tap && brew install --cask alexl-l/tap/penknife`. Otherwise:
+
 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
 2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings → Privacy & Security** and click **Open Anyway**.
 3. That's it. Penknife checks for updates once a day and asks before installing (menu → **Check for Updates…**).

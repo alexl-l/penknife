@@ -69,6 +69,8 @@ Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta 
 
 ## Instalación
 
+¿Prefieres Homebrew? Ejecuta `brew trust alexl-l/tap && brew install --cask alexl-l/tap/penknife`. Si no:
+
 1. [Descarga la última versión](https://github.com/alexl-l/penknife/releases/latest), descomprímela y mueve `Penknife.app` a `/Aplicaciones`.
 2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente**.
 3. Listo. Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
