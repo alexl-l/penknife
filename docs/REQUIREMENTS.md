@@ -172,7 +172,7 @@ The user loved that the jiggler icon changes with its state; ALL ICONS SHOULD DO
 - Default mode: MULTICOLOR (user, 2026-11-13).
 - Built (2026-11-13): brightness `sun.min`/`sun.max`, keyboard `light.min`/`light.max` (2 levels), volume 1/2/3 waves or slash, CPU thermometer low < 50 °C ≤ medium < 75 °C ≤ high, music `music.note` paused / `music.quarternote.3` playing (user liked it). Monochrome also colors the texts.
 - Known limit: playing state comes only from Spotify and Apple Music notifications; at launch, and for other players, the icon shows "paused" until the next change.
-- TAP FEEDBACK (user, 2026-11-13): wanted a haptic like the trackpad click; the Touch Bar has no haptic engine (the trackpad's only vibrates under a finger), so every tap plays a short dry click like the trackpad actuator (synthesized `TapClick.wav`, variant "seco" chosen by the user from three; "Tink" rejected). Setting "Click sound on every tap" (on by default), also a checkable item "Touch Bar click sound" in the menu bar menu (user, 2026-11-13); sounds on touch-down; silent when macOS UI sound effects are off.
+- TAP FEEDBACK: REMOVED (user, 2026-11-16). Touch Bar buttons make no sound: with "Hey Siri" on, the click made Siri unmute the mic for ~1 s and then restore it, undoing a mute change made on that tap. The click setting and menu item are gone; only the slicing game keeps its click. (Was: a dry click on every tap, since the Touch Bar has no haptic engine.)
 - Settings: monochrome color (user picks it; white by default) and the mode (same value the long press changes).
 - Answered: macOS notifies brightness and keyboard light changes (see DECISIONS), so nothing polls.
 
@@ -228,7 +228,21 @@ The user finds the repo too plain and wants it to look beautiful and make people
 - Public text is written by the `copywriter` agent: benefit first, no hype. Other apps are named once only (README "Coming from…" line).
 - English menu items and buttons use Title Case (Apple style); Spanish uses sentence case and Spain wording (tiempo, auriculares, pulsa, la Touch Bar, desactivado).
 
+**R-28 Meeting-aware microphone toggle** — agreed (user, 2026-11-16), not built
+- Bug first: after unmuting with Penknife, something mutes the mic again, even with NO meeting open. Find the cause (log every mute change and who caused it) before building the rest.
+- Platforms: Microsoft Teams, Google Meet, Zoom, Slack (huddles), Cisco Webex. Each has its own mute/unmute shortcut, EDITABLE in Settings (the user has a custom Teams shortcut); defaults = each app's standard shortcut. Each platform can be turned off.
+- A meeting counts ONLY while you are IN A CALL (user, 2026-11-16, imperative): an open Teams/Slack/Zoom or a Meet page is not a meeting. Detected as "the app is using the microphone now" (CoreAudio process list, the same signal as macOS's orange dot). No call → the Mac's microphone toggles.
+- The toggle acts ONLY on the CURRENT meeting: the meeting app (or meeting browser tab) that has focus; if focus is elsewhere (e.g. the editor), the last meeting app that had focus. With two meetings open (e.g. Teams + Meet in Chrome), only that one changes.
+- Browser meetings (Meet, Teams/Zoom/Webex web): detected only when the meeting is the ACTIVE tab of the browser (works in Chrome, Chrome Dev and Safari; no "Allow JavaScript from Apple Events"). The shortcut goes to that tab, so it works in any UI language.
+- Mac microphone: a setting "Also mute the Mac's microphone", OFF by default (with it off, a meeting is muted only in its app). With no meeting found, the toggle mutes the Mac's microphone as today.
+- Open: how the HUD and the menu bar dot show a meeting app's state (Penknife only sends a toggle shortcut and can't read the app's state); design with `ux-ui-designer` before building.
+- TRUTHFUL MIC STATE (user, 2026-11-16, imperative): the Touch Bar button and the menu bar dot follow the real microphone by subscription (any app or the system changing it shows at once). Measured: Siri (com.apple.CoreSpeech) keeps listening with the mic muted and clears/restores the mute around its own sessions. While Siri listens (user, 2026-11-16): pressing mute does NOTHING (Siri keeps the mic open anyway; checked only at the press). No Siri badge: Siri itself clears the mute while it listens and restores it after, so the icon, which follows the device, is already truthful (open during Siri, previous state after). A badge was built and dropped: macOS gives no signal when Siri starts, so it needed polling (0.03 % CPU), which the user found invasive.
+- Known problems in the current code: Teams always gets ⌘⇧Ñ blind (wrong for custom shortcuts); Meet is looked for only in Google Chrome (the user has Chrome Dev) and by English button labels.
+
 ## Rejected / out of scope
+- Touch Bar always on (user, 2026-11-16): macOS dims it after ~60 s idle and turns it off (OLED burn-in, battery); no public setting, only undocumented internals (`disableDimming` in TouchBarServer) or faking user activity (would also stop the screen sleeping/locking). User chose to leave it as Apple designed.
+- Click sound on Touch Bar taps (2026-11-16): broke the mic toggle with "Hey Siri" on (see DECISIONS).
+- Penknife re-muting the mic after Siri ("MuteGuard", 2026-11-16): the user called it a patch; Siri already restores the mute after ~1 s.
 - Tagline "The pocket knife for your Mac" and describing the app as "replaces Hammerspoon, MTMR, noTunes, Maccy and Lightshot" (user disliked it, 2026-11-15).
 - Fan control (MacFanPro stays out; risky SMC writes).
 - Long press on the time to sleep the Mac (MTMR had it; user said no, 2026-11-13).

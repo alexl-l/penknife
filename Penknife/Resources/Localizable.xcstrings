@@ -11,12 +11,42 @@
         }
       }
     },
+    "%@ gigabits per second": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ gigabits por segundo"
+          }
+        }
+      }
+    },
     "%@ is not installed": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "%@ no está instalado"
+          }
+        }
+      }
+    },
+    "%@ kilobits per second": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ kilobits por segundo"
+          }
+        }
+      }
+    },
+    "%@ megabits per second": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ megabits por segundo"
           }
         }
       }
@@ -181,6 +211,16 @@
         }
       }
     },
+    "Also mute the Mac's microphone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silenciar también el micrófono del Mac"
+          }
+        }
+      }
+    },
     "Any app (media keys)": {
       "localizations": {
         "es": {
@@ -317,6 +357,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brillo %@"
+          }
+        }
+      }
+    },
+    "Browser meetings count only when they are the active tab.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las reuniones en el navegador solo cuentan si son la pestaña activa."
           }
         }
       }
@@ -511,16 +561,6 @@
         }
       }
     },
-    "Click sound on every tap": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sonido de clic en cada toque"
-          }
-        }
-      }
-    },
     "Clipboard": {
       "localizations": {
         "es": {
@@ -557,6 +597,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cerrar los deslizadores y la fecha automáticamente"
+          }
+        }
+      }
+    },
+    "Current meeting": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reunión actual"
+          }
+        }
+      }
+    },
+    "Download %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descarga: %@"
           }
         }
       }
@@ -777,16 +837,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Listo"
-          }
-        }
-      }
-    },
-    "Download %lld megabits per second": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bajada %lld megabits por segundo"
           }
         }
       }
@@ -1121,6 +1171,16 @@
         }
       }
     },
+    "Meetings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reuniones"
+          }
+        }
+      }
+    },
     "Memory for the history": {
       "localizations": {
         "es": {
@@ -1161,32 +1221,22 @@
         }
       }
     },
+    "Microphone toggled": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono alternado"
+          }
+        }
+      }
+    },
     "Microphone unmuted": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Micrófono activado"
-          }
-        }
-      }
-    },
-    "Microphone, muted": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Micrófono, silenciado"
-          }
-        }
-      }
-    },
-    "Microphone, on": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Micrófono, activado"
           }
         }
       }
@@ -1311,6 +1361,16 @@
         }
       }
     },
+    "Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivado: solo se silencia la reunión actual. Si no hay ninguna reunión, se silencia el micrófono del Mac."
+          }
+        }
+      }
+    },
     "Option": {
       "localizations": {
         "es": {
@@ -1391,12 +1451,12 @@
         }
       }
     },
-    "Mutes and unmutes the microphone, in sync with Microsoft Teams and Google Meet.": {
+    "Mutes the meeting you are in with its own shortcut (Teams, Meet, Zoom, Slack, Webex), or the Mac's microphone.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Silencia y activa el micrófono, sincronizado con Microsoft Teams y Google Meet."
+            "value": "Silencia la reunión en la que estás con su propio atajo (Teams, Meet, Zoom, Slack, Webex), o el micrófono del Mac."
           }
         }
       }
@@ -1411,12 +1471,12 @@
         }
       }
     },
-    "Needed for the mouse jiggler, the Teams microphone sync and dialog detection.": {
+    "Needed for the mouse jiggler, the meeting mute shortcuts and dialog detection.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Necesario para mover el ratón, sincronizar el micrófono con Teams y detectar diálogos."
+            "value": "Necesario para mover el ratón, los atajos para silenciar reuniones y la detección de diálogos."
           }
         }
       }
@@ -1657,6 +1717,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mayúsculas"
+          }
+        }
+      }
+    },
+    "Shortcut = the keys Penknife sends to each app to mute. Match them to the app's own setting.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atajo = las teclas que Penknife envía a cada app para silenciar. Deben coincidir con las de la propia app."
+          }
+        }
+      }
+    },
+    "The meeting in front, or the last one you used.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La reunión que está delante, o la última que usaste."
+          }
+        }
+      }
+    },
+    "Upload %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subida: %@"
           }
         }
       }
@@ -2361,16 +2451,6 @@
         }
       }
     },
-    "Touch Bar Click Sound": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sonido de clic de la Touch Bar"
-          }
-        }
-      }
-    },
     "Touch Bar preview: %@": {
       "localizations": {
         "es": {
@@ -2447,16 +2527,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ya no está fijado"
-          }
-        }
-      }
-    },
-    "Upload %lld megabits per second": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Subida %lld megabits por segundo"
           }
         }
       }
@@ -2665,16 +2735,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Media"
-          }
-        }
-      }
-    },
-    "↓ %lld Mbps · ↑ %lld Mbps": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "↓ %1$lld Mbps · ↑ %2$lld Mbps"
           }
         }
       }

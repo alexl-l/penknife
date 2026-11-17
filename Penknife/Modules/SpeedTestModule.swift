@@ -28,7 +28,8 @@ final class SpeedTestModule: Module {
         }
 
         var speeds: String {
-            String(localized: "↓ \(Int(download.rounded())) Mbps · ↑ \(Int(upload.rounded())) Mbps")
+            let down = SpeedText(mbps: download), up = SpeedText(mbps: upload)
+            return "↓ \(down.number) \(down.unit) · ↑ \(up.number) \(up.unit)"
         }
         var details: String {
             String(localized: "Latency \(Int(latency.rounded())) ms · Responsiveness \(rating) (\(rpm) RPM)")
@@ -163,5 +164,36 @@ final class SpeedTestModule: Module {
         let rpm = (json["responsiveness"] as? NSNumber)?.doubleValue ?? 0
         return Result(download: down / 1_000_000, upload: up / 1_000_000, latency: latency,
                       rpm: Int(rpm.rounded()), date: Date())
+    }
+}
+
+/// A speed with its unit scaled to 3 significant digits (designer's rule, 2026-11-16):
+/// under 1 Mbps in kbps (850 kbps), 1–9.9 with one decimal (9.4 Mbps), 10–999 whole (245 Mbps),
+/// from 1000 in Gbps (1.2 Gbps, then whole). The same text on the Touch Bar, in the menu and
+/// spelled out for VoiceOver.
+struct SpeedText {
+    let number: String
+    let unit: String
+    let spoken: String
+
+    init(mbps: Double) {
+        let value: Double, digits: Int
+        if mbps < 1 {
+            value = mbps * 1000; digits = 0; unit = "kbps"
+        } else if mbps < 1000 {
+            value = mbps; digits = mbps < 10 ? 1 : 0; unit = "Mbps"
+        } else {
+            value = mbps / 1000; digits = value < 10 ? 1 : 0; unit = "Gbps"
+        }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = digits
+        formatter.maximumFractionDigits = digits
+        number = formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        spoken = switch unit {
+        case "kbps": String(localized: "\(number) kilobits per second")
+        case "Gbps": String(localized: "\(number) gigabits per second")
+        default: String(localized: "\(number) megabits per second")
+        }
     }
 }

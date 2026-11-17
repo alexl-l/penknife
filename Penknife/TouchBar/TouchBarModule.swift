@@ -113,7 +113,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         tray.view.setAccessibilityLabel("Penknife")
         TouchBarPrivate.addTrayItem(tray)
 
-        TapSound.prepare()
+        GameSound.prepare()
         rebuildButtons()
         startSources()
 
@@ -413,11 +413,13 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .testing:
             button.show(symbol: Self.needles[needleStep], label: String(localized: "Speed test: testing…"))
         case .download where result != nil:
-            button.show(symbol: "arrow.down", text: "\(Int(result!.download.rounded()))",
-                        label: String(localized: "Download \(Int(result!.download.rounded())) megabits per second"))
+            let speed = SpeedText(mbps: result!.download)
+            button.show(symbol: "arrow.down", text: speed.number, unit: speed.unit,
+                        label: String(localized: "Download \(speed.spoken)"))
         case .upload where result != nil:
-            button.show(symbol: "arrow.up", text: "\(Int(result!.upload.rounded()))",
-                        label: String(localized: "Upload \(Int(result!.upload.rounded())) megabits per second"))
+            let speed = SpeedText(mbps: result!.upload)
+            button.show(symbol: "arrow.up", text: speed.number, unit: speed.unit,
+                        label: String(localized: "Upload \(speed.spoken)"))
         case .failed:
             button.show(symbol: "wifi.exclamationmark", label: String(localized: "Speed test failed. Tap to try again."))
         default:
@@ -591,11 +593,13 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             label: on ? String(localized: "Mouse jiggler, on") : String(localized: "Mouse jiggler, off"))
     }
 
+    /// Follows the real microphone (R-28). While Siri listens it clears the mute itself, so the
+    /// symbol shows open without any special case.
     private func updateMicrophone() {
+        guard let button = barView?.button(Item.microphone.rawValue) else { return }
         let muted = microphone.isMuted
-        barView?.button(Item.microphone.rawValue)?.show(
-            symbol: muted ? "mic.slash.fill" : "mic.fill",
-            label: muted ? String(localized: "Microphone, muted") : String(localized: "Microphone, on"))
+        button.show(symbol: muted ? "mic.slash.fill" : "mic.fill",
+                    label: muted ? String(localized: "Microphone muted") : String(localized: "Microphone on"))
     }
 
     // MARK: Clock

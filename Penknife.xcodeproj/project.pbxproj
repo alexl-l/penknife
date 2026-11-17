@@ -189,7 +189,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Penknife;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Penknife controls your music player and syncs the microphone with Google Meet in Chrome.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Penknife controls your music player and reads the active browser tab to find your meeting.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -225,7 +225,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Penknife;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Penknife controls your music player and syncs the microphone with Google Meet in Chrome.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Penknife controls your music player and reads the active browser tab to find your meeting.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

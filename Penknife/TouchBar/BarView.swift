@@ -17,13 +17,11 @@ enum BarColorMode: Int, CaseIterable {
     }
 }
 
-/// A short dry click on every Touch Bar tap: the Touch Bar has no haptic engine, so a sound like
-/// the trackpad's actuator stands in (user, 2026-11-13). `TapClick.wav` is synthesized: a 240 Hz
-/// sine decaying in 4 ms plus a 3 kHz transient, 45 ms. Off in Settings, and silent when macOS
-/// "Play user interface sound effects" is off.
-enum TapSound {
-    static let key = "touchBar.tapSound"
-
+/// The slicing game's short dry click (`TapClick.wav`, synthesized: a 240 Hz sine decaying in
+/// 4 ms plus a 3 kHz transient, 45 ms). Silent when macOS "Play user interface sound effects" is
+/// off. Touch Bar buttons no longer click: with "Hey Siri" on, any sound makes Siri unmute the
+/// microphone for ~1 s and then restore it, undoing a mute change made meanwhile (2026-11-16).
+enum GameSound {
     /// A system sound: decoded once, played by the system with minimal latency (NSSound took
     /// a noticeable moment to start).
     private static let sound: SystemSoundID? = {
@@ -32,18 +30,12 @@ enum TapSound {
         return AudioServicesCreateSystemSoundID(url as CFURL, &id) == noErr ? id : nil
     }()
 
-    static var isOn: Bool {
-        get { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: key) }
-    }
-
     /// Loads the sound ahead of the first tap (the first play could be lost while it loads).
     static func prepare() { _ = sound }
 
     static func play() {
         let defaults = UserDefaults.standard
-        guard isOn,
-              defaults.object(forKey: "com.apple.sound.uiaudio.enabled") as? Bool ?? true,
+        guard defaults.object(forKey: "com.apple.sound.uiaudio.enabled") as? Bool ?? true,
               let sound else { return }
         AudioServicesPlaySystemSound(sound)
     }
@@ -101,6 +93,7 @@ final class BarButton: NSButton {
     private var textColor: NSColor = .white
     private var symbol: String?
     private var text = ""
+    private var unit = ""
     /// A drawn icon instead of a symbol (the battery), made in the current tint.
     private var drawing: ((NSColor) -> NSImage)?
     private var drawingKey = ""
@@ -124,20 +117,15 @@ final class BarButton: NSButton {
 
     @objc private func pressed() { onPress?(self) }
 
-    /// The click sounds when the finger lands, as the trackpad's does; the action still runs on
-    /// release (standard button behavior, lets a long press take over).
-    override func touchesBegan(with event: NSEvent) {
-        TapSound.play()
-        super.touchesBegan(with: event)
-    }
-
-    /// Updates what the button shows. `label` is what VoiceOver reads (R-19).
-    func show(symbol: String?, text: String = "", label: String) {
+    /// Updates what the button shows. `label` is what VoiceOver reads (R-19). With `unit`, the text
+    /// is a number with its unit in small type underneath (speed test, user's pick C, 2026-11-16).
+    func show(symbol: String?, text: String = "", unit: String = "", label: String) {
         // A label-only change (e.g. a new percentage under the same symbol) needs no redraw.
         if label != accessibilityLabel() { setAccessibilityLabel(label) }
-        guard symbol != self.symbol || text != self.text || drawing != nil else { return }
+        guard symbol != self.symbol || text != self.text || unit != self.unit || drawing != nil else { return }
         self.symbol = symbol
         self.text = text
+        self.unit = unit
         drawing = nil
         drawingKey = ""
         setAccessibilityLabel(label)
@@ -164,6 +152,30 @@ final class BarButton: NSButton {
         render()
     }
 
+    /// Symbol, then the number (14 pt) over its unit (9 pt, 55 % opacity), centered as one image.
+    private static func stacked(symbol: String?, number: String, unit: String, tint: NSColor, textColor: NSColor) -> NSImage {
+        let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [tint]))
+        let icon = symbol.flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: nil)?.withSymbolConfiguration(config) }
+        let top = NSAttributedString(string: number, attributes: [.font: NSFont.systemFont(ofSize: 14), .foregroundColor: textColor])
+        let bottom = NSAttributedString(string: unit, attributes: [
+            .font: NSFont.systemFont(ofSize: 9, weight: .medium), .foregroundColor: textColor.withAlphaComponent(0.55)])
+        let textWidth = max(top.size().width, bottom.size().width)
+        let gap: CGFloat = icon == nil ? 0 : 4
+        let height: CGFloat = 26
+        let size = NSSize(width: (icon?.size.width ?? 0) + gap + textWidth, height: height)
+        return NSImage(size: size, flipped: true) { _ in
+            var x: CGFloat = 0
+            if let icon {
+                icon.draw(in: NSRect(x: 0, y: (height - icon.size.height) / 2, width: icon.size.width, height: icon.size.height))
+                x = icon.size.width + gap
+            }
+            top.draw(at: NSPoint(x: x + (textWidth - top.size().width) / 2, y: 0))
+            bottom.draw(at: NSPoint(x: x + (textWidth - bottom.size().width) / 2, y: 16))
+            return true
+        }
+    }
+
     private func render() {
         attributedTitle = NSAttributedString(string: text, attributes: [
             .foregroundColor: textColor,
@@ -171,6 +183,10 @@ final class BarButton: NSButton {
         ])
         if let drawing {
             image = drawing(tint)
+            imagePosition = .imageOnly
+        } else if !unit.isEmpty {
+            attributedTitle = NSAttributedString(string: "")
+            image = Self.stacked(symbol: symbol, number: text, unit: unit, tint: tint, textColor: textColor)
             imagePosition = .imageOnly
         } else if let symbol, let base = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
             let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)

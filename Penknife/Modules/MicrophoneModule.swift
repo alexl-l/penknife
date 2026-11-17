@@ -2,8 +2,8 @@ import AppKit
 import CoreAudio
 import os
 
-/// Microphone toggle (R-3): mutes the default input device and keeps Microsoft Teams and
-/// Google Meet (Chrome) in the same state. Nothing runs between presses.
+/// Microphone toggle (R-3, R-28): mutes the current meeting with its own shortcut, or the Mac's
+/// default input device. Only a workspace notification runs between presses.
 final class MicrophoneModule: Module {
     let id = ModuleID.microphone
     var needsAccessibility: Bool { true }
@@ -18,25 +18,64 @@ final class MicrophoneModule: Module {
                       perform: { [weak self] in self?.toggle() })]
     }
 
-    func start() {}
-    func stop() {}
+    private let meetings = MeetingTracker()
 
+    func start() {
+        meetings.start()
+    }
+
+    func stop() {
+        meetings.stop()
+    }
+
+    static let alsoMuteMacKey = "microphone.alsoMuteMac"
+    /// Off by default: with a meeting found, only that meeting is muted (R-28).
+    static var alsoMuteMac: Bool { UserDefaults.standard.bool(forKey: alsoMuteMacKey) }
+
+    /// The REAL state of the device (user, 2026-11-16: the Touch Bar and the dot must show what
+    /// the microphone is doing, never what Penknife thinks), read from the control `toggle()` changes. Some devices report a mute
+    /// property they don't let anyone set; reading it made every press mute again (volume 0).
     var isMuted: Bool {
         guard let device = Self.defaultInputDevice() else { return false }
-        if let mute: UInt32 = Self.get(device, kAudioDevicePropertyMute) { return mute != 0 }
+        if Self.isSettable(device, kAudioDevicePropertyMute), let mute: UInt32 = Self.get(device, kAudioDevicePropertyMute) {
+            return mute != 0
+        }
         if let volume: Float32 = Self.get(device, kAudioDevicePropertyVolumeScalar) { return volume == 0 }
+        if let mute: UInt32 = Self.get(device, kAudioDevicePropertyMute) { return mute != 0 }
         return false
     }
 
+    /// Mutes the current meeting (the one in front, or the last one used) with its own shortcut;
+    /// with no meeting, or when the setting asks for it, also the Mac's microphone (R-28).
     func toggle() {
+        meetings.findCurrent { [weak self] target in
+            guard let self else { return }
+            guard let target else { return self.toggleMac() }
+            guard Permissions.shared.ensureAccessibility() else { return }
+            self.log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
+            self.meetings.send(to: target)
+            if Self.alsoMuteMac {
+                self.toggleMac()
+            } else {
+                HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
+                                symbol: "mic.badge.xmark", kind: .on, category: .microphone)
+            }
+        }
+    }
+
+    private func toggleMac() {
+        // While Siri listens the mic is open whatever the mute says, and Siri puts back the state
+        // it found when it ends: a press then does nothing (user, 2026-11-16).
+        guard !Self.isSiriListening else {
+            log.notice("Toggle ignored: Siri is listening")
+            return
+        }
         guard let device = Self.defaultInputDevice() else {
             HUD.shared.show(String(localized: "No microphone found"), symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
             return
         }
         let mute = !isMuted
-
-        syncTeams()
-        syncMeet(muted: mute)
+        log.notice("Toggle: \(mute ? "mute" : "unmute", privacy: .public), mute settable: \(Self.isSettable(device, kAudioDevicePropertyMute)), volume settable: \(Self.isSettable(device, kAudioDevicePropertyVolumeScalar))")
 
         if Self.isSettable(device, kAudioDevicePropertyMute) {
             Self.set(device, kAudioDevicePropertyMute, UInt32(mute ? 1 : 0))
@@ -56,51 +95,6 @@ final class MicrophoneModule: Module {
         }
     }
 
-    // MARK: Apps
-
-    /// Teams mute shortcut as used before (⌘⇧Ñ, or ⌘⇧M if the layout has no Ñ), sent straight
-    /// to its process so it works in the background.
-    private func syncTeams() {
-        guard let teams = NSRunningApplication.runningApplications(withBundleIdentifier: "com.microsoft.teams2").first
-                ?? NSRunningApplication.runningApplications(withBundleIdentifier: "com.microsoft.teams").first,
-              Permissions.shared.ensureAccessibility() else { return }
-        let keyCode = EventPoster.keyCode(for: "ñ") ?? EventPoster.keyCode(for: "m") ?? 46
-        EventPoster.key(keyCode, flags: [.maskCommand, .maskShift], toPid: teams.processIdentifier)
-    }
-
-    /// Clicks Meet's microphone button in Chrome only if its state differs. Requires Chrome's
-    /// View → Developer → Allow JavaScript from Apple Events. Never launches Chrome.
-    private func syncMeet(muted: Bool) {
-        guard !NSRunningApplication.runningApplications(withBundleIdentifier: "com.google.Chrome").isEmpty else { return }
-        let source = """
-        tell application id "com.google.Chrome"
-          set meetTab to missing value
-          repeat with w in windows
-            repeat with t in tabs of w
-              if (URL of t starts with "https://meet.google.com/") then
-                set meetTab to t
-                exit repeat
-              end if
-            end repeat
-            if meetTab is not missing value then exit repeat
-          end repeat
-          if meetTab is missing value then return "MEET_NOT_FOUND"
-          return execute meetTab javascript "(() => { const b = Array.from(document.querySelectorAll('button')).find(b => (b.getAttribute('aria-label') || '').toLowerCase().includes('microphone')); if (!b) return 'BUTTON_NOT_FOUND'; const m = b.getAttribute('aria-label') === 'Turn on microphone'; if (m !== \(muted)) b.click(); return 'OK'; })()"
-        end tell
-        """
-        let log = log
-        // AppleScript can take a moment; keep it off the main thread.
-        DispatchQueue.global(qos: .userInitiated).async {
-            var error: NSDictionary?
-            let result = NSAppleScript(source: source)?.executeAndReturnError(&error).stringValue
-            if let error {
-                log.error("Meet: \(error, privacy: .public)")
-            } else if let result, result != "OK", result != "MEET_NOT_FOUND" {
-                log.info("Meet: \(result, privacy: .public)")
-            }
-        }
-    }
-
     // MARK: CoreAudio
 
     private static func address(_ selector: AudioObjectPropertySelector, _ object: AudioObjectID? = nil) -> AudioObjectPropertyAddress {
@@ -110,6 +104,13 @@ final class MicrophoneModule: Module {
             mElement: kAudioObjectPropertyElementMain)
     }
 
+    /// Siri's bundle ID as CoreAudio reports it.
+    private static let siriBundleID = "com.apple.CoreSpeech"
+
+    /// Siri records even with the microphone muted, and clears the mute while it listens, then
+    /// restores it (measured 2026-11-16). Read only when the user presses, never polled.
+    static var isSiriListening: Bool { MeetingTracker.appsUsingMicrophone().contains(siriBundleID) }
+
     static func defaultInputDevice() -> AudioObjectID? {
         var address = address(kAudioHardwarePropertyDefaultInputDevice)
         var device = AudioObjectID(kAudioObjectUnknown)
@@ -118,7 +119,7 @@ final class MicrophoneModule: Module {
         return status == noErr && device != kAudioObjectUnknown ? device : nil
     }
 
-    private static func get<T: BitwiseCopyable>(_ device: AudioObjectID, _ selector: AudioObjectPropertySelector) -> T? {
+    static func get<T: BitwiseCopyable>(_ device: AudioObjectID, _ selector: AudioObjectPropertySelector) -> T? {
         var address = address(selector, device)
         guard AudioObjectHasProperty(device, &address) else { return nil }
         var size = UInt32(MemoryLayout<T>.size)
@@ -128,14 +129,14 @@ final class MicrophoneModule: Module {
         return pointer.pointee
     }
 
-    private static func isSettable(_ device: AudioObjectID, _ selector: AudioObjectPropertySelector) -> Bool {
+    static func isSettable(_ device: AudioObjectID, _ selector: AudioObjectPropertySelector) -> Bool {
         var address = address(selector, device)
         var settable: DarwinBoolean = false
         return AudioObjectHasProperty(device, &address)
             && AudioObjectIsPropertySettable(device, &address, &settable) == noErr && settable.boolValue
     }
 
-    private static func set<T: BitwiseCopyable>(_ device: AudioObjectID, _ selector: AudioObjectPropertySelector, _ value: T) {
+    static func set<T: BitwiseCopyable>(_ device: AudioObjectID, _ selector: AudioObjectPropertySelector, _ value: T) {
         var address = address(selector, device)
         var value = value
         AudioObjectSetPropertyData(device, &address, 0, nil, UInt32(MemoryLayout<T>.size), &value)

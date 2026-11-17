@@ -15,7 +15,8 @@ final class ModuleManager {
     @ObservationIgnored private let fnKeys = FnHotKeys()
     @ObservationIgnored private var paused = false
     @ObservationIgnored private var defaultsObserver: NSObjectProtocol?
-    @ObservationIgnored private var lastRun: [String: Date] = [:]
+    /// Last hotkey run per shortcut: which twin (plain or Fn) and when.
+    @ObservationIgnored private var lastHotKey: [String: (fn: Bool, at: Date)] = [:]
 
     init(modules: [any Module]) {
         self.modules = modules
@@ -23,7 +24,7 @@ final class ModuleManager {
             for action in module.actions {
                 KeyboardShortcuts.onKeyUp(for: action.shortcut) { [weak self, weak module] in
                     guard let self, let module, self.isEnabled(module.id) else { return }
-                    self.run(action)
+                    self.runHotKey(action, fn: false)
                 }
             }
         }
@@ -98,12 +99,20 @@ final class ModuleManager {
         refreshFnKeys()
     }
 
-    /// One key press can reach both the plain and the Fn hotkey (Touch Bar F keys);
-    /// an action runs at most once per 0.4 s so a toggle doesn't flip twice.
+    /// Runs an action from the Touch Bar or the menu: every press counts.
     func run(_ action: ModuleAction) {
+        action.perform()
+    }
+
+    /// Runs an action from a shortcut (on key release, so holding a key runs it once). A bare F
+    /// key is registered twice, plain and with Fn (see FnHotKeys), and one press can arrive
+    /// through both: the second twin of the same press is dropped. Presses through the same
+    /// twin always run, however fast they come.
+    private func runHotKey(_ action: ModuleAction, fn: Bool) {
         let now = Date()
-        if let last = lastRun[action.shortcut.rawValue], now.timeIntervalSince(last) < 0.4 { return }
-        lastRun[action.shortcut.rawValue] = now
+        let name = action.shortcut.rawValue
+        if let last = lastHotKey[name], last.fn != fn, now.timeIntervalSince(last.at) < 0.1 { return }
+        lastHotKey[name] = (fn, now)
         action.perform()
     }
 
@@ -113,7 +122,7 @@ final class ModuleManager {
             fnKeys.removeAll()
             return
         }
-        fnKeys.set(enabledActions.map { action in (action.shortcut, { [weak self] in self?.run(action) }) })
+        fnKeys.set(enabledActions.map { action in (action.shortcut, { [weak self] in self?.runHotKey(action, fn: true) }) })
     }
 
     private func key(_ id: ModuleID) -> String { "module.\(id.rawValue).enabled" }

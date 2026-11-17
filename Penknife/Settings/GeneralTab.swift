@@ -61,7 +61,7 @@ struct PermissionsPage: View {
                     }
                 } label: {
                     Text("Accessibility")
-                    Text("Needed for the mouse jiggler, the Teams microphone sync and dialog detection.")
+                    Text("Needed for the mouse jiggler, the meeting mute shortcuts and dialog detection.")
                 }
             }
         }

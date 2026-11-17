@@ -248,7 +248,9 @@ private struct ModuleDetail: View {
                 BarButtonsRow(manager: manager)
             }
             Section { TouchBarColorOptions() }
-        case .microphone, .lockScreen, .cpuTemperature, .dialogs:
+        case .microphone:
+            MeetingOptions()
+        case .lockScreen, .cpuTemperature, .dialogs:
             EmptyView()
         }
     }
@@ -385,11 +387,9 @@ private struct ScreenshotOptions: View {
 
 private struct AutoCloseToggle: View {
     @AppStorage(TouchBarModule.autoCloseKey) private var autoClose = true
-    @AppStorage(TapSound.key) private var tapSound = true
 
     var body: some View {
         Toggle("Close sliders and the date automatically", isOn: $autoClose)
-        Toggle("Click sound on every tap", isOn: $tapSound)
     }
 }
 
@@ -478,6 +478,70 @@ private struct JigglerKeyPicker: View {
     var body: some View {
         Picker("Key it presses", selection: $key) {
             ForEach(JigglerKey.allCases) { Text($0.title).tag($0) }
+        }
+    }
+}
+
+/// Microphone (R-28): which meeting apps get their mute shortcut, and whether the Mac's
+/// microphone is muted too. Variant B picked by the user (compact rows), 2026-11-16.
+private struct MeetingOptions: View {
+    @State private var enabled = Dictionary(uniqueKeysWithValues: MeetingPlatform.allCases.map { ($0, $0.isEnabled) })
+    @AppStorage(MicrophoneModule.alsoMuteMacKey) private var alsoMuteMac = false
+
+    var body: some View {
+        Section {
+            ForEach(MeetingPlatform.allCases) { platform in
+                let on = enabled[platform] ?? true
+                HStack(spacing: 10) {
+                    MeetingIcon(platform: platform)
+                    Text(platform.name)
+                    Spacer()
+                    KeyboardShortcuts.Recorder(for: platform.shortcut)
+                        .disabled(!on)
+                        .opacity(on ? 1 : 0.4)
+                    Toggle(platform.name, isOn: Binding(
+                        get: { on },
+                        set: { enabled[platform] = $0; platform.isEnabled = $0 }
+                    ))
+                    .labelsHidden()
+                }
+            }
+            Button("Restore Defaults") {
+                KeyboardShortcuts.reset(MeetingPlatform.allCases.map(\.shortcut))
+            }
+        } header: {
+            Text("Meetings")
+        } footer: {
+            Text("Shortcut = the keys Penknife sends to each app to mute. Match them to the app's own setting.")
+        }
+        Section {
+            Toggle("Also mute the Mac's microphone", isOn: $alsoMuteMac)
+        } footer: {
+            Text("Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.")
+        }
+        Section("Current meeting") {
+            Label("The meeting in front, or the last one you used.", systemImage: "scope")
+            Label("Browser meetings count only when they are the active tab.", systemImage: "safari")
+        }
+    }
+}
+
+private struct MeetingIcon: View {
+    let platform: MeetingPlatform
+
+    var body: some View {
+        if let url = platform.bundleIDs.lazy.compactMap({ NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }).first {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
+                .resizable()
+                .frame(width: 22, height: 22)
+                .accessibilityHidden(true)
+        } else {
+            Image(systemName: platform.symbol)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(RoundedRectangle(cornerRadius: 5.5).fill(.blue))
+                .accessibilityHidden(true)
         }
     }
 }

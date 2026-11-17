@@ -269,9 +269,9 @@ final class SliceGameView: NSView {
     override func touchesBegan(with event: NSEvent) {
         guard let touch = event.touches(matching: .began, in: self).first else { return }
         let p = touch.location(in: self)
-        if closeRect.insetBy(dx: -4, dy: -4).contains(p) { TapSound.play(); finish(); return }
+        if closeRect.insetBy(dx: -4, dy: -4).contains(p) { GameSound.play(); finish(); return }
         if let index = styleRects.firstIndex(where: { $0.contains(p) }), let chosen = Style(rawValue: index) {
-            TapSound.play()
+            GameSound.play()
             style = chosen
             UserDefaults.standard.set(index, forKey: Self.styleKey)
             sprites = [:]
@@ -280,7 +280,7 @@ final class SliceGameView: NSView {
             return
         }
         if let over = gameOverAt {
-            if CACurrentMediaTime() - over > 0.8 { TapSound.play(); restart() }
+            if CACurrentMediaTime() - over > 0.8 { GameSound.play(); restart() }
             return
         }
         lastTouch = p
@@ -338,7 +338,7 @@ final class SliceGameView: NSView {
                 score += swipeCuts - 1
                 floaters.append(Floater(text: String(localized: "+\(swipeCuts) combo"), p: t.p, life: 1))
             }
-            TapSound.play()
+            GameSound.play()
         }
         things = survivors
     }
