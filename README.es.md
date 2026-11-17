@@ -4,8 +4,8 @@
 
 # Penknife
 
-**Tu Touch Bar, el portapapeles, las capturas y el control de la música, por fin bien hechos.**<br>
-Una app diminuta de la barra de menús. Gratis y de código abierto.
+**Silencia la reunión en la que estás, encuentra lo que copiaste, marca cualquier captura.**<br>
+Una app diminuta de la barra de menús para tu Mac. Gratis y de código abierto.
 
 <a href="https://github.com/alexl-l/penknife/releases/latest"><img src="https://img.shields.io/badge/Descargar_para_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Descargar para macOS"></a>
 
@@ -15,27 +15,18 @@ Una app diminuta de la barra de menús. Gratis y de código abierto.
 
 [English](README.md) · **Español**
 
-<br>
-
-<img src="docs/screenshots/touchbar-rainbow.png" alt="Touch Bar de Penknife en modo arcoíris">
-
 </div>
 
 ## Qué incluye
 
-Cada parte es un módulo. Desactiva lo que no necesites y no gastará CPU ni memoria.
-
-### Touch Bar
-Brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual y tú eliges qué botones aparecen y en qué orden.
-
-<img src="docs/screenshots/touchbar.png" alt="Touch Bar de Penknife">
+Cada parte es un módulo. Desactiva lo que no necesites y no gastará CPU ni memoria. Funciona en cualquier Mac; no necesitas Touch Bar.
 
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
-<h3>Capturas de pantalla</h3>
-Selecciona una zona o una ventana, márcala con flechas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. No se sube nada a internet.
+<img src="docs/screenshots/menu.png" alt="Menú de la barra de menús">
+<h3>Silenciar el micrófono en reuniones</h3>
+Un atajo silencia la reunión en la que estás: Teams, Google Meet, Zoom, Slack Huddles o Webex. Solo cuentan las apps con una llamada en curso, y cada una usa su propio atajo, que puedes editar en Ajustes. Sin llamada, silencia el micrófono del Mac. El icono y el punto de estado muestran siempre el estado real.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">
@@ -45,25 +36,34 @@ Busca, fija lo que más usas y pega con ⌘1–⌘9. Nunca guarda contraseñas n
 </tr>
 <tr>
 <td width="50%" valign="top">
+<img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
+<h3>Capturas de pantalla</h3>
+Selecciona una zona o una ventana, márcala con flechas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. No se sube nada a internet.
+</td>
+<td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Ajustes de música">
 <h3>Música</h3>
 Reproduce, pausa y salta canciones en el reproductor que elijas. Los clics de los auriculares van a ese reproductor, y Apple Music ya no se abre solo.
 </td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/menu.png" alt="Menú de la barra de menús">
-<h3>Barra de menús</h3>
-Mover el ratón, silenciar el micrófono (sincronizado con Teams y Meet), bloquear la pantalla, test de velocidad y temperatura de la CPU, cada uno con su atajo. Unos puntos de estado muestran lo que está activado.
-</td>
 </tr>
 </table>
+
+### Y en la barra de menús
+Mover el ratón para mantener el Mac despierto y tu estado activo, bloquear la pantalla y un test de velocidad que muestra bajada, subida y latencia en kbps, Mbps o Gbps. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos, y tú eliges cuáles aparecen y cuánto duran.
 
 ### Ajustes
 Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo.
 
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
-### Un extra
-Mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touch Bar.
+### ¿Tienes Touch Bar?
+Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual y tú eliges qué botones aparecen y en qué orden.
+
+<img src="docs/screenshots/touchbar-rainbow.png" alt="Touch Bar de Penknife en modo arcoíris">
+
+<img src="docs/screenshots/touchbar.png" alt="Touch Bar de Penknife">
+
+Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touch Bar.
 
 <img src="docs/screenshots/touchbar-game.png" alt="Juego de cortar fruta en la Touch Bar">
 
@@ -71,13 +71,13 @@ Mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touc
 
 1. [Descarga la última versión](https://github.com/alexl-l/penknife/releases/latest), descomprímela y mueve `Penknife.app` a `/Aplicaciones`.
 2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente**.
-3. Listo. Desde la 1.1, Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
+3. Listo. Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
 
 <details>
 <summary><b>Requisitos</b></summary>
 
-- macOS 26 o posterior.
-- El módulo Touch Bar necesita un MacBook Pro con Touch Bar.
+- macOS 26 o posterior, en cualquier Mac.
+- La sección Touch Bar es opcional y necesita un MacBook Pro con Touch Bar.
 
 </details>
 
@@ -87,7 +87,7 @@ Mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touc
 Penknife pide solo lo que necesitan los módulos que actives:
 
 - **Accesibilidad**: atajos que actúan sobre otras apps, teclas multimedia y mover el ratón.
-- **Automatización (Apple Events)**: para controlar Spotify y Apple Music.
+- **Automatización (Apple Events)**: para controlar Spotify y Apple Music, y leer la pestaña activa del navegador (solo su dirección) para encontrar una reunión.
 - **Ubicación** (opcional): el tiempo local.
 - **Grabación de pantalla**: capturas de pantalla.
 
@@ -120,8 +120,6 @@ Penknife no es una app de la App Store. Usa algunos frameworks privados de macOS
 </details>
 
 Consulta [CHANGELOG.md](CHANGELOG.md) para ver los cambios de cada versión.
-
-¿Vienes de Hammerspoon, MTMR, noTunes, Maccy o Lightshot? Penknife cubre las mismas tareas de cada día en una sola app.
 
 ## Licencia
 

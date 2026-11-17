@@ -3,6 +3,17 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.2 — 2026-11-16
+
+The microphone shortcut now mutes the meeting you are in.
+
+- Meeting-aware mic mute for Teams, Google Meet, Zoom, Slack Huddles and Webex: it uses each app's own shortcut (editable in Settings), and only apps in a call count.
+- With no call, it mutes the Mac's microphone. Optional setting to also mute the Mac's microphone during a meeting.
+- The microphone icon and status dot always show the real microphone state.
+- Speed test shows units (kbps, Mbps or Gbps).
+- Touch Bar taps no longer click.
+- Quick presses always register.
+
 ## 1.1 — 2026-11-14
 
 Penknife now updates itself. If you have 1.0, download this version once by hand; from then on, updates arrive from the app.

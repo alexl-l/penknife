@@ -225,6 +225,7 @@ The user finds the repo too plain and wants it to look beautiful and make people
 
 ## Public copy (user, 2026-11-15)
 - Tagline (GitHub description, README, web, release notes): "Your Touch Bar, clipboard, screenshots and music controls, finally done right. One tiny menu bar app, free and open source." Spanish README: "Tu Touch Bar, el portapapeles, las capturas y el control de la música, por fin bien hechos."
+- FOCUS ON MACS WITHOUT A TOUCH BAR (user, 2026-11-16, imperative): current Macs have none and they are the majority. Page, README and release lead with what every Mac gets (meeting mute, clipboard, screenshots, music, menu bar); the Touch Bar is a bonus section ("Have a Touch Bar?") near the end. Repo description: "Menu bar app for Mac: mute the meeting you're in, clipboard history, screenshot editor, music keys and more. Free."
 - Public text is written by the `copywriter` agent: benefit first, no hype. Other apps are named once only (README "Coming from…" line).
 - English menu items and buttons use Title Case (Apple style); Spanish uses sentence case and Spain wording (tiempo, auriculares, pulsa, la Touch Bar, desactivado).
 

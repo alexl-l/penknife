@@ -4,8 +4,8 @@
 
 # Penknife
 
-**Your Touch Bar, clipboard, screenshots and music controls, finally done right.**<br>
-One tiny menu bar app. Free and open source.
+**Mute the meeting you're in, find anything you copied, mark up any screenshot.**<br>
+One tiny menu bar app for your Mac. Free and open source.
 
 <a href="https://github.com/alexl-l/penknife/releases/latest"><img src="https://img.shields.io/badge/Download_for_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS"></a>
 
@@ -15,27 +15,18 @@ One tiny menu bar app. Free and open source.
 
 **English** · [Español](README.es.md)
 
-<br>
-
-<img src="docs/screenshots/touchbar-rainbow.png" alt="Penknife's Touch Bar in rainbow mode">
-
 </div>
 
 ## What's inside
 
-Every part is a module. Turn off what you don't need and it uses no CPU or memory.
-
-### Touch Bar
-Brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state, and you choose which buttons appear and in what order.
-
-<img src="docs/screenshots/touchbar.png" alt="Penknife's Touch Bar">
+Every part is a module. Turn off what you don't need and it uses no CPU or memory. Works on any Mac; no Touch Bar needed.
 
 <table>
 <tr>
 <td width="50%" valign="top">
-<img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
-<h3>Screenshots</h3>
-Select an area or a window, mark it with arrows, text, highlighter, shapes, pen and blur, then copy or save. Nothing is uploaded.
+<img src="docs/screenshots/menu.png" alt="Menu bar menu">
+<h3>Microphone mute for meetings</h3>
+One shortcut mutes the meeting you're in: Teams, Google Meet, Zoom, Slack Huddles or Webex. Only apps in a call count, and each uses its own shortcut, which you can edit in Settings. With no call, it mutes your Mac's microphone. The icon and status dot always show the real state.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Clipboard history">
@@ -45,25 +36,34 @@ Search, pin what you reuse and paste with ⌘1–⌘9. Passwords and other conce
 </tr>
 <tr>
 <td width="50%" valign="top">
+<img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
+<h3>Screenshots</h3>
+Select an area or a window, mark it with arrows, text, highlighter, shapes, pen and blur, then copy or save. Nothing is uploaded.
+</td>
+<td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Music settings">
 <h3>Music</h3>
 Play, pause and skip in the player you choose. Headphone clicks go to that player, and Apple Music no longer opens by itself.
 </td>
-<td width="50%" valign="top">
-<img src="docs/screenshots/menu.png" alt="Menu bar menu">
-<h3>Menu bar</h3>
-Mouse jiggler, microphone mute (in sync with Teams and Meet), lock screen, speed test and CPU temperature, each with its own shortcut. Status dots show what is on.
-</td>
 </tr>
 </table>
+
+### And in the menu bar
+Mouse jiggler to keep your Mac awake and your status active, lock screen and a speed test that shows download, upload and latency in kbps, Mbps or Gbps. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet, and you choose which ones appear and for how long.
 
 ### Settings
 One window in the style of System Settings: turn any module on or off and give it its own shortcut.
 
 <img src="docs/screenshots/settings.png" alt="Penknife Settings">
 
-### A little extra
-Hold the mouse jiggler button for 3 seconds and slice fruit on the Touch Bar.
+### Have a Touch Bar?
+Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state, and you choose which buttons appear and in what order.
+
+<img src="docs/screenshots/touchbar-rainbow.png" alt="Penknife's Touch Bar in rainbow mode">
+
+<img src="docs/screenshots/touchbar.png" alt="Penknife's Touch Bar">
+
+A little extra: hold the mouse jiggler button for 3 seconds and slice fruit on the Touch Bar.
 
 <img src="docs/screenshots/touchbar-game.png" alt="Slicing game on the Touch Bar">
 
@@ -71,13 +71,13 @@ Hold the mouse jiggler button for 3 seconds and slice fruit on the Touch Bar.
 
 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
 2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings → Privacy & Security** and click **Open Anyway**.
-3. That's it. From 1.1 on, Penknife checks for updates once a day and asks before installing (menu → **Check for Updates…**).
+3. That's it. Penknife checks for updates once a day and asks before installing (menu → **Check for Updates…**).
 
 <details>
 <summary><b>Requirements</b></summary>
 
-- macOS 26 or later.
-- The Touch Bar module needs a MacBook Pro with a Touch Bar.
+- macOS 26 or later, on any Mac.
+- The Touch Bar section above is optional and needs a MacBook Pro with a Touch Bar.
 
 </details>
 
@@ -87,7 +87,7 @@ Hold the mouse jiggler button for 3 seconds and slice fruit on the Touch Bar.
 Penknife asks only for what the modules you turn on need:
 
 - **Accessibility**: shortcuts that act on other apps, media keys and the mouse jiggler.
-- **Automation (Apple Events)**: to control Spotify and Apple Music.
+- **Automation (Apple Events)**: to control Spotify and Apple Music, and to read the active browser tab (only its address) to find a meeting.
 - **Location** (optional): local weather.
 - **Screen Recording**: screenshots.
 
@@ -120,8 +120,6 @@ Penknife is not an App Store app. It uses some private macOS frameworks, for exa
 </details>
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
-
-Coming from Hammerspoon, MTMR, noTunes, Maccy or Lightshot? Penknife covers the same everyday jobs in one app.
 
 ## License
 
