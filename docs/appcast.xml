@@ -3,6 +3,19 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.5</title>
+            <pubDate>Tue, 17 Nov 2026 12:48:05 -0500</pubDate>
+            <sparkle:version>77</sparkle:version>
+            <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Mic shortcut follows the call.** When the meeting's mic button can be read, each press does the opposite of the call's state, and the Mac's microphone follows. Before, if Teams muted everyone (for example when a recording starts), the first press muted your Mac instead of unmuting you in the call.</li>
+<li>**"Remember my choice for Teams' unmute dialog"** (Settings → Microphone, off by default) no longer depends on the dialog's wording. It works in any language and with messages customized by your organization, and only when you unmute with Penknife's shortcut. You remain responsible for consent, so check your employer's policy first.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.5/Penknife-1.5.zip" length="4362254" type="application/octet-stream" sparkle:edSignature="/J5dFqS9grtGtaIhZvU6ZI/nz3LAUO1julyx2qKm9lh0pQ+pvqSnwWGJ+8N3awGn9L/jKb7H3VZYJirQV/uMBA=="/>
+        </item>
+        <item>
             <title>1.4</title>
             <pubDate>Tue, 17 Nov 2026 11:57:02 -0500</pubDate>
             <sparkle:version>72</sparkle:version>
@@ -32,23 +45,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.3/Penknife-1.3.zip" length="4275947" type="application/octet-stream" sparkle:edSignature="Lbs+mIU1SpVFgj+rI3BL3XYxYXjDyORuYz2uuJJZl9jAl2T5iH7y+IWsw+C/3YNlIL5n+PyvtHET/x0K0wFABA=="/>
-        </item>
-        <item>
-            <title>1.2</title>
-            <pubDate>Mon, 16 Nov 2026 22:22:13 -0500</pubDate>
-            <sparkle:version>52</sparkle:version>
-            <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>Meeting-aware mic mute for Teams, Google Meet, Zoom, Slack Huddles and Webex: it uses each app's own shortcut (editable in Settings), and only apps in a call count.</li>
-<li>With no call, it mutes the Mac's microphone. Optional setting to also mute the Mac's microphone during a meeting.</li>
-<li>The microphone icon and status dot always show the real microphone state.</li>
-<li>Speed test shows units (kbps, Mbps or Gbps).</li>
-<li>Touch Bar taps no longer click.</li>
-<li>Quick presses always register.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.2/Penknife-1.2.zip" length="4246310" type="application/octet-stream" sparkle:edSignature="zuh4hsUl9JSj5r2S6ZYPyOqOmq5ecsitQB1fQbtTbdFr+7rgX5CofmUTTq9lHHAAweLBGnr8b+Qs5/wLNwkXAg=="/>
         </item>
     </channel>
 </rss>
