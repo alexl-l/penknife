@@ -18,7 +18,7 @@
 body{background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.4}
 a{color:inherit;text-decoration:none}
 img{display:block;max-width:100%;height:auto}
-.hero{position:relative;text-align:center;padding:96px 16px 72px;overflow:hidden}
+.hero{position:relative;text-align:center;padding:56px 16px 72px;overflow:hidden}
 .hero:before{content:"";position:absolute;inset:-20% 10% auto;height:520px;background:radial-gradient(closest-side,rgba(255,90,60,var(--glow)),transparent),radial-gradient(closest-side at 80% 40%,rgba(120,80,255,calc(var(--glow)*.7)),transparent);filter:blur(40px);z-index:0}
 .hero>*{position:relative}
 .ic{width:112px;margin:0 auto}
@@ -29,8 +29,11 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#ff5a4d,#ffb340,#34c759
 .btn{display:inline-block;padding:13px 26px;border-radius:12px;background:var(--fg);color:var(--bg);font-weight:600;margin:6px}
 .btn.o{background:none;border:1px solid var(--ln);color:var(--fg)}
 .btn:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
-.strip{max-width:1100px;margin:56px auto 0;background:#000;border-radius:14px;padding:10px;box-shadow:0 30px 80px rgba(255,90,60,.2),0 0 0 1px #2a2a2e}
-.strip img{border-radius:6px;width:100%}
+.pair{display:flex;justify-content:center;align-items:flex-start;gap:24px;max-width:1040px;margin:40px auto 0}
+.pair img{height:auto}
+.pair .pm{width:min(40%,400px)}
+.pair .pc{width:min(60%,600px);border-radius:12px;box-shadow:0 0 0 1px var(--ln),0 20px 50px rgba(0,0,0,.35)}
+@media(max-width:760px){.pair{margin-top:36px}.pair .pm{width:min(100%,340px)}.pair .pc{display:none}}
 .sec{max-width:1040px;margin:0 auto;padding:40px 16px 0}
 .row{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:center;padding:48px 0;border-top:1px solid var(--ln)}
 .row:nth-child(even) .txt{order:2}
@@ -59,12 +62,13 @@ footer a{text-decoration:underline}
   <h1>Mute the meeting you're in. <em>Find anything you copied.</em></h1>
   <p class="lead">Mark up any screenshot, control your music, keep your Mac awake. One tiny, free menu bar app. Turn on only what you need.</p>
   <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download for macOS</a><a class="btn o" href="https://github.com/alexl-l/penknife">GitHub ›</a>
+  <div class="pair"><img class="pm" src="screenshots/menu.png" alt="Penknife's menu bar menu with Mute Microphone" width="924" height="924"><img class="pc" src="screenshots/clipboard.png" alt="" width="960" height="475"></div>
 </section>
 
 <main class="sec">
   <div class="row">
     <div class="txt"><div class="fi" aria-hidden="true">☰</div><h3>Mute the right meeting</h3><p>One shortcut mutes the meeting you're in: Teams, Google Meet, Zoom, Slack Huddles or Webex. Only apps in a call count, and each uses its own shortcut, editable in Settings. With no call, it mutes your Mac's microphone. Also in the menu: mouse jiggler, lock screen and a speed test, each with its own shortcut.</p></div>
-    <div class="shot"><img src="screenshots/menu.png" alt="Penknife's menu bar menu" width="922" height="946" loading="lazy"></div>
+    <div class="shot"><img src="screenshots/menu.png" alt="Penknife's menu bar menu" width="924" height="924" loading="lazy"></div>
   </div>
   <div class="row">
     <div class="txt"><div class="fi" aria-hidden="true">⌗</div><h3>Screenshot editor</h3><p>Select an area or a window, mark it with arrows, text, highlighter, shapes, pen and blur, then copy or save. Nothing is uploaded.</p></div>
@@ -72,7 +76,7 @@ footer a{text-decoration:underline}
   </div>
   <div class="row">
     <div class="txt"><div class="fi" aria-hidden="true">❏</div><h3>Clipboard history</h3><p>Search, pin what you reuse and paste with ⌘1–⌘9. Passwords and other concealed items are never saved.</p></div>
-    <div class="shot"><img src="screenshots/clipboard.png" alt="Clipboard history panel" width="960" height="920" loading="lazy"></div>
+    <div class="shot"><img src="screenshots/clipboard.png" alt="Clipboard history panel" width="960" height="475" loading="lazy"></div>
   </div>
   <div class="row">
     <div class="txt"><div class="fi" aria-hidden="true">♪</div><h3>Music</h3><p>Play, pause and skip in the player you choose. Headphone clicks go there, and Apple Music no longer opens by itself.</p></div>
