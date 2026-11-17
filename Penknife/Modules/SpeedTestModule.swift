@@ -44,6 +44,13 @@ final class SpeedTestModule: Module {
     private(set) var failed = false
     /// The Touch Bar listens; the menu reads the state when it opens.
     var onChange: (() -> Void)?
+    /// Posted with `onChange`, for other listeners (the menu bar item, R-30).
+    static let didChangeNotification = Notification.Name("PenknifeSpeedTestDidChange")
+
+    private func changed() {
+        onChange?()
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
+    }
 
     /// The running tool's pid, written from the background thread that waits for it;
     /// -1 = cancelled before the pid was known (the tool is killed as soon as it starts).
@@ -84,7 +91,7 @@ final class SpeedTestModule: Module {
         log.notice("Speed test started")
         isRunning = true
         failed = false
-        onChange?()
+        changed()
         HUD.shared.show(String(localized: "Testing internet speed…"), symbol: "speedometer", kind: .on, category: .speedTest)
         let pid = self.pid
         pid.withLock { $0 = 0 }
@@ -105,7 +112,7 @@ final class SpeedTestModule: Module {
         isRunning = false
         // Ended by quitting or turning the module off: not a failure, the last result stays.
         if output?.status == SIGTERM {
-            onChange?()
+            changed()
             return
         }
         log.notice("Speed test ended, status \(output?.status ?? -1)")
@@ -122,7 +129,7 @@ final class SpeedTestModule: Module {
             HUD.shared.show(String(localized: "Speed test failed"), detail: String(localized: "Check the internet connection."),
                             symbol: "wifi.exclamationmark", kind: .error, category: .speedTest)
         }
-        onChange?()
+        changed()
     }
 
     /// Runs the tool on a background queue (it blocks for the whole test) and resumes when done.

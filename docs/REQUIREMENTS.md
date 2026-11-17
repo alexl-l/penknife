@@ -249,7 +249,33 @@ The user finds the repo too plain and wants it to look beautiful and make people
 **R-29 Screen recording to GIF** — idea (user, 2026-11-16), LATER, not designed
 - From the screenshot button: select the area as today, then a Record button records that area; export as GIF (and probably video). Design with `ux-ui-designer` when it is picked up.
 
+**R-30 Weather, Mac temperature and speed test in the menu bar** — built 2026-11-17 (user: "SÍ, DALE"), QA'd (code review; live check by the user: "lo veo bien"), committed, not released
+- "TAMBIÉN CON EL SPEEDTEST" (IMPERATIVE, 2026-11-17): the speed test gets its own item too, same switches and styles. Our choices: idle = speedometer symbol only; while testing the needle sweeps, then ↓ download 3 s, ↑ upload 3 s (as on the Touch Bar); click opens a menu with the last result and "Test Speed Now". Settings → General has the style picker (Simple / Color / Bold); each module page has "Show in the menu bar".
+- What the user wants: on a Mac without Touch Bar, weather and CPU temperature are useless (they only live on the Touch Bar and in the menu). They should show as icons in the menu bar. "PASA TAMBIÉN CON LA TEMPERATURA DEL MAC" (IMPERATIVE: the Mac temperature is included, not only the weather).
+- Layout (user's choice): SEPARATE menu bar items, one for weather (symbol + "18°") and one for Mac temperature (symbol + "54°"), apart from Penknife's icon; each movable with ⌘-drag.
+- When (user: "a mix of both"; our reading): a switch per item in Settings, ON by default on Macs without Touch Bar, OFF by default on Macs with one; usable on any Mac.
+- Acceptance criteria:
+  - Fresh install on a Mac without Touch Bar: both items appear (if their modules are on); with Touch Bar: they don't until switched on.
+  - Each switch shows/hides only its item, immediately, and is remembered.
+  - Module off → its item disappears and nothing is read or requested.
+  - Values match the menu and the Touch Bar (same source, same units, "54°").
+  - Cost: temperature read every 10 s only while its item (or the Touch Bar button) is shown; weather keeps its 30 min refresh, nothing while the Mac sleeps. No extra timers otherwise.
+  - Click on an item: our default, weather refreshes (or opens Location settings if denied), temperature does nothing special; to be decided in the design.
+  - VoiceOver reads each item ("Weather: 18°, clear sky", "Mac temperature: 54°").
+- Design: `ux-ui-designer` + live variants on screen before building (symbols, spacing, dark/light, how it sits next to the Penknife icon and dots).
+- Design (live demo, 2026-11-17): user liked all three — "ME GUSTAN LAS 3. QUE EL USUARIO ESCOJA CUÁL QUIERE" (IMPERATIVE): a style picker in Settings, applied to both items:
+  - Sober: outline symbols (weather symbol follows the condition, `thermometer.medium`), regular weight, monochrome template.
+  - Color: multicolor `.fill` weather symbol, `cpu` symbol for the Mac, temperature text orange when hot.
+  - Bold: filled symbols, medium weight symbol and text, monochrome.
+  - Common: 13 pt symbol, system-size text, monospaced digits (width doesn't jump). Our choices: default Sober (designer's pick); "hot" = ≥ 85° (orange only in Color); click opens a small menu (weather: "Update now", Location settings if denied; temperature: just the reading); VoiceOver adds "hot" above the threshold.
+
+**R-31 Auto-accept Teams' recording consent** — idea (user, 2026-11-17), pending `legal-advisor`, not built
+- What the user wants: in Teams meetings with recording consent, unmuting first shows "Do you agree to the use of your audio and video?" (No / Yes; text: "By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.") and others wait while they click. An OPTION, chosen by the user, to accept it automatically. Seen on Reddit too. Happens on the user's work Mac (Teams desktop).
+- Our proposal: off by default; only when the user presses Penknife's shortcut to UNMUTE in Teams (the dialog itself says unmuting = agreeing), Penknife presses "Yes" through Accessibility at that moment, never in the background, never "No"/camera/screen share. Clear text in Settings saying what is accepted.
+- To measure on the work Mac: the dialog's AX tree (role, identifiers, Spanish wording), and whether the mute state is applied after "Yes".
+
 ## Rejected / out of scope
+- Play key (▶︎‖) opening the chosen player when it is closed (proposed 2026-11-17, user: no). Cause found: the shortcut recorder can't capture the media key (system-defined event), so on a Mac without Touch Bar the user set F9 as the play/pause shortcut and it works. The play key keeps today's behavior (ignored while Spotify is closed; Block Apple Music closes Music).
 - Touch Bar always on (user, 2026-11-16): macOS dims it after ~60 s idle and turns it off (OLED burn-in, battery); no public setting, only undocumented internals (`disableDimming` in TouchBarServer) or faking user activity (would also stop the screen sleeping/locking). User chose to leave it as Apple designed.
 - Click sound on Touch Bar taps (2026-11-16): broke the mic toggle with "Hey Siri" on (see DECISIONS).
 - Penknife re-muting the mic after Siri ("MuteGuard", 2026-11-16): the user called it a patch; Siri already restores the mute after ~1 s.

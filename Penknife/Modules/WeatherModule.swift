@@ -22,6 +22,8 @@ final class WeatherModule: NSObject, Module, CLLocationManagerDelegate {
     private(set) var status = Status.idle
     /// Called on the main thread when `report` or `status` change (the Touch Bar).
     var onChange: (() -> Void)?
+    /// Posted with `onChange`, for other listeners (the menu bar item, R-30).
+    static let didChangeNotification = Notification.Name("PenknifeWeatherDidChange")
 
     private let log = Logger(subsystem: "Penknife", category: "Weather")
     private static let interval: TimeInterval = 30 * 60
@@ -117,6 +119,7 @@ final class WeatherModule: NSObject, Module, CLLocationManagerDelegate {
     private func set(status: Status) {
         self.status = status
         onChange?()
+        NotificationCenter.default.post(name: Self.didChangeNotification, object: self)
     }
 
     private func openLocationSettings() {

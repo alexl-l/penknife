@@ -5,6 +5,7 @@ struct GeneralPage: View {
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @AppStorage(HUD.durationKey) private var hudDuration = 4.0
     @AppStorage(StatusMenu.dotsKey) private var statusDots = true
+    @AppStorage(MenuBarReadings.styleKey) private var readingStyle = MenuBarReadings.Style.sober
 
     var body: some View {
         Form {
@@ -14,6 +15,9 @@ struct GeneralPage: View {
                         LaunchAtLogin.isEnabled = on
                     }
                 Toggle("Show status dots in the menu bar", isOn: $statusDots)
+                Picker("Menu bar readings style", selection: $readingStyle) {
+                    ForEach(MenuBarReadings.Style.allCases) { Text($0.title).tag($0) }
+                }
             } footer: {
                 Text("The language follows the system (Spanish or English).")
                     .foregroundStyle(.secondary)

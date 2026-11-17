@@ -231,12 +231,14 @@ private struct ModuleDetail: View {
         case .blockAppleMusic:
             Section { BlockAppleMusicNote() }
         case .weather:
+            Section { MenuBarToggle(kind: .weather) }
             Section {
                 Text("Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         case .speedTest:
+            Section { MenuBarToggle(kind: .speedTest) }
             Section {
                 Text("Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.")
                     .font(.caption)
@@ -250,9 +252,26 @@ private struct ModuleDetail: View {
             Section { TouchBarColorOptions() }
         case .microphone:
             MeetingOptions()
-        case .lockScreen, .cpuTemperature, .dialogs:
+        case .cpuTemperature:
+            Section { MenuBarToggle(kind: .temperature) }
+        case .lockScreen, .dialogs:
             EmptyView()
         }
+    }
+}
+
+/// "Show in the menu bar" for weather, Mac temperature and speed test (R-30).
+private struct MenuBarToggle: View {
+    let kind: MenuBarReadings.Kind
+    @AppStorage private var shown: Bool
+
+    init(kind: MenuBarReadings.Kind) {
+        self.kind = kind
+        _shown = AppStorage(wrappedValue: MenuBarReadings.shownByDefault, kind.key)
+    }
+
+    var body: some View {
+        Toggle("Show in the menu bar", isOn: $shown)
     }
 }
 

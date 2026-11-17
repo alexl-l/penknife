@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private(set) var manager: ModuleManager!
     private var statusMenu: StatusMenu!
+    private var readings: MenuBarReadings!
     private let updater = Updater()
     /// Built on open and released on close, so Settings costs no memory while closed (R-11).
     private var settings: SettingsWindowController?
@@ -56,6 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.mainMenu = MainMenu.make()
         updater.start()
         statusMenu = StatusMenu(manager: manager, updater: updater) { [weak self] in self?.showSettings() }
+        readings = MenuBarReadings(manager: manager)
         KeyboardShortcuts.onKeyUp(for: .openMenu) { [weak self] in self?.statusMenu.open() }
 
         LaunchAtLogin.apply()
