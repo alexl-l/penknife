@@ -3,6 +3,21 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.4</title>
+            <pubDate>Tue, 17 Nov 2026 11:57:02 -0500</pubDate>
+            <sparkle:version>72</sparkle:version>
+            <sparkle:shortVersionString>1.4</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Weather, Mac temperature and speed test as menu bar items.** Handy on Macs without a Touch Bar, where they are on by default. Turn each on or off with "Show in the menu bar" in its module.</li>
+<li>**Three styles** in Settings → General: Simple, Color and Bold. In Color, the temperature turns orange when your Mac runs hot.</li>
+<li>**Click for a small menu.** Weather offers Update now. Speed test shows your last result and Test Speed Now.</li>
+<li>**Optional: "Remember my choice for Teams' unmute dialog"** in Settings → Microphone, off by default. When you unmute with Penknife's shortcut and Teams asks "Do you agree to the use of your audio and video?", Penknife presses Yes for you. It only applies when unmuting with the shortcut, in the Microsoft Teams desktop app set to English. You remain responsible for consent, so check your employer's policy first.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.4/Penknife-1.4.zip" length="4360724" type="application/octet-stream" sparkle:edSignature="L14qTKxEXidcMHXmZFOFmtAxFz4c8/ZuPgLW91CeZs1TNqDUjAyEKXW0idcDIVSI5tvaWK0fOF5PKBTB/n21BQ=="/>
+        </item>
+        <item>
             <title>1.3</title>
             <pubDate>Tue, 17 Nov 2026 00:26:17 -0500</pubDate>
             <sparkle:version>61</sparkle:version>
@@ -34,20 +49,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.2/Penknife-1.2.zip" length="4246310" type="application/octet-stream" sparkle:edSignature="zuh4hsUl9JSj5r2S6ZYPyOqOmq5ecsitQB1fQbtTbdFr+7rgX5CofmUTTq9lHHAAweLBGnr8b+Qs5/wLNwkXAg=="/>
-        </item>
-        <item>
-            <title>1.1</title>
-            <pubDate>Sat, 14 Nov 2026 22:27:30 -0500</pubDate>
-            <sparkle:version>44</sparkle:version>
-            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>Penknife checks for updates once a day and always asks before installing.</li>
-<li><b>Check for Updates…</b> is now in the menu bar menu.</li>
-<li>Updates are signed (EdDSA) and verified before they are unpacked.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.1/Penknife-1.1.zip" length="4173919" type="application/octet-stream" sparkle:edSignature="Le5gxRCKN9WCe0PRH6OkHlyczDJen8ULLjKrTv7lXCC8Yyk/10HgtMB9Ezue9QqOi3gxnRk/iKli1e26PdhiCg=="/>
         </item>
     </channel>
 </rss>
