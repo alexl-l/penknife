@@ -357,13 +357,15 @@ final class MeetingTracker {
     }
 
     /// Breadth-first look for the mic button, one Accessibility call per element, bounded so an
-    /// unexpected page can't make a press slow.
+    /// unexpected page can't make a press slow. Only buttons inside the web content count: Safari's
+    /// own toolbar has a "microphone in use" button whose name matches the labels and always says
+    /// open, which hid Meet's button (measured 2026-11-17: the walk stopped at element 40).
     nonisolated private static func search(_ roots: [AXUIElement], nodes: inout Int, roles: inout Set<String>) -> Bool? {
         let names = [kAXRoleAttribute, kAXTitleAttribute, kAXDescriptionAttribute] as CFArray
-        var queue = roots.map { ($0, 0) }
+        var queue = roots.map { ($0, 0, false) }
         var index = 0
         while index < queue.count, index < 6000 {
-            let (element, depth) = queue[index]
+            let (element, depth, inWeb) = queue[index]
             index += 1
             nodes = index
             var values: CFArray?
@@ -371,7 +373,8 @@ final class MeetingTracker {
                   let values = values as? [Any], values.count == 3 else { continue }
             let role = values[0] as? String
             let label = (values[1] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? values[2] as? String
-            if role == kAXButtonRole || role == kAXCheckBoxRole, let label, let state = state(fromLabel: label) {
+            let inside = inWeb || role == "AXWebArea"
+            if inside, role == kAXButtonRole || role == kAXCheckBoxRole, let label, let state = state(fromLabel: label) {
                 return state
             }
             if let role { roles.insert(role) }
@@ -380,7 +383,7 @@ final class MeetingTracker {
             var children: CFTypeRef?
             if depth < 40, AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &children) == .success,
                let children = children as? [AXUIElement] {
-                queue.append(contentsOf: children.map { ($0, depth + 1) })
+                queue.append(contentsOf: children.map { ($0, depth + 1, inside) })
             }
         }
         return nil
