@@ -506,6 +506,8 @@ private struct JigglerKeyPicker: View {
 private struct MeetingOptions: View {
     @State private var enabled = Dictionary(uniqueKeysWithValues: MeetingPlatform.allCases.map { ($0, $0.isEnabled) })
     @AppStorage(MicrophoneModule.alsoMuteMacKey) private var alsoMuteMac = true
+    @AppStorage(TeamsConsent.enabledKey) private var teamsConsent = false
+    @State private var confirmTeamsConsent = false
 
     var body: some View {
         Section {
@@ -537,6 +539,27 @@ private struct MeetingOptions: View {
             Toggle("Also mute the Mac's microphone", isOn: $alsoMuteMac)
         } footer: {
             Text("Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.")
+        }
+        // R-31: opt-in, confirmed once quoting Teams' own text (legal-advisor, 2026-11-17).
+        Section {
+            Toggle("Remember my choice for Teams' unmute dialog", isOn: Binding(
+                get: { teamsConsent },
+                set: { on in if on { confirmTeamsConsent = true } else { teamsConsent = false } }
+            ))
+            .disabled(enabled[.teams] == false)
+        } footer: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("When you unmute with the shortcut and Teams asks about audio and video, Penknife presses Yes for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.")
+                if enabled[.teams] == false {
+                    Text("Requires Microsoft Teams in the list above.")
+                }
+            }
+        }
+        .alert("Answer Teams' unmute dialog for you?", isPresented: $confirmTeamsConsent) {
+            Button("Turn On") { teamsConsent = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Teams asks: “Do you agree to the use of your audio and video? By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.” If you turn this on, Penknife answers Yes for you when you unmute with the shortcut. You remain responsible for consent.")
         }
         Section("Current meeting") {
             Label("The meeting in front, or the last one you used.", systemImage: "scope")

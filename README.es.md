@@ -31,6 +31,8 @@ Cada parte es un módulo. Desactiva lo que no necesites y no gastará CPU ni mem
 <img src="docs/screenshots/menu.png" alt="Menú de la barra de menús">
 <h3>Silenciar el micrófono en reuniones</h3>
 Un atajo silencia la reunión en la que estás: Teams, Google Meet, Zoom, Slack Huddles o Webex. Solo cuentan las apps con una llamada en curso, y cada una usa su propio atajo, que puedes editar en Ajustes. Sin llamada, silencia el micrófono del Mac. El icono y el punto de estado muestran siempre el estado real.
+
+Opcional, desactivado por defecto: si al activar el micro en Teams con el atajo Teams pregunta «Do you agree to the use of your audio and video?», Penknife puede pulsar Sí por ti. Sigues siendo responsable del consentimiento; consulta la política de tu empresa. Penknife no está afiliado a Microsoft.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">

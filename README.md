@@ -31,6 +31,8 @@ Every part is a module. Turn off what you don't need and it uses no CPU or memor
 <img src="docs/screenshots/menu.png" alt="Menu bar menu">
 <h3>Microphone mute for meetings</h3>
 One shortcut mutes the meeting you're in: Teams, Google Meet, Zoom, Slack Huddles or Webex. Only apps in a call count, and each uses its own shortcut, which you can edit in Settings. With no call, it mutes your Mac's microphone. The icon and status dot always show the real state.
+
+Optional, off by default: when you unmute in Teams with the shortcut and Teams asks "Do you agree to the use of your audio and video?", Penknife can press Yes for you. You remain responsible for consent; check your employer's policy. Penknife is not affiliated with Microsoft.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Clipboard history">

@@ -284,7 +284,7 @@ final class MeetingTracker {
 
     /// Chromium and Electron apps (Teams, Slack) only build the accessibility tree of their web
     /// content when asked with `AXManualAccessibility`.
-    private static func isChromium(_ app: NSRunningApplication) -> Bool {
+    static func isChromium(_ app: NSRunningApplication) -> Bool {
         guard let id = app.bundleIdentifier else { return false }
         if id.hasPrefix("org.mozilla.") || id.hasPrefix("com.apple.") { return false }
         return browsers.contains(id) || MeetingPlatform.forApp(id) != nil
@@ -295,14 +295,36 @@ final class MeetingTracker {
 
     nonisolated private static func micButtonState(pid: pid_t, onlyFocusedWindow: Bool, chromium: Bool,
                                                    stats: inout (windows: Int, nodes: Int, roles: Set<String>)) -> Bool? {
+        withWebTree(pid: pid, chromium: chromium) { app, freshTree in
+            let windows = meetingWindows(app, onlyFocused: onlyFocusedWindow)
+            stats.windows = windows.count
+            // Chrome builds its web tree when a client asks for an element's attribute names (what
+            // the probe that worked did), not on a plain walk.
+            for window in windows {
+                var names: CFArray?
+                AXUIElementCopyAttributeNames(window, &names)
+            }
+            if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
+            // A tree that was just turned on is built asynchronously: look again for up to ~1 s.
+            guard freshTree else { return nil }
+            for _ in 0..<5 {
+                Thread.sleep(forTimeInterval: 0.2)
+                if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
+            }
+            return nil
+        }
+    }
+
+    /// Runs `body` with the app's web accessibility tree on, and turns it off after, unless
+    /// someone (VoiceOver) had it on already: it costs the app CPU and RAM while it's on
+    /// (measured: +80 MB, freed after). Electron apps (Teams, Slack) open their web tree with
+    /// AXManualAccessibility; Chrome ignores that one and opens it with AXEnhancedUserInterface
+    /// (what VoiceOver sets). Both answer the set with an error yet act on it (measured), so each
+    /// one that wasn't on is set and cleared after: left on, the tree costs RAM and Chrome
+    /// animates windows worse. `body` gets whether the tree was just turned on (built async).
+    nonisolated static func withWebTree<T>(pid: pid_t, chromium: Bool, _ body: (AXUIElement, Bool) -> T?) -> T? {
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.25)
-        // Turn the web tree on only for this read, and off after, unless someone (VoiceOver) had
-        // it on already: it costs the app CPU and RAM while it's on (measured: +80 MB, freed after).
-        // Electron apps (Teams, Slack) open their web tree with AXManualAccessibility; Chrome
-        // ignores that one and opens it with AXEnhancedUserInterface (what VoiceOver sets). Both
-        // answer the set with an error yet act on it (measured), so each one that wasn't on is
-        // set and cleared after: left on, the tree costs RAM and Chrome animates windows worse.
         var enabledHere: [String] = []
         if chromium {
             for attribute in [manualAccessibility, enhancedUserInterface] {
@@ -317,30 +339,15 @@ final class MeetingTracker {
         defer {
             for attribute in enabledHere { AXUIElementSetAttributeValue(app, attribute as CFString, kCFBooleanFalse) }
         }
-
-        // Chrome builds its web tree when a client asks for the focused element or for an
-        // element's attribute names (what the probe that worked did), not on a plain walk.
+        // Chrome also builds it when a client asks for the focused element.
         var focused: CFTypeRef?
         AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused)
-        let windows = meetingWindows(app, onlyFocused: onlyFocusedWindow)
-        for window in windows {
-            var names: CFArray?
-            AXUIElementCopyAttributeNames(window, &names)
-        }
-        stats.windows = windows.count
-        if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
-        // A tree that was just turned on is built asynchronously: look again for up to ~1 s.
-        guard !enabledHere.isEmpty else { return nil }
-        for _ in 0..<5 {
-            Thread.sleep(forTimeInterval: 0.2)
-            if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
-        }
-        return nil
+        return body(app, !enabledHere.isEmpty)
     }
 
     /// A browser: only its focused window (the meeting tab, told by its title). An app: the
     /// focused window first, then the others (a Teams call can live in its own window).
-    nonisolated private static func meetingWindows(_ app: AXUIElement, onlyFocused: Bool) -> [AXUIElement] {
+    nonisolated static func meetingWindows(_ app: AXUIElement, onlyFocused: Bool) -> [AXUIElement] {
         func element(_ attribute: String) -> AXUIElement? {
             var value: CFTypeRef?
             guard AXUIElementCopyAttributeValue(app, attribute as CFString, &value) == .success,

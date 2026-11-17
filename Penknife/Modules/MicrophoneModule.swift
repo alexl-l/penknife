@@ -56,7 +56,16 @@ final class MicrophoneModule: Module {
             guard Permissions.shared.ensureAccessibility() else { return }
             self.log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
             guard Self.alsoMuteMac else {
-                self.meetings.send(to: target)
+                // R-31: Teams' consent dialog is answered only when its own button said "muted"
+                // before the press (= this press unmutes); never on a mute or a blind press.
+                if TeamsConsent.isEnabled, target.platform == .teams, !target.isBrowser {
+                    self.meetings.readMuted(target) { [weak self] appMuted in
+                        self?.meetings.send(to: target)
+                        if appMuted == true { TeamsConsent.answerAfterUnmute(target.app) }
+                    }
+                } else {
+                    self.meetings.send(to: target)
+                }
                 HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
                                 symbol: "mic.badge.xmark", kind: .on, category: .microphone)
                 return
@@ -68,7 +77,10 @@ final class MicrophoneModule: Module {
             let mute = !self.isMuted
             self.meetings.readMuted(target) { [weak self] appMuted in
                 guard let self else { return }
-                if appMuted != mute { self.meetings.send(to: target) }
+                if appMuted != mute {
+                    self.meetings.send(to: target)
+                    if appMuted == true, target.platform == .teams, !target.isBrowser { TeamsConsent.answerAfterUnmute(target.app) }
+                }
                 self.setMac(muted: mute)
             }
         }

@@ -2892,6 +2892,66 @@
           }
         }
       }
+    },
+    "Remember my choice for Teams' unmute dialog": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recordar mi elección en el diálogo de Teams al activar el micro"
+          }
+        }
+      }
+    },
+    "When you unmute with the shortcut and Teams asks about audio and video, Penknife presses Yes for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al activar el micro con el atajo, si Teams pregunta por el audio y el vídeo, Penknife pulsa Sí por ti. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa. Sin afiliación con Microsoft."
+          }
+        }
+      }
+    },
+    "Requires Microsoft Teams in the list above.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requiere Microsoft Teams activado en la lista de arriba."
+          }
+        }
+      }
+    },
+    "Answer Teams' unmute dialog for you?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Responder por ti al diálogo de Teams?"
+          }
+        }
+      }
+    },
+    "Teams asks: “Do you agree to the use of your audio and video? By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.” If you turn this on, Penknife answers Yes for you when you unmute with the shortcut. You remain responsible for consent.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teams pregunta: «Do you agree to the use of your audio and video? By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.» (¿Aceptas el uso de tu audio y vídeo? Al activar el micro, encender la cámara o compartir la pantalla, permites que tu contenido se procese para funciones como grabación, transcripción y Copilot.) Si lo activas, Penknife responde Sí por ti cuando activas el micro con el atajo. Sigues siendo responsable del consentimiento."
+          }
+        }
+      }
+    },
+    "Turn On": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
