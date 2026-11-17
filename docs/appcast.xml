@@ -3,6 +3,23 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.2</title>
+            <pubDate>Mon, 16 Nov 2026 22:22:13 -0500</pubDate>
+            <sparkle:version>52</sparkle:version>
+            <sparkle:shortVersionString>1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>Meeting-aware mic mute for Teams, Google Meet, Zoom, Slack Huddles and Webex: it uses each app's own shortcut (editable in Settings), and only apps in a call count.</li>
+<li>With no call, it mutes the Mac's microphone. Optional setting to also mute the Mac's microphone during a meeting.</li>
+<li>The microphone icon and status dot always show the real microphone state.</li>
+<li>Speed test shows units (kbps, Mbps or Gbps).</li>
+<li>Touch Bar taps no longer click.</li>
+<li>Quick presses always register.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.2/Penknife-1.2.zip" length="4246310" type="application/octet-stream" sparkle:edSignature="zuh4hsUl9JSj5r2S6ZYPyOqOmq5ecsitQB1fQbtTbdFr+7rgX5CofmUTTq9lHHAAweLBGnr8b+Qs5/wLNwkXAg=="/>
+        </item>
+        <item>
             <title>1.1</title>
             <pubDate>Sat, 14 Nov 2026 22:27:30 -0500</pubDate>
             <sparkle:version>44</sparkle:version>
