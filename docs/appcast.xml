@@ -3,6 +3,18 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.6</title>
+            <pubDate>Tue, 17 Nov 2026 14:08:03 -0500</pubDate>
+            <sparkle:version>81</sparkle:version>
+            <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Teams unmute works when consent is required.** With "Remember my choice for Teams' unmute dialog" on, Teams used to ignore its own mute shortcut until you consented, so nothing happened. Penknife still sends the shortcut first; if Teams ignores it, Penknife presses Teams' mic button for you, bringing Teams forward for a moment if it was behind and then returning to your app, so the consent dialog appears and gets answered. Normal meetings are unchanged: Teams isn't brought forward and your typing focus isn't touched. You remain responsible for consent.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.6/Penknife-1.6.zip" length="4379397" type="application/octet-stream" sparkle:edSignature="fBPubndymhcnHsXRGL3Z9KAZNUj7Gra8+UdOA6PmY83HHD9WBs7v60SBH4yAEW2gkCgN7XSI26HCBbDkbfG6Bg=="/>
+        </item>
+        <item>
             <title>1.5</title>
             <pubDate>Tue, 17 Nov 2026 12:48:05 -0500</pubDate>
             <sparkle:version>77</sparkle:version>
@@ -29,22 +41,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.4/Penknife-1.4.zip" length="4360724" type="application/octet-stream" sparkle:edSignature="L14qTKxEXidcMHXmZFOFmtAxFz4c8/ZuPgLW91CeZs1TNqDUjAyEKXW0idcDIVSI5tvaWK0fOF5PKBTB/n21BQ=="/>
-        </item>
-        <item>
-            <title>1.3</title>
-            <pubDate>Tue, 17 Nov 2026 00:26:17 -0500</pubDate>
-            <sparkle:version>61</sparkle:version>
-            <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Mic mute follows the call's own button.** Each press checks the mic button in Meet or Teams and only changes it when needed, so clicking the mic inside the call no longer leaves the call and your Mac out of step. Where the button can't be read (Firefox, for example), it uses the app's shortcut as before.</li>
-<li>**The Mac's microphone is now muted too during a meeting**, so the menu bar icon matches the call. You can turn this off with "Also mute the Mac's microphone" in Settings.</li>
-<li>Meetings in the browser are detected in Chrome, Chrome Dev, Opera, Safari and Firefox, with no permission prompt. In Chrome-based browsers, accessibility must not be turned off in chrome://accessibility.</li>
-<li>Fixed: shortcut presses being ignored during calls.</li>
-<li>Fixed: Google Meet in Safari muting the Mac but not the call.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.3/Penknife-1.3.zip" length="4275947" type="application/octet-stream" sparkle:edSignature="Lbs+mIU1SpVFgj+rI3BL3XYxYXjDyORuYz2uuJJZl9jAl2T5iH7y+IWsw+C/3YNlIL5n+PyvtHET/x0K0wFABA=="/>
         </item>
     </channel>
 </rss>
