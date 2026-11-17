@@ -55,33 +55,35 @@ final class MicrophoneModule: Module {
             guard let target else { return self.toggleMac() }
             guard Permissions.shared.ensureAccessibility() else { return }
             self.log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
-            guard Self.alsoMuteMac else {
-                // R-31: Teams' consent dialog is answered only when its own button said "muted"
-                // before the press (= this press unmutes); never on a mute or a blind press.
-                if TeamsConsent.isEnabled, target.platform == .teams, !target.isBrowser {
-                    self.meetings.readMuted(target) { [weak self] appMuted in
-                        self?.meetings.send(to: target)
-                        if appMuted == true { TeamsConsent.answerAfterUnmute(target.app) }
-                    }
-                } else {
-                    self.meetings.send(to: target)
-                }
-                HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
-                                symbol: "mic.badge.xmark", kind: .on, category: .microphone)
-                return
-            }
-            // Self-healing (R-28 option A, user 2026-11-16): the new state is the opposite of the
-            // Mac's microphone; the app gets its shortcut only if it isn't in that state already,
-            // so a click inside the app that left the two inverted is fixed by this press.
-            // Unreadable button → the shortcut is sent blind, as before.
-            let mute = !self.isMuted
-            self.meetings.readMuted(target) { [weak self] appMuted in
+            // Self-healing (R-28): every press leaves the call and the Mac equal. The CALL decides
+            // when its mic button can be read (user, 2026-11-17: Teams mutes everyone when a
+            // recording starts while the Mac stays open; deciding by the Mac made that press mute
+            // the Mac instead of unmuting the call). Unreadable button → the opposite of the
+            // Mac's microphone. So the meeting's shortcut is always sent.
+            let macMuted = self.isMuted
+            let alsoMac = Self.alsoMuteMac
+            let send: @MainActor () -> Void = { [weak self] in self?.meetings.send(to: target) }
+            let after: @MainActor (Bool?) -> Void = { [weak self] appMuted in
                 guard let self else { return }
-                if appMuted != mute {
-                    self.meetings.send(to: target)
-                    if appMuted == true, target.platform == .teams, !target.isBrowser { TeamsConsent.answerAfterUnmute(target.app) }
+                if alsoMac {
+                    self.setMac(muted: appMuted.map { !$0 } ?? !macMuted)
+                } else {
+                    HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
+                                    symbol: "mic.badge.xmark", kind: .on, category: .microphone)
                 }
-                self.setMac(muted: mute)
+            }
+            if TeamsConsent.isEnabled, target.platform == .teams, !target.isBrowser {
+                // R-31: one Accessibility session reads the call, sends the shortcut and answers
+                // the consent alert that an unmute opens.
+                TeamsConsent.press(target.app, send: send, sent: after)
+            } else if alsoMac {
+                self.meetings.readMuted(target) { appMuted in
+                    send()
+                    after(appMuted)
+                }
+            } else {
+                send()
+                after(nil)
             }
         }
     }

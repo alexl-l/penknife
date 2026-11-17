@@ -549,7 +549,7 @@ private struct MeetingOptions: View {
             .disabled(enabled[.teams] == false)
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("When you unmute with the shortcut and Teams asks about audio and video, Penknife presses Yes for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.")
+                Text("When you unmute with the shortcut and Teams asks for your consent, Penknife accepts it for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.")
                 if enabled[.teams] == false {
                     Text("Requires Microsoft Teams in the list above.")
                 }
@@ -559,7 +559,7 @@ private struct MeetingOptions: View {
             Button("Turn On") { teamsConsent = true }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Teams asks: “Do you agree to the use of your audio and video? By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.” If you turn this on, Penknife answers Yes for you when you unmute with the shortcut. You remain responsible for consent.")
+            Text("In meetings that ask for consent, Teams shows a dialog when you unmute. If you turn this on, Penknife accepts it for you, only when you unmute with Penknife's shortcut. You remain responsible for consent. Check your employer's policy.")
         }
         Section("Current meeting") {
             Label("The meeting in front, or the last one you used.", systemImage: "scope")

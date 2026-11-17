@@ -345,6 +345,16 @@ final class MeetingTracker {
         return body(app, !enabledHere.isEmpty)
     }
 
+    /// The meeting's mic state read in one window (true = muted), nil when its button isn't
+    /// there (another window, or hidden behind a modal alert, which hides the rest of the page).
+    nonisolated static func micState(in window: AXUIElement) -> Bool? {
+        var names: CFArray?
+        AXUIElementCopyAttributeNames(window, &names)
+        var nodes = 0
+        var roles = Set<String>()
+        return search([window], nodes: &nodes, roles: &roles)
+    }
+
     /// A browser: only its focused window (the meeting tab, told by its title). An app: the
     /// focused window first, then the others (a Teams call can live in its own window).
     nonisolated static func meetingWindows(_ app: AXUIElement, onlyFocused: Bool) -> [AXUIElement] {

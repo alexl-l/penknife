@@ -2903,16 +2903,6 @@
         }
       }
     },
-    "When you unmute with the shortcut and Teams asks about audio and video, Penknife presses Yes for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Al activar el micro con el atajo, si Teams pregunta por el audio y el vídeo, Penknife pulsa Sí por ti. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa. Sin afiliación con Microsoft."
-          }
-        }
-      }
-    },
     "Requires Microsoft Teams in the list above.": {
       "localizations": {
         "es": {
@@ -2933,22 +2923,32 @@
         }
       }
     },
-    "Teams asks: “Do you agree to the use of your audio and video? By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.” If you turn this on, Penknife answers Yes for you when you unmute with the shortcut. You remain responsible for consent.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Teams pregunta: «Do you agree to the use of your audio and video? By unmuting, turning on your camera, or sharing your screen, you agree to allow your content to be processed for features like recording, transcription and Copilot.» (¿Aceptas el uso de tu audio y vídeo? Al activar el micro, encender la cámara o compartir la pantalla, permites que tu contenido se procese para funciones como grabación, transcripción y Copilot.) Si lo activas, Penknife responde Sí por ti cuando activas el micro con el atajo. Sigues siendo responsable del consentimiento."
-          }
-        }
-      }
-    },
     "Turn On": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Activar"
+          }
+        }
+      }
+    },
+    "When you unmute with the shortcut and Teams asks for your consent, Penknife accepts it for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al activar el micro con el atajo, si Teams te pide consentimiento, Penknife lo acepta por ti. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa. Sin afiliación con Microsoft."
+          }
+        }
+      }
+    },
+    "In meetings that ask for consent, Teams shows a dialog when you unmute. If you turn this on, Penknife accepts it for you, only when you unmute with Penknife's shortcut. You remain responsible for consent. Check your employer's policy.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En las reuniones que piden consentimiento, Teams muestra un aviso al activar el micro. Si lo activas, Penknife lo acepta por ti, solo cuando activas el micro con el atajo de Penknife. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa."
           }
         }
       }
