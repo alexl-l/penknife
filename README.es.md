@@ -77,6 +77,12 @@ Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta 
 
 1. [Descarga la última versión](https://github.com/alexl-l/penknife/releases/latest), descomprímela y mueve `Penknife.app` a `/Aplicaciones`.
 2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente**.
+
+   **¿No aparece Abrir igualmente o el aviso vuelve a salir?** Pasa en Macs gestionados por una empresa o un colegio, donde un perfil bloquea las apps sin notarizar. Quita la marca de "descargado de internet" en Terminal y vuelve a abrir Penknife:
+   ```
+   xattr -dr com.apple.quarantine /Applications/Penknife.app
+   ```
+   Si es un Mac del trabajo, consúltalo antes con tu equipo de informática.
 3. Listo. Penknife busca actualizaciones una vez al día y pregunta antes de instalarlas (menú → **Buscar actualizaciones…**).
 
 <details>

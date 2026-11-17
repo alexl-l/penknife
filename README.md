@@ -77,6 +77,12 @@ Prefer Homebrew? Run `brew trust alexl-l/tap && brew install --cask alexl-l/tap/
 
 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
 2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings → Privacy & Security** and click **Open Anyway**.
+
+   **No Open Anyway, or the warning keeps coming back?** This happens on Macs managed by a company or school, where a profile blocks apps that aren't notarized. Remove the "downloaded from the internet" mark in Terminal and open Penknife again:
+   ```
+   xattr -dr com.apple.quarantine /Applications/Penknife.app
+   ```
+   On a work Mac, check with your IT team first.
 3. That's it. Penknife checks for updates once a day and asks before installing (menu → **Check for Updates…**).
 
 <details>

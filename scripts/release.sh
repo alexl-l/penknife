@@ -43,7 +43,7 @@ if [[ "${1:-}" == "--publish" ]]; then
   {
     cat "$OUT/notes.md"
     echo
-    echo "**Install:** unzip, move Penknife to Applications, open it. The first time, macOS asks: System Settings → Privacy & Security → Open Anyway. Later versions update from the app (menu → Check for Updates…)."
+    echo "**Install:** unzip, move Penknife to Applications, open it. The first time, macOS asks: System Settings → Privacy & Security → Open Anyway. No Open Anyway button, or the warning keeps coming back (Macs managed by a company or school)? Run \`xattr -dr com.apple.quarantine /Applications/Penknife.app\` in Terminal and open it again; on a work Mac, ask your IT team first. Later versions update from the app (menu → Check for Updates…)."
   } > "$OUT/release-notes.md"
   gh release create "$TAG" "$ZIP" --title "Penknife $VERSION" --notes-file "$OUT/release-notes.md"
   echo "Now commit docs/appcast.xml and push main so the update goes live."

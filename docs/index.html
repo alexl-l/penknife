@@ -99,6 +99,7 @@ footer a{text-decoration:underline}
   <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download Penknife</a>
   <p>Prefer Homebrew? <code>brew trust alexl-l/tap &amp;&amp; brew install --cask alexl-l/tap/penknife</code></p>
   <ol><li>Unzip and move Penknife.app to /Applications</li><li>Open it once. macOS will say it can't verify it, then go to System Settings → Privacy &amp; Security → Open Anyway</li><li>Updates arrive by themselves (Penknife asks first)</li></ol>
+  <p>No Open Anyway button, or the warning keeps coming back? That happens on Macs managed by a company or school. Run this in Terminal, then open Penknife again (on a work Mac, ask your IT team first):<br><code>xattr -dr com.apple.quarantine /Applications/Penknife.app</code></p>
   <p>Why the warning? Penknife isn't notarized because there's no paid Apple Developer account behind it. The code is open, so you can read it or build it yourself.</p>
 </section>
 
