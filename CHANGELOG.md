@@ -3,6 +3,15 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.4 — 2026-11-17
+
+Weather, Mac temperature and the speed test can now live in the menu bar, and Teams can remember your unmute choice.
+
+- **Weather, Mac temperature and speed test as menu bar items.** Handy on Macs without a Touch Bar, where they are on by default. Turn each on or off with "Show in the menu bar" in its module.
+- **Three styles** in Settings → General: Simple, Color and Bold. In Color, the temperature turns orange when your Mac runs hot.
+- **Click for a small menu.** Weather offers Update now. Speed test shows your last result and Test Speed Now.
+- **Optional: "Remember my choice for Teams' unmute dialog"** in Settings → Microphone, off by default. When you unmute with Penknife's shortcut and Teams asks "Do you agree to the use of your audio and video?", Penknife presses Yes for you. It only applies when unmuting with the shortcut, in the Microsoft Teams desktop app set to English. You remain responsible for consent, so check your employer's policy first.
+
 ## 1.3 — 2026-11-17
 
 Meeting mute now stays in sync with your call, and the Mac's microphone is muted along with it.
