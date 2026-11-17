@@ -3,6 +3,13 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.5 — 2026-11-17
+
+The mic shortcut now follows the call, and the Teams unmute setting works in any language.
+
+- **Mic shortcut follows the call.** When the meeting's mic button can be read, each press does the opposite of the call's state, and the Mac's microphone follows. Before, if Teams muted everyone (for example when a recording starts), the first press muted your Mac instead of unmuting you in the call.
+- **"Remember my choice for Teams' unmute dialog"** (Settings → Microphone, off by default) no longer depends on the dialog's wording. It works in any language and with messages customized by your organization, and only when you unmute with Penknife's shortcut. You remain responsible for consent, so check your employer's policy first.
+
 ## 1.4 — 2026-11-17
 
 Weather, Mac temperature and the speed test can now live in the menu bar, and Teams can remember your unmute choice.
