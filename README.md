@@ -88,10 +88,23 @@ Prefer Homebrew? Run `brew trust alexl-l/tap && brew install --cask alexl-l/tap/
 
 Penknife asks only for what the modules you turn on need:
 
-- **Accessibility**: shortcuts that act on other apps, media keys and the mouse jiggler.
-- **Automation (Apple Events)**: to control Spotify and Apple Music, and to read the active browser tab (only its address) to find a meeting.
+- **Accessibility**: shortcuts that act on other apps, media keys, the mouse jiggler, and reading a meeting's mute button so the call and your Mac stay in sync.
+- **Automation (Apple Events)**: to control Spotify and Apple Music.
 - **Location** (optional): local weather.
 - **Screen Recording**: screenshots.
+
+</details>
+
+<details>
+<summary><b>The meeting and the Mac's microphone get out of sync in Chrome</b></summary>
+
+When you press the shortcut, Penknife reads the meeting's mute button so the call and your Mac's microphone end up the same. Chrome shows that button to other apps only when its accessibility support is on, and it can be blocked:
+
+1. Open `chrome://accessibility` (`opera://accessibility`, `edge://accessibility` or `brave://accessibility` in those browsers).
+2. Make sure **Suppress automatic accessibility enablement from platform API consumers** is unchecked. Leave **Lock the current accessibility mode** unchecked too.
+3. **Native accessibility API support** and **Web accessibility** must be on (they turn on by themselves once nothing blocks them). The other boxes aren't needed.
+
+Safari needs nothing. If the button can't be read, Penknife still sends the meeting's shortcut.
 
 </details>
 

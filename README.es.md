@@ -88,10 +88,23 @@ Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta 
 
 Penknife pide solo lo que necesitan los módulos que actives:
 
-- **Accesibilidad**: atajos que actúan sobre otras apps, teclas multimedia y mover el ratón.
-- **Automatización (Apple Events)**: para controlar Spotify y Apple Music, y leer la pestaña activa del navegador (solo su dirección) para encontrar una reunión.
+- **Accesibilidad**: atajos que actúan sobre otras apps, teclas multimedia, mover el ratón y leer el botón de silencio de la reunión para que la llamada y el Mac coincidan.
+- **Automatización (Apple Events)**: para controlar Spotify y Apple Music.
 - **Ubicación** (opcional): el tiempo local.
 - **Grabación de pantalla**: capturas de pantalla.
+
+</details>
+
+<details>
+<summary><b>En Chrome, la reunión y el micrófono del Mac no coinciden</b></summary>
+
+Al pulsar el atajo, Penknife lee el botón de silencio de la reunión para que la llamada y el micrófono del Mac queden igual. Chrome solo muestra ese botón a otras apps si su accesibilidad está activa, y se puede bloquear:
+
+1. Abre `chrome://accessibility` (`opera://accessibility`, `edge://accessibility` o `brave://accessibility` en esos navegadores).
+2. Comprueba que **Suppress automatic accessibility enablement from platform API consumers** está desmarcada. Deja también desmarcada **Lock the current accessibility mode**.
+3. **Native accessibility API support** y **Web accessibility** deben estar activas (se activan solas cuando nada las bloquea). Las demás casillas no hacen falta.
+
+Safari no necesita nada. Si no se puede leer el botón, Penknife envía igualmente el atajo de la reunión.
 
 </details>
 

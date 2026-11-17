@@ -29,8 +29,10 @@ final class MicrophoneModule: Module {
     }
 
     static let alsoMuteMacKey = "microphone.alsoMuteMac"
-    /// Off by default: with a meeting found, only that meeting is muted (R-28).
-    static var alsoMuteMac: Bool { UserDefaults.standard.bool(forKey: alsoMuteMacKey) }
+    /// On by default (user, 2026-11-16): a meeting app's own mute state can't be read (Teams'
+    /// local API was retired in June 2026), so the Mac's microphone is muted too and the icon,
+    /// which follows the Mac's microphone, matches the call.
+    static var alsoMuteMac: Bool { UserDefaults.standard.object(forKey: alsoMuteMacKey) as? Bool ?? true }
 
     /// The REAL state of the device (user, 2026-11-16: the Touch Bar and the dot must show what
     /// the microphone is doing, never what Penknife thinks), read from the control `toggle()` changes. Some devices report a mute
@@ -53,17 +55,30 @@ final class MicrophoneModule: Module {
             guard let target else { return self.toggleMac() }
             guard Permissions.shared.ensureAccessibility() else { return }
             self.log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
-            self.meetings.send(to: target)
-            if Self.alsoMuteMac {
-                self.toggleMac()
-            } else {
+            guard Self.alsoMuteMac else {
+                self.meetings.send(to: target)
                 HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
                                 symbol: "mic.badge.xmark", kind: .on, category: .microphone)
+                return
+            }
+            // Self-healing (R-28 option A, user 2026-11-16): the new state is the opposite of the
+            // Mac's microphone; the app gets its shortcut only if it isn't in that state already,
+            // so a click inside the app that left the two inverted is fixed by this press.
+            // Unreadable button → the shortcut is sent blind, as before.
+            let mute = !self.isMuted
+            self.meetings.readMuted(target) { [weak self] appMuted in
+                guard let self else { return }
+                if appMuted != mute { self.meetings.send(to: target) }
+                self.setMac(muted: mute)
             }
         }
     }
 
     private func toggleMac() {
+        setMac(muted: !isMuted)
+    }
+
+    private func setMac(muted mute: Bool) {
         // While Siri listens the mic is open whatever the mute says, and Siri puts back the state
         // it found when it ends: a press then does nothing (user, 2026-11-16).
         guard !Self.isSiriListening else {
@@ -74,7 +89,6 @@ final class MicrophoneModule: Module {
             HUD.shared.show(String(localized: "No microphone found"), symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
             return
         }
-        let mute = !isMuted
         log.notice("Toggle: \(mute ? "mute" : "unmute", privacy: .public), mute settable: \(Self.isSettable(device, kAudioDevicePropertyMute)), volume settable: \(Self.isSettable(device, kAudioDevicePropertyVolumeScalar))")
 
         if Self.isSettable(device, kAudioDevicePropertyMute) {
@@ -108,8 +122,13 @@ final class MicrophoneModule: Module {
     private static let siriBundleID = "com.apple.CoreSpeech"
 
     /// Siri records even with the microphone muted, and clears the mute while it listens, then
-    /// restores it (measured 2026-11-16). Read only when the user presses, never polled.
-    static var isSiriListening: Bool { MeetingTracker.appsUsingMicrophone().contains(siriBundleID) }
+    /// restores it (measured 2026-11-16). But Siri also records alongside ANY app using the
+    /// microphone, for the whole call (measured 2026-11-16 with Meet in Chrome Dev and Safari),
+    /// so it counts as listening only when nothing else records. Read only at the press.
+    static var isSiriListening: Bool {
+        let recording = MeetingTracker.appsUsingMicrophone().map(\.bundleID)
+        return recording.contains(siriBundleID) && recording.allSatisfy { $0 == siriBundleID }
+    }
 
     static func defaultInputDevice() -> AudioObjectID? {
         var address = address(kAudioHardwarePropertyDefaultInputDevice)

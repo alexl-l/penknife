@@ -42,16 +42,26 @@ nonisolated enum MeetingPlatform: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Meeting pages in a browser tab.
-    func matches(_ url: URL) -> Bool {
-        guard let host = url.host()?.lowercased() else { return false }
-        switch self {
-        case .teams: return ["teams.microsoft.com", "teams.live.com", "teams.cloud.microsoft"].contains(host)
-        case .meet: return host == "meet.google.com"
-        case .zoom: return host.hasSuffix("zoom.us") && url.path().contains("/wc/")
-        case .slack: return host == "app.slack.com"
-        case .webex: return host == "webex.com" || host.hasSuffix(".webex.com")
+    /// Meeting pages, told by the browser window's title (the active tab's title), the one signal
+    /// every browser gives: Firefox has no AppleScript for tabs and Opera's is unreliable
+    /// (user, 2026-11-16: Chrome, Chrome Dev, Opera, Safari and Firefox). Only checked for a
+    /// browser that is using the microphone.
+    func matches(title: String) -> Bool {
+        // The brand must be a whole part of the title ("Meet - abc-defg-hij", "Chat | Microsoft
+        // Teams"), not any word in it, so a tab called "Slack tips" doesn't count.
+        let parts = title.lowercased()
+            .components(separatedBy: CharacterSet(charactersIn: "-–—|·"))
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+        let names: Set<String> = switch self {
+        case .teams: ["microsoft teams"]
+        case .meet: ["meet", "google meet"]
+        case .zoom: ["zoom", "zoom meeting", "zoom workplace"]
+        case .slack: ["slack"]
+        case .webex: ["webex", "cisco webex"]
         }
+        if parts.contains(where: names.contains) { return true }
+        // A Meet call's title is often only its code, "abc-defg-hij", split above by the dashes.
+        return self == .meet && title.range(of: #"\b[a-z]{3}-[a-z]{4}-[a-z]{3}\b"#, options: .regularExpression) != nil
     }
 
     private var enabledKey: String { "meeting.\(rawValue).enabled" }
@@ -105,6 +115,8 @@ final class MeetingTracker {
         "com.google.Chrome", "com.google.Chrome.dev", "com.google.Chrome.beta", "com.google.Chrome.canary",
         "com.microsoft.edgemac", "com.brave.Browser", "company.thebrowser.Browser",
         "com.apple.Safari", "com.apple.SafariTechnologyPreview",
+        "com.operasoftware.Opera", "com.operasoftware.OperaGX",
+        "org.mozilla.firefox", "org.mozilla.firefoxdeveloperedition", "org.mozilla.nightly",
     ]
 
     func start() {
@@ -152,13 +164,11 @@ final class MeetingTracker {
             && !candidates.contains(where: { $0.processIdentifier == app.processIdentifier }) {
             candidates.append(app)
         }
-        candidates = candidates.filter { app in
-            guard let id = app.bundleIdentifier else { return false }
-            return usingMic.contains { $0 == id || $0.hasPrefix(id + ".") }
-        }
+        let callPIDs = Set(usingMic.map(\.appPID))
+        candidates = candidates.filter { callPIDs.contains($0.processIdentifier) }
         let log = log
         let calls = candidates
-        log.notice("In a call (using the mic): \(candidates.compactMap(\.bundleIdentifier).joined(separator: ", "), privacy: .public)")
+        log.notice("Recording: \(usingMic.map(\.bundleID).joined(separator: ", "), privacy: .public); in a call: \(candidates.compactMap(\.bundleIdentifier).joined(separator: ", "), privacy: .public)")
         DispatchQueue.global(qos: .userInitiated).async {
             var found: Target?
             for app in calls {
@@ -167,8 +177,8 @@ final class MeetingTracker {
                     if platform.isEnabled { found = Target(platform: platform, app: app, isBrowser: false); break }
                     continue
                 }
-                guard let url = Self.activeTabURL(bundleID: id, log: log),
-                      let platform = MeetingPlatform.allCases.first(where: { $0.isEnabled && $0.matches(url) }) else { continue }
+                guard let title = Self.windowTitle(pid: app.processIdentifier, log: log),
+                      let platform = MeetingPlatform.allCases.first(where: { $0.isEnabled && $0.matches(title: title) }) else { continue }
                 found = Target(platform: platform, app: app, isBrowser: true)
                 break
             }
@@ -177,9 +187,17 @@ final class MeetingTracker {
         }
     }
 
-    /// Bundle IDs of the processes recording from any microphone now (CoreAudio process objects,
-    /// macOS 14.2+). Browser and Teams helpers report their own IDs, e.g. "com.google.Chrome.dev.helper".
-    static func appsUsingMicrophone() -> [String] {
+    /// A process recording from a microphone, and the app it works for.
+    struct MicUser: Sendable {
+        let bundleID: String
+        let appPID: pid_t
+    }
+
+    /// The processes recording from any microphone now (CoreAudio process objects, macOS 14.2+).
+    /// They are often helpers whose bundle ID doesn't name the app (measured 2026-11-16: Chrome
+    /// Dev records as "com.google.Chrome.helper", Safari as "com.apple.WebKit.GPU", which Mail and
+    /// Teams also use), so each is mapped to its responsible app, as macOS's privacy checks do.
+    static func appsUsingMicrophone() -> [MicUser] {
         let system = AudioObjectID(kAudioObjectSystemObject)
         var address = AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyProcessObjectList,
                                                  mScope: kAudioObjectPropertyScopeGlobal,
@@ -189,41 +207,197 @@ final class MeetingTracker {
         var processes = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
         guard AudioObjectGetPropertyData(system, &address, 0, nil, &size, &processes) == noErr else { return [] }
         return processes.compactMap { process in
-            var running: UInt32 = 0
-            var runningSize = UInt32(MemoryLayout<UInt32>.size)
-            var runningAddress = AudioObjectPropertyAddress(mSelector: kAudioProcessPropertyIsRunningInput,
-                                                            mScope: kAudioObjectPropertyScopeGlobal,
-                                                            mElement: kAudioObjectPropertyElementMain)
-            guard AudioObjectGetPropertyData(process, &runningAddress, 0, nil, &runningSize, &running) == noErr,
-                  running != 0 else { return nil }
+            guard let running: UInt32 = property(process, kAudioProcessPropertyIsRunningInput), running != 0,
+                  let pid: pid_t = property(process, kAudioProcessPropertyPID) else { return nil }
             var bundleID: Unmanaged<CFString>?
             var idSize = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
             var idAddress = AudioObjectPropertyAddress(mSelector: kAudioProcessPropertyBundleID,
                                                        mScope: kAudioObjectPropertyScopeGlobal,
                                                        mElement: kAudioObjectPropertyElementMain)
-            guard AudioObjectGetPropertyData(process, &idAddress, 0, nil, &idSize, &bundleID) == noErr,
-                  let id = bundleID?.takeRetainedValue() as String?, !id.isEmpty else { return nil }
-            return id
+            let id = AudioObjectGetPropertyData(process, &idAddress, 0, nil, &idSize, &bundleID) == noErr
+                ? (bundleID?.takeRetainedValue() as String?) ?? "" : ""
+            return MicUser(bundleID: id, appPID: responsiblePID(pid))
         }
     }
 
-    /// URL of the active tab of the browser's front window. Never launches the browser.
-    nonisolated private static func activeTabURL(bundleID: String, log: Logger) -> URL? {
-        guard browsers.contains(bundleID) else { return nil }
-        let tab = bundleID.hasPrefix("com.apple.Safari") ? "current tab" : "active tab"
-        let source = """
-        tell application id "\(bundleID)"
-          if (count of windows) is 0 then return ""
-          return URL of \(tab) of front window
-        end tell
-        """
-        var error: NSDictionary?
-        let result = NSAppleScript(source: source)?.executeAndReturnError(&error).stringValue
-        if let error {
-            let code = error[NSAppleScript.errorNumber] as? Int ?? 0
-            log.error("Active tab of \(bundleID, privacy: .public): error \(code)")
+    private static func property<T: BitwiseCopyable>(_ object: AudioObjectID, _ selector: AudioObjectPropertySelector) -> T? {
+        var address = AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal,
+                                                 mElement: kAudioObjectPropertyElementMain)
+        var size = UInt32(MemoryLayout<T>.size)
+        let pointer = UnsafeMutablePointer<T>.allocate(capacity: 1)
+        defer { pointer.deallocate() }
+        guard AudioObjectGetPropertyData(object, &address, 0, nil, &size, pointer) == noErr else { return nil }
+        return pointer.pointee
+    }
+
+    /// libsystem's responsibility lookup (private, stable since macOS 10.14; what TCC uses to
+    /// charge a helper's access to its app). Without it, a process stands for itself.
+    private typealias ResponsibleFunction = @convention(c) (pid_t) -> pid_t
+    nonisolated(unsafe) private static let responsible: ResponsibleFunction? = {
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "responsibility_get_pid_responsible_for_pid") else { return nil }
+        return unsafeBitCast(symbol, to: ResponsibleFunction.self)
+    }()
+
+    private static func responsiblePID(_ pid: pid_t) -> pid_t {
+        guard let responsible else { return pid }
+        let owner = responsible(pid)
+        return owner > 0 ? owner : pid
+    }
+
+    /// Title of the browser's focused window = its active tab's title. Accessibility, which the
+    /// shortcut already needs; works in every browser. Never logged (it can name the meeting).
+    nonisolated private static func windowTitle(pid: pid_t, log: Logger) -> String? {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.15)
+        for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
+            var window: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(app, attribute as CFString, &window) == .success,
+                  let window, CFGetTypeID(window) == AXUIElementGetTypeID() else { continue }
+            var title: CFTypeRef?
+            let status = AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &title)
+            if status == .success, let title = title as? String, !title.isEmpty { return title }
         }
-        return result.flatMap { URL(string: $0) }
+        log.error("No window title for browser pid \(pid, privacy: .public)")
+        return nil
+    }
+
+    // MARK: Reading the meeting's own mic button (R-28, option A)
+
+    /// Calls `completion` on the main thread with whether the meeting's microphone is muted in the
+    /// app, read once from its mic button through Accessibility; nil when it can't be read
+    /// (unknown language, changed UI, Firefox…), and the caller then sends the shortcut blind.
+    /// Never watched between presses (user, 2026-11-16: no constant watching).
+    func readMuted(_ target: Target, _ completion: @escaping @MainActor @Sendable (Bool?) -> Void) {
+        let pid = target.app.processIdentifier
+        let onlyFocused = target.isBrowser
+        let chromium = Self.isChromium(target.app)
+        let log = log
+        DispatchQueue.global(qos: .userInitiated).async {
+            let start = Date()
+            var stats = (windows: 0, nodes: 0, roles: Set<String>())
+            let muted = Self.micButtonState(pid: pid, onlyFocusedWindow: onlyFocused, chromium: chromium, stats: &stats)
+            let ms = Int(Date().timeIntervalSince(start) * 1000)
+            log.notice("App mic: \(muted.map { $0 ? "muted" : "open" } ?? "unreadable", privacy: .public) (\(ms) ms, \(stats.windows) windows, \(stats.nodes) elements; roles: \(stats.roles.sorted().joined(separator: " "), privacy: .public))")
+            DispatchQueue.main.async { completion(muted) }
+        }
+    }
+
+    /// Chromium and Electron apps (Teams, Slack) only build the accessibility tree of their web
+    /// content when asked with `AXManualAccessibility`.
+    private static func isChromium(_ app: NSRunningApplication) -> Bool {
+        guard let id = app.bundleIdentifier else { return false }
+        if id.hasPrefix("org.mozilla.") || id.hasPrefix("com.apple.") { return false }
+        return browsers.contains(id) || MeetingPlatform.forApp(id) != nil
+    }
+
+    nonisolated private static let manualAccessibility = "AXManualAccessibility"
+    nonisolated private static let enhancedUserInterface = "AXEnhancedUserInterface"
+
+    nonisolated private static func micButtonState(pid: pid_t, onlyFocusedWindow: Bool, chromium: Bool,
+                                                   stats: inout (windows: Int, nodes: Int, roles: Set<String>)) -> Bool? {
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.25)
+        // Turn the web tree on only for this read, and off after, unless someone (VoiceOver) had
+        // it on already: it costs the app CPU and RAM while it's on (measured: +80 MB, freed after).
+        // Electron apps (Teams, Slack) open their web tree with AXManualAccessibility; Chrome
+        // ignores that one and opens it with AXEnhancedUserInterface (what VoiceOver sets). Both
+        // answer the set with an error yet act on it (measured), so each one that wasn't on is
+        // set and cleared after: left on, the tree costs RAM and Chrome animates windows worse.
+        var enabledHere: [String] = []
+        if chromium {
+            for attribute in [manualAccessibility, enhancedUserInterface] {
+                var current: CFTypeRef?
+                let wasOn = AXUIElementCopyAttributeValue(app, attribute as CFString, &current) == .success
+                    && (current as? Bool) == true
+                guard !wasOn else { continue }
+                AXUIElementSetAttributeValue(app, attribute as CFString, kCFBooleanTrue)
+                enabledHere.append(attribute)
+            }
+        }
+        defer {
+            for attribute in enabledHere { AXUIElementSetAttributeValue(app, attribute as CFString, kCFBooleanFalse) }
+        }
+
+        // Chrome builds its web tree when a client asks for the focused element or for an
+        // element's attribute names (what the probe that worked did), not on a plain walk.
+        var focused: CFTypeRef?
+        AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused)
+        let windows = meetingWindows(app, onlyFocused: onlyFocusedWindow)
+        for window in windows {
+            var names: CFArray?
+            AXUIElementCopyAttributeNames(window, &names)
+        }
+        stats.windows = windows.count
+        if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
+        // A tree that was just turned on is built asynchronously: look again for up to ~1 s.
+        guard !enabledHere.isEmpty else { return nil }
+        for _ in 0..<5 {
+            Thread.sleep(forTimeInterval: 0.2)
+            if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
+        }
+        return nil
+    }
+
+    /// A browser: only its focused window (the meeting tab, told by its title). An app: the
+    /// focused window first, then the others (a Teams call can live in its own window).
+    nonisolated private static func meetingWindows(_ app: AXUIElement, onlyFocused: Bool) -> [AXUIElement] {
+        func element(_ attribute: String) -> AXUIElement? {
+            var value: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(app, attribute as CFString, &value) == .success,
+                  let value, CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+            return (value as! AXUIElement)
+        }
+        let focused = element(kAXFocusedWindowAttribute) ?? element(kAXMainWindowAttribute)
+        if onlyFocused { return focused.map { [$0] } ?? [] }
+        var all: CFTypeRef?
+        let windows = AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &all) == .success
+            ? (all as? [AXUIElement]) ?? [] : []
+        guard let focused else { return windows }
+        return [focused] + windows.filter { !CFEqual($0, focused) }
+    }
+
+    /// Breadth-first look for the mic button, one Accessibility call per element, bounded so an
+    /// unexpected page can't make a press slow.
+    nonisolated private static func search(_ roots: [AXUIElement], nodes: inout Int, roles: inout Set<String>) -> Bool? {
+        let names = [kAXRoleAttribute, kAXTitleAttribute, kAXDescriptionAttribute] as CFArray
+        var queue = roots.map { ($0, 0) }
+        var index = 0
+        while index < queue.count, index < 6000 {
+            let (element, depth) = queue[index]
+            index += 1
+            nodes = index
+            var values: CFArray?
+            guard AXUIElementCopyMultipleAttributeValues(element, names, [], &values) == .success,
+                  let values = values as? [Any], values.count == 3 else { continue }
+            let role = values[0] as? String
+            let label = (values[1] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? values[2] as? String
+            if role == kAXButtonRole || role == kAXCheckBoxRole, let label, let state = state(fromLabel: label) {
+                return state
+            }
+            if let role { roles.insert(role) }
+            // Children one by one (Chrome's web area doesn't hand them out in a multi-value call;
+            // the probe that worked read them this way).
+            var children: CFTypeRef?
+            if depth < 40, AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &children) == .success,
+               let children = children as? [AXUIElement] {
+                queue.append(contentsOf: children.map { ($0, depth + 1) })
+            }
+        }
+        return nil
+    }
+
+    /// The button names the action it will do: "Mute mic" means the mic is open now. Spanish and
+    /// English (measured: Teams "Mute mic" / "Unmute mic", Meet "Desactivar micrófono" /
+    /// "Activar micrófono", "Turn off microphone" / "Turn on microphone"). True = muted.
+    nonisolated static func state(fromLabel label: String) -> Bool? {
+        let text = label.lowercased().trimmingCharacters(in: .whitespaces)
+        let muted = ["unmute mic", "unmute microphone", "turn on microphone", "activar micrófono",
+                     "activar el micrófono", "reactivar micrófono", "reactivar el micrófono"]
+        let open = ["mute mic", "mute microphone", "turn off microphone", "desactivar micrófono",
+                    "desactivar el micrófono", "silenciar micrófono", "silenciar el micrófono"]
+        if muted.contains(where: text.hasPrefix) { return true }
+        if open.contains(where: text.hasPrefix) { return false }
+        return nil
     }
 
     /// Presses the platform's mute shortcut in the meeting. Desktop apps get it in the background;

@@ -486,7 +486,7 @@ private struct JigglerKeyPicker: View {
 /// microphone is muted too. Variant B picked by the user (compact rows), 2026-11-16.
 private struct MeetingOptions: View {
     @State private var enabled = Dictionary(uniqueKeysWithValues: MeetingPlatform.allCases.map { ($0, $0.isEnabled) })
-    @AppStorage(MicrophoneModule.alsoMuteMacKey) private var alsoMuteMac = false
+    @AppStorage(MicrophoneModule.alsoMuteMacKey) private var alsoMuteMac = true
 
     var body: some View {
         Section {
