@@ -304,12 +304,12 @@ final class MeetingTracker {
                 var names: CFArray?
                 AXUIElementCopyAttributeNames(window, &names)
             }
-            if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
+            if let found = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return found.muted }
             // A tree that was just turned on is built asynchronously: look again for up to ~1 s.
             guard freshTree else { return nil }
             for _ in 0..<5 {
                 Thread.sleep(forTimeInterval: 0.2)
-                if let state = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return state }
+                if let found = search(windows, nodes: &stats.nodes, roles: &stats.roles) { return found.muted }
             }
             return nil
         }
@@ -348,6 +348,11 @@ final class MeetingTracker {
     /// The meeting's mic state read in one window (true = muted), nil when its button isn't
     /// there (another window, or hidden behind a modal alert, which hides the rest of the page).
     nonisolated static func micState(in window: AXUIElement) -> Bool? {
+        micButton(in: window)?.muted
+    }
+
+    /// The meeting's mic button in one window and its state (true = muted); nil as `micState`.
+    nonisolated static func micButton(in window: AXUIElement) -> (element: AXUIElement, muted: Bool)? {
         var names: CFArray?
         AXUIElementCopyAttributeNames(window, &names)
         var nodes = 0
@@ -377,7 +382,8 @@ final class MeetingTracker {
     /// unexpected page can't make a press slow. Only buttons inside the web content count: Safari's
     /// own toolbar has a "microphone in use" button whose name matches the labels and always says
     /// open, which hid Meet's button (measured 2026-11-17: the walk stopped at element 40).
-    nonisolated private static func search(_ roots: [AXUIElement], nodes: inout Int, roles: inout Set<String>) -> Bool? {
+    nonisolated private static func search(_ roots: [AXUIElement], nodes: inout Int, roles: inout Set<String>)
+        -> (element: AXUIElement, muted: Bool)? {
         let names = [kAXRoleAttribute, kAXTitleAttribute, kAXDescriptionAttribute] as CFArray
         var queue = roots.map { ($0, 0, false) }
         var index = 0
@@ -392,7 +398,7 @@ final class MeetingTracker {
             let label = (values[1] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? values[2] as? String
             let inside = inWeb || role == "AXWebArea"
             if inside, role == kAXButtonRole || role == kAXCheckBoxRole, let label, let state = state(fromLabel: label) {
-                return state
+                return (element, state)
             }
             if let role { roles.insert(role) }
             // Children one by one (Chrome's web area doesn't hand them out in a multi-value call;
