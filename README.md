@@ -15,6 +15,10 @@ One tiny menu bar app for your Mac. Free and open source.
 
 **English** · [Español](README.es.md)
 
+<img src="docs/screenshots/mute-meet.gif" width="720" alt="Penknife shortcut mutes Google Meet; the call's mic button switches to muted"><br><br>
+<img src="docs/screenshots/mute-teams.gif" width="720" alt="Penknife shortcut mutes Microsoft Teams; the call's mic button switches to muted"><br>
+<sub>Press one Penknife shortcut. The call mutes, and its own button updates.</sub>
+
 </div>
 
 ## What's inside

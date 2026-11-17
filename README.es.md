@@ -15,6 +15,10 @@ Una app diminuta de la barra de menús para tu Mac. Gratis y de código abierto.
 
 [English](README.md) · **Español**
 
+<img src="docs/screenshots/mute-meet.gif" width="720" alt="Un atajo de Penknife silencia Google Meet; el botón del micrófono de la llamada pasa a silenciado"><br><br>
+<img src="docs/screenshots/mute-teams.gif" width="720" alt="Un atajo de Penknife silencia Microsoft Teams; el botón del micrófono de la llamada pasa a silenciado"><br>
+<sub>Un atajo de Penknife silencia la llamada, y su propio botón se actualiza.</sub>
+
 </div>
 
 ## Qué incluye

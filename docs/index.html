@@ -29,11 +29,11 @@ h1 em{font-style:normal;background:linear-gradient(90deg,#ff5a4d,#ffb340,#34c759
 .btn{display:inline-block;padding:13px 26px;border-radius:12px;background:var(--fg);color:var(--bg);font-weight:600;margin:6px}
 .btn.o{background:none;border:1px solid var(--ln);color:var(--fg)}
 .btn:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
-.pair{display:flex;justify-content:center;align-items:flex-start;gap:24px;max-width:1040px;margin:40px auto 0}
-.pair img{height:auto}
-.pair .pm{width:min(40%,400px)}
-.pair .pc{width:min(60%,600px);border-radius:12px;box-shadow:0 0 0 1px var(--ln),0 20px 50px rgba(0,0,0,.35)}
-@media(max-width:760px){.pair{margin-top:36px}.pair .pm{width:min(100%,340px)}.pair .pc{display:none}}
+.demo{max-width:720px;margin:36px auto 0;display:grid;gap:14px}
+.demo img{width:100%;height:auto;border-radius:12px;box-shadow:0 0 0 1px var(--ln),0 20px 50px rgba(0,0,0,.35)}
+.demo figcaption{margin:0;color:var(--mut);font-size:14px;text-wrap:balance}
+@media(prefers-color-scheme:light){.demo img{box-shadow:0 0 0 1px var(--ln),0 12px 32px rgba(0,0,0,.18)}}
+@media(max-width:760px){.demo{margin-top:32px}.demo img+img{display:none}}
 .sec{max-width:1040px;margin:0 auto;padding:40px 16px 0}
 .row{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:center;padding:48px 0;border-top:1px solid var(--ln)}
 .row:nth-child(even) .txt{order:2}
@@ -62,7 +62,7 @@ footer a{text-decoration:underline}
   <h1>Mute the meeting you're in. <em>Find anything you copied.</em></h1>
   <p class="lead">Mark up any screenshot, control your music, keep your Mac awake. One tiny, free menu bar app. Turn on only what you need.</p>
   <a class="btn" href="https://github.com/alexl-l/penknife/releases/latest">Download for macOS</a><a class="btn o" href="https://github.com/alexl-l/penknife">GitHub ›</a>
-  <div class="pair"><img class="pm" src="screenshots/menu.png" alt="Penknife's menu bar menu with Mute Microphone" width="924" height="924"><img class="pc" src="screenshots/clipboard.png" alt="" width="960" height="475"></div>
+  <figure class="demo"><img src="screenshots/mute-meet.gif" alt="Penknife shortcut mutes Google Meet; the call's mic button switches to muted" width="960" height="206"><img src="screenshots/mute-teams.gif" alt="Penknife shortcut mutes Microsoft Teams; the call's mic button switches to muted" width="960" height="135"><figcaption>Press one Penknife shortcut. The call mutes, and its own button updates.</figcaption></figure>
 </section>
 
 <main class="sec">
