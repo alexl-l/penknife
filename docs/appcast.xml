@@ -3,6 +3,22 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.3</title>
+            <pubDate>Tue, 17 Nov 2026 00:26:17 -0500</pubDate>
+            <sparkle:version>61</sparkle:version>
+            <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Mic mute follows the call's own button.** Each press checks the mic button in Meet or Teams and only changes it when needed, so clicking the mic inside the call no longer leaves the call and your Mac out of step. Where the button can't be read (Firefox, for example), it uses the app's shortcut as before.</li>
+<li>**The Mac's microphone is now muted too during a meeting**, so the menu bar icon matches the call. You can turn this off with "Also mute the Mac's microphone" in Settings.</li>
+<li>Meetings in the browser are detected in Chrome, Chrome Dev, Opera, Safari and Firefox, with no permission prompt. In Chrome-based browsers, accessibility must not be turned off in chrome://accessibility.</li>
+<li>Fixed: shortcut presses being ignored during calls.</li>
+<li>Fixed: Google Meet in Safari muting the Mac but not the call.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.3/Penknife-1.3.zip" length="4275947" type="application/octet-stream" sparkle:edSignature="Lbs+mIU1SpVFgj+rI3BL3XYxYXjDyORuYz2uuJJZl9jAl2T5iH7y+IWsw+C/3YNlIL5n+PyvtHET/x0K0wFABA=="/>
+        </item>
+        <item>
             <title>1.2</title>
             <pubDate>Mon, 16 Nov 2026 22:22:13 -0500</pubDate>
             <sparkle:version>52</sparkle:version>
