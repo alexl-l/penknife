@@ -3,6 +3,23 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.11</title>
+            <pubDate>Wed, 18 Nov 2026 18:01:43 -0500</pubDate>
+            <sparkle:version>135</sparkle:version>
+            <sparkle:shortVersionString>1.11</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Unmute works on volume-only microphones.** On inputs the Mac can only mute by volume, a press during a call could leave the mic muted after the next unmute. Now unmute works, and an input already in the state you asked for is left alone, with its volume kept.</li>
+<li>**Touch Bar customizing in real time.** The Touch Bar now stays visible while Customize Touch Bar is open and follows each change as you make it. The preview matches the bar exactly, including the time when the bar falls back to it. Other apps' dialogs still make the bar step aside.</li>
+<li>**Lighter Touch Bar.** Buttons you removed from the bar now cost nothing. The speed test, battery, microphone, brightness, keyboard, volume and playback buttons only run while they are on the bar, which saves CPU and battery.</li>
+<li>**Native Dialogs stays quiet.** On a Mac without a Touch Bar, or with the Touch Bar module off, it no longer watches apps in the background.</li>
+<li>**Clean restart of the Touch Bar.** Turning the Touch Bar module off and on again no longer leaves the bar hidden or the speed test showing a frozen needle or an old result.</li>
+<li>**Clear settings without a Touch Bar.** On a Mac without a Touch Bar, the Touch Bar and Native Dialogs modules now show as Unavailable, with a short note. Your saved settings are kept and come back on a Mac with a Touch Bar.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.11/Penknife-1.11.zip" length="6081296" type="application/octet-stream" sparkle:edSignature="+UevYeyliKkKShX/0ISgG6GHWTt9HlPyskCl+6VFgkTxhiGbhQBM7o5cPpCrnKtp8bOcpsqY5m3m9UgeArxeBg=="/>
+        </item>
+        <item>
             <title>1.10</title>
             <pubDate>Wed, 18 Nov 2026 14:13:52 -0500</pubDate>
             <sparkle:version>109</sparkle:version>
@@ -27,19 +44,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.9/Penknife-1.9.zip" length="5153095" type="application/octet-stream" sparkle:edSignature="WwVQf34qeQAzT9/el+7eWVT0Q2967Ximxyt20QkmfwczLxoF5CMwmtGvfZ2oHcjO5Nx6rEB3wS8e+YP0B4bGCQ=="/>
-        </item>
-        <item>
-            <title>1.8</title>
-            <pubDate>Wed, 18 Nov 2026 09:23:22 -0500</pubDate>
-            <sparkle:version>93</sparkle:version>
-            <sparkle:shortVersionString>1.8</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Cleaner GIFs.** Dark backgrounds no longer turn into black patches at the start of a GIF.</li>
-<li>**Smaller GIFs.** Each frame now stores only what changed, so a GIF is often 5 to 7 times smaller (a 6-second clip went from 1.4 MB to 207 KB).</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.8/Penknife-1.8.zip" length="5152336" type="application/octet-stream" sparkle:edSignature="uVbNJNOEQ3QkGgU2Q/JouX86T6EsY+QxlFdG6Z4DgjNmzYJ/o57qytIYPvsd5tZxIHNioceWZEK6cYtpc/bGAw=="/>
         </item>
     </channel>
 </rss>
