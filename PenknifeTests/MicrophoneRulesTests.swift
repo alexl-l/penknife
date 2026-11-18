@@ -402,6 +402,88 @@ struct MicrophoneRulesTests {
         #expect(appFirst.pick?.platform == .zoom && appFirst.read.isEmpty)
     }
 
+    // MARK: S4 device control
+
+    /// A default input as CoreAudio reports it; nil = the property is missing or unreadable.
+    struct FakeControls: MicControls {
+        var muteSettable = false
+        var volumeSettable = false
+        var mute: UInt32?
+        var volume: Float32?
+    }
+
+    // MIC-64: the state is read from the control a press writes (D: Mic state bug).
+    @Test("MIC-64 the state is read from the control a press writes", arguments: [
+        (FakeControls(muteSettable: true, mute: 1, volume: 0.7), true),
+        (FakeControls(muteSettable: true, mute: 0, volume: 0), false),     // the mute wins over volume 0
+        (FakeControls(muteSettable: false, mute: 1, volume: 0.7), false),  // a mute nobody can set is ignored
+        (FakeControls(muteSettable: false, mute: 0, volume: 0), true),     // volume 0 = muted
+        (FakeControls(muteSettable: true, mute: nil, volume: 0), true),    // settable but unreadable → volume
+        (FakeControls(mute: 1), true),                                     // only a read-only mute → that one
+        (FakeControls(mute: 0), false),
+        (FakeControls(), false),                                           // nothing readable → open
+    ])
+    func readMuted(input: FakeControls, muted: Bool) {
+        #expect(Mic.readMuted(input) == muted)
+    }
+
+    // MIC-64 / O-1: no input device reads as open (the Touch Bar shows the mic open).
+    @Test("MIC-64 O-1 no input device reads as open")
+    func noDeviceReadsOpen() {
+        #expect(!Mic.readMuted(nil as FakeControls?))
+    }
+
+    // MIC-04 / MIC-48: a settable mute is what gets written; the remembered volume stays as it was.
+    @Test("MIC-04 MIC-48 a settable mute is written", arguments: [true, false], [nil, 0.4] as [Float32?])
+    func settableMuteIsWritten(mute: Bool, saved: Float32?) {
+        let input = FakeControls(muteSettable: true, volumeSettable: true, mute: 0, volume: 0.8)
+        let plan = Mic.writePlan(input, mute: mute, savedVolume: saved)
+        #expect(plan.write == .mute(mute ? 1 : 0))
+        #expect(plan.savedVolume == saved)
+    }
+
+    // MIC-04: no settable mute → the input volume. Muting remembers it and writes 0; unmuting
+    // writes it back, or 1.0 when nothing is remembered (after a relaunch).
+    @Test("MIC-04 the input volume when the mute can't be set")
+    func volumeFallback() {
+        let muted = Mic.writePlan(FakeControls(volumeSettable: true, mute: 0, volume: 0.6), mute: true, savedVolume: nil)
+        #expect(muted.write == .volume(0) && muted.savedVolume == 0.6)
+        let atZero = FakeControls(volumeSettable: true, volume: 0)
+        let unmuted = Mic.writePlan(atZero, mute: false, savedVolume: muted.savedVolume)
+        #expect(unmuted.write == .volume(0.6) && unmuted.savedVolume == 0.6)
+        #expect(Mic.writePlan(atZero, mute: false, savedVolume: nil).write == .volume(1))
+    }
+
+    // MIC-04 / O-2: neither control can be set → nothing is written.
+    @Test("MIC-04 O-2 a device that can't be muted", arguments: [true, false])
+    func cantBeMuted(mute: Bool) {
+        let plan = Mic.writePlan(FakeControls(mute: 0, volume: 0.5), mute: mute, savedVolume: 0.3)
+        #expect(plan.write == .nothing && plan.savedVolume == 0.3)
+    }
+
+    // MIC-04 / MIC-64 (D: Mic state bug): on every kind of device, each press reads back what it
+    // wrote, so the next press goes the other way (a read-only mute stuck on made every press mute).
+    @Test("MIC-04 MIC-64 a press reads back what it wrote", arguments: [
+        FakeControls(muteSettable: true, volumeSettable: true, mute: 0, volume: 0.8),
+        FakeControls(volumeSettable: true, mute: 1, volume: 0.8),
+        FakeControls(volumeSettable: true, volume: 0.8),
+    ])
+    func readsBackWhatItWrote(device: FakeControls) {
+        var device = device
+        var saved: Float32?
+        for mute in [true, false, true, false] {
+            let plan = Mic.writePlan(device, mute: mute, savedVolume: saved)
+            saved = plan.savedVolume
+            switch plan.write {
+            case .mute(let value): device.mute = value
+            case .volume(let value): device.volume = value
+            case .nothing: break
+            }
+            #expect(Mic.readMuted(device) == mute)
+        }
+        #expect(device.volume == 0.8)  // the volume comes back where it was
+    }
+
     // MARK: B-2 Siri's panel shows the mic open
 
     // MIC-40: Siri hears the user while its panel is on screen and it records; a Mac sound makes

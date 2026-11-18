@@ -2,6 +2,24 @@ import AppKit
 import CoreAudio
 import os
 
+/// The default input's two controls as the device rules read them (S4): CoreAudio in the app, a
+/// plain struct in PenknifeTests. Each one is read only when a rule asks; nil = missing or unreadable.
+protocol MicControls {
+    var muteSettable: Bool { get }
+    var volumeSettable: Bool { get }
+    var mute: UInt32? { get }
+    var volume: Float32? { get }
+}
+
+/// The real default input, read through CoreAudio at each access.
+struct InputDevice: MicControls {
+    let id: AudioObjectID
+    var muteSettable: Bool { MicrophoneModule.isSettable(id, kAudioDevicePropertyMute) }
+    var volumeSettable: Bool { MicrophoneModule.isSettable(id, kAudioDevicePropertyVolumeScalar) }
+    var mute: UInt32? { MicrophoneModule.get(id, kAudioDevicePropertyMute) }
+    var volume: Float32? { MicrophoneModule.get(id, kAudioDevicePropertyVolumeScalar) }
+}
+
 /// Microphone toggle (R-3, R-28): mutes the current meeting with its own shortcut, or the Mac's
 /// default input device. Between presses: a workspace notification, plus CoreAudio listeners
 /// while "Keep the microphone muted" is on (R-34). Rules: docs/requirements/microphone.md.
@@ -112,11 +130,8 @@ final class MicrophoneModule: Module {
                                 outputStarted: outputStarted,
                                 recorders: MeetingTracker.appsUsingMicrophone().map(\.bundleID)),
               let device = Self.defaultInputDevice() else { return }
-        if Self.isSettable(device, kAudioDevicePropertyMute) {
-            Self.set(device, kAudioDevicePropertyMute, UInt32(1))
-        } else if Self.isSettable(device, kAudioDevicePropertyVolumeScalar) {
-            Self.set(device, kAudioDevicePropertyVolumeScalar, Float32(0))
-        }
+        // MIC-48: the same control a press writes; the volume saved by the last press stays.
+        Self.write(Self.writePlan(InputDevice(id: device), mute: true, savedVolume: savedVolume).write, to: device)
         log.debug("Kept muted: the mute was cleared by someone else")
     }
 
@@ -127,17 +142,8 @@ final class MicrophoneModule: Module {
     static var alsoMuteMac: Bool { UserDefaults.standard.object(forKey: alsoMuteMacKey) as? Bool ?? true }
 
     /// The REAL state of the device (user, 2026-11-16: the Touch Bar and the dot must show what
-    /// the microphone is doing, never what Penknife thinks), read from the control `toggle()` changes. Some devices report a mute
-    /// property they don't let anyone set; reading it made every press mute again (volume 0).
-    var isMuted: Bool {
-        guard let device = Self.defaultInputDevice() else { return false }
-        if Self.isSettable(device, kAudioDevicePropertyMute), let mute: UInt32 = Self.get(device, kAudioDevicePropertyMute) {
-            return mute != 0
-        }
-        if let volume: Float32 = Self.get(device, kAudioDevicePropertyVolumeScalar) { return volume == 0 }
-        if let mute: UInt32 = Self.get(device, kAudioDevicePropertyMute) { return mute != 0 }
-        return false
-    }
+    /// the microphone is doing, never what Penknife thinks), read from the control a press writes (`readMuted`).
+    var isMuted: Bool { Self.readMuted(Self.defaultInputDevice().map(InputDevice.init)) }
 
     /// What the Touch Bar button, the menu bar dot and the menu's checkmark show (TRUTHFUL, R-28):
     /// the device, and open while a called Siri hears the user (B-2). Presses decide by `isMuted`.
@@ -207,20 +213,14 @@ final class MicrophoneModule: Module {
         case .write(let input):
             device = input
         }
-        log.notice("Toggle: \(mute ? "mute" : "unmute", privacy: .public), mute settable: \(Self.isSettable(device, kAudioDevicePropertyMute)), volume settable: \(Self.isSettable(device, kAudioDevicePropertyVolumeScalar))")
+        let input = InputDevice(id: device)
+        log.notice("Toggle: \(mute ? "mute" : "unmute", privacy: .public), mute settable: \(input.muteSettable), volume settable: \(input.volumeSettable)")
         // Our own change: "Keep the microphone muted" never undoes it.
         ownChangeUntil = Date().addingTimeInterval(1)
 
-        if Self.isSettable(device, kAudioDevicePropertyMute) {
-            Self.set(device, kAudioDevicePropertyMute, UInt32(mute ? 1 : 0))
-        } else if Self.isSettable(device, kAudioDevicePropertyVolumeScalar) {
-            if mute {
-                savedVolume = Self.get(device, kAudioDevicePropertyVolumeScalar)
-                Self.set(device, kAudioDevicePropertyVolumeScalar, Float32(0))
-            } else {
-                Self.set(device, kAudioDevicePropertyVolumeScalar, savedVolume ?? Float32(1))
-            }
-        }
+        let plan = Self.writePlan(input, mute: mute, savedVolume: savedVolume)
+        savedVolume = plan.savedVolume
+        Self.write(plan.write, to: device)
 
         if mute {
             HUD.shared.show(String(localized: "Microphone muted"), symbol: "mic.slash.fill", kind: .off, category: .microphone)
@@ -290,6 +290,45 @@ final class MicrophoneModule: Module {
         if siriListening { return .siriListening }
         guard let device else { return .noDevice }
         return .write(device)
+    }
+
+    // MARK: Device rules (S4: a press writes the control the icon reads; PenknifeTests checks them)
+
+    /// MIC-64 (D: Mic state bug): a settable mute → the mute; else the input volume (0 = muted);
+    /// else a read-only mute; else open. Some devices report a mute nobody can set: reading it
+    /// made every press mute again. No input device → open (open decision O-1).
+    static func readMuted(_ input: (some MicControls)?) -> Bool {
+        guard let input else { return false }
+        if input.muteSettable, let mute = input.mute { return mute != 0 }
+        if let volume = input.volume { return volume == 0 }
+        if let mute = input.mute { return mute != 0 }
+        return false
+    }
+
+    /// What a write to the Mac's microphone changes.
+    enum MicWrite: Equatable {
+        case mute(UInt32)
+        case volume(Float32)
+        /// Neither control can be set: nothing is written (open decision O-2).
+        case nothing
+    }
+
+    /// MIC-04: a settable mute → the mute; else a settable input volume: muting remembers the
+    /// volume and writes 0, unmuting writes the remembered volume, or 1.0 if none (after a
+    /// relaunch). Returns the volume to remember from then on.
+    static func writePlan(_ input: some MicControls, mute: Bool,
+                          savedVolume: Float32?) -> (write: MicWrite, savedVolume: Float32?) {
+        if input.muteSettable { return (.mute(mute ? 1 : 0), savedVolume) }
+        guard input.volumeSettable else { return (.nothing, savedVolume) }
+        return mute ? (.volume(0), input.volume) : (.volume(savedVolume ?? 1), savedVolume)
+    }
+
+    static func write(_ write: MicWrite, to device: AudioObjectID) {
+        switch write {
+        case .mute(let value): set(device, kAudioDevicePropertyMute, value)
+        case .volume(let value): set(device, kAudioDevicePropertyVolumeScalar, value)
+        case .nothing: break
+        }
     }
 
     // MARK: CoreAudio
