@@ -452,6 +452,29 @@ struct MicrophoneRulesTests {
         let unmuted = Mic.writePlan(atZero, mute: false, savedVolume: muted.savedVolume)
         #expect(unmuted.write == .volume(0.6) && unmuted.savedVolume == 0.6)
         #expect(Mic.writePlan(atZero, mute: false, savedVolume: nil).write == .volume(1))
+        // Unreadable volume: muted anyway, the remembered volume kept.
+        let unreadable = Mic.writePlan(FakeControls(volumeSettable: true), mute: true, savedVolume: 0.6)
+        #expect(unreadable.write == .volume(0) && unreadable.savedVolume == 0.6)
+    }
+
+    // B-4: a call press makes the Mac follow the call even when it already matches (MIC-29). An
+    // input volume already as asked is left alone: muting at 0 used to remember 0, so the next
+    // unmute left the mic muted; unmuting an open input overwrote its volume.
+    @Test("B-4 an input volume already as asked is left alone")
+    func volumeAlreadyAsAsked() {
+        let again = Mic.writePlan(FakeControls(volumeSettable: true, volume: 0), mute: true, savedVolume: 0.6)
+        #expect(again.write == .unchanged && again.savedVolume == 0.6)
+        let open = Mic.writePlan(FakeControls(volumeSettable: true, volume: 0.5), mute: false, savedVolume: 0.6)
+        #expect(open.write == .unchanged && open.savedVolume == 0.6)
+        // The reported case: mute (0.6 → 0), mute again, unmute → back to 0.6.
+        var device = FakeControls(volumeSettable: true, volume: 0.6)
+        var saved: Float32?
+        for mute in [true, true, false] {
+            let plan = Mic.writePlan(device, mute: mute, savedVolume: saved)
+            saved = plan.savedVolume
+            if case .volume(let value) = plan.write { device.volume = value }
+        }
+        #expect(device.volume == 0.6 && !Mic.readMuted(device))
     }
 
     // MIC-04 / O-2: neither control can be set → nothing is written.
@@ -477,7 +500,7 @@ struct MicrophoneRulesTests {
             switch plan.write {
             case .mute(let value): device.mute = value
             case .volume(let value): device.volume = value
-            case .nothing: break
+            case .unchanged, .nothing: break
             }
             #expect(Mic.readMuted(device) == mute)
         }

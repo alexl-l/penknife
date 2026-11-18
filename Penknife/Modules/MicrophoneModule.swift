@@ -309,25 +309,34 @@ final class MicrophoneModule: Module {
     enum MicWrite: Equatable {
         case mute(UInt32)
         case volume(Float32)
+        /// The input volume is already as asked (B-4).
+        case unchanged
         /// Neither control can be set: nothing is written (open decision O-2).
         case nothing
     }
 
     /// MIC-04: a settable mute → the mute; else a settable input volume: muting remembers the
     /// volume and writes 0, unmuting writes the remembered volume, or 1.0 if none (after a
-    /// relaunch). Returns the volume to remember from then on.
+    /// relaunch). An input volume already as asked is left alone (B-4: a call press makes the Mac
+    /// follow the call even when it already matches; muting an input at 0 remembered 0, and the
+    /// next unmute left it muted). Returns the volume to remember from then on.
     static func writePlan(_ input: some MicControls, mute: Bool,
                           savedVolume: Float32?) -> (write: MicWrite, savedVolume: Float32?) {
         if input.muteSettable { return (.mute(mute ? 1 : 0), savedVolume) }
         guard input.volumeSettable else { return (.nothing, savedVolume) }
-        return mute ? (.volume(0), input.volume) : (.volume(savedVolume ?? 1), savedVolume)
+        let volume = input.volume
+        if mute {
+            return volume == 0 ? (.unchanged, savedVolume) : (.volume(0), volume ?? savedVolume)
+        }
+        if let volume, volume > 0 { return (.unchanged, savedVolume) }
+        return (.volume(savedVolume ?? 1), savedVolume)
     }
 
     static func write(_ write: MicWrite, to device: AudioObjectID) {
         switch write {
         case .mute(let value): set(device, kAudioDevicePropertyMute, value)
         case .volume(let value): set(device, kAudioDevicePropertyVolumeScalar, value)
-        case .nothing: break
+        case .unchanged, .nothing: break
         }
     }
 
