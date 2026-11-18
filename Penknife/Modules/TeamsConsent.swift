@@ -1,6 +1,33 @@
 import AppKit
 import os
 
+/// What the consent rules read from an Accessibility element (S5): `AXNode` in the app, a plain
+/// tree in PenknifeTests. Each property is read only when a rule asks.
+nonisolated protocol ConsentNode {
+    var role: String? { get }
+    var subrole: String? { get }
+    /// A title, description or value that isn't empty.
+    var hasLabel: Bool { get }
+    var children: [Self] { get }
+}
+
+/// An Accessibility element, read at each access.
+nonisolated struct AXNode: ConsentNode {
+    let element: AXUIElement
+    var role: String? { TeamsConsent.string(element, kAXRoleAttribute) }
+    var subrole: String? { TeamsConsent.string(element, kAXSubroleAttribute) }
+    var hasLabel: Bool {
+        [kAXTitleAttribute, kAXDescriptionAttribute, kAXValueAttribute].contains {
+            TeamsConsent.string(element, $0)?.isEmpty == false
+        }
+    }
+    var children: [AXNode] {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &value) == .success else { return [] }
+        return (value as? [AXUIElement] ?? []).map(AXNode.init)
+    }
+}
+
 /// R-31: Teams' consent alert, which shows when the user unmutes in a meeting that asks for
 /// consent to record. With the option on,
 /// Penknife presses the alert's main button only when ITS OWN unmute shortcut opened it.
@@ -99,15 +126,15 @@ nonisolated enum TeamsConsent {
                     let state = MeetingTracker.micState(in: call.window)
                     // Dialogs are looked for only while the mic button is hidden (a modal alert).
                     let new = state != nil ? [] : newDialogs(in: call.window, earlier: earlier)
-                    switch watch(micState: state, newDialogs: new.count) {
+                    let buttonDue = buttonAt.map { Date() >= $0 } ?? false
+                    switch watch(micState: state, newDialogs: new.count, buttonDue: buttonDue) {
                     case .unmuted:
                         return "unmuted without an alert"
                     case .wait:
                         continue
                     case .tooMany:
                         return "\(new.count) new alerts: not touched"
-                    case .stillMuted:
-                        guard let at = buttonAt, Date() >= at else { continue }
+                    case .pressMicButton:
                         buttonAt = nil
                         if !isFrontmost(pid) {
                             guard bringForward(pid) else { return "shortcut ignored; Teams didn't come forward" }
@@ -129,7 +156,7 @@ nonisolated enum TeamsConsent {
                         deadline = Date().addingTimeInterval(1.5)
                     case .answer:
                         let (dialog, kind) = new[0]
-                        guard let main = mainButton(in: dialog) else { continue }  // still rendering
+                        guard let main = mainButton(in: AXNode(element: dialog))?.element else { continue }  // still rendering
                         if !isFrontmost(pid) {
                             guard bringForward(pid) else { return "alert (\(kind)) shown; Teams didn't come forward: not touched" }
                             broughtForward = true
@@ -165,12 +192,15 @@ nonisolated enum TeamsConsent {
     /// (nil = its button is hidden); `newDialogs`: dialogs in the call's window that weren't open
     /// before the press. A modal alert, like the consent one, hides the rest of the window, the
     /// mic button too (measured 2026-11-17); so while the button shows, no dialog is answered.
+    /// `buttonDue`: 0.6 s have passed since the shortcut and the mic button wasn't pressed yet.
     enum Watch: Equatable {
         /// The mic shows open: the unmute went through without an alert.
         case unmuted
-        /// Nothing modal open: 0.6 s after the shortcut, Teams ignored it (MIC-57).
-        case stillMuted
-        /// Button hidden, no new dialog yet (still rendering).
+        /// Still muted with nothing modal open once the button is due: Teams ignored the
+        /// shortcut (a consent meeting), so its mic button is pressed, once (MIC-57).
+        case pressMicButton
+        /// Still muted before then (or after the button), or the button hidden with no new
+        /// dialog yet (the alert still rendering).
         case wait
         /// Exactly one new dialog while the button is hidden: its main button is pressed.
         case answer
@@ -178,8 +208,8 @@ nonisolated enum TeamsConsent {
         case tooMany
     }
 
-    static func watch(micState: Bool?, newDialogs: Int) -> Watch {
-        if let micState { return micState ? .stillMuted : .unmuted }
+    static func watch(micState: Bool?, newDialogs: Int, buttonDue: Bool) -> Watch {
+        if let micState { return !micState ? .unmuted : buttonDue ? .pressMicButton : .wait }
         switch newDialogs {
         case 0: return .wait
         case 1: return .answer
@@ -318,57 +348,57 @@ nonisolated enum TeamsConsent {
     /// Web dialogs (role="dialog" / "alertdialog") reach macOS as AXGroup with these subroles.
     private static let dialogSubroles: Set<String> = ["AXApplicationDialog", "AXApplicationAlertDialog"]
 
-    /// The open web dialogs, with their subrole; `complete` = the whole tree was read within the
-    /// node and time budget. Dialogs aren't searched inside.
     private static func dialogs(in roots: [AXUIElement], budget: TimeInterval)
         -> (found: [(AXUIElement, String)], complete: Bool) {
         let deadline = Date().addingTimeInterval(budget)
-        var found: [(AXUIElement, String)] = []
+        let result = dialogs(in: roots.map(AXNode.init), expired: { Date() >= deadline })
+        return (result.found.map { ($0.0.element, $0.1) }, result.complete)
+    }
+
+    // MARK: Consent rules (S5: plain trees in, decision out; PenknifeTests checks them)
+
+    /// MIC-55 / MIC-56: the open web dialogs under `roots`, with their subrole, breadth first;
+    /// dialogs aren't searched inside. `complete` = the whole tree was read before 4000 elements
+    /// or `expired` (the time budget).
+    static func dialogs<Node: ConsentNode>(in roots: [Node], expired: () -> Bool)
+        -> (found: [(Node, String)], complete: Bool) {
+        var found: [(Node, String)] = []
         var queue = roots
         var index = 0
         while index < queue.count {
-            guard index < 4000, Date() < deadline else { return (found, false) }
-            let element = queue[index]
+            guard index < 4000, !expired() else { return (found, false) }
+            let node = queue[index]
             index += 1
-            if let subrole = string(element, kAXSubroleAttribute), dialogSubroles.contains(subrole) {
-                found.append((element, subrole))
+            if let subrole = node.subrole, dialogSubroles.contains(subrole) {
+                found.append((node, subrole))
                 continue
             }
-            queue.append(contentsOf: children(element))
+            queue.append(contentsOf: node.children)
         }
         return (found, true)
     }
 
-    /// The last button of the dialog's action row, when that row (the last button's siblings)
-    /// has exactly two labelled buttons. A close "X" in the title sits in another row.
-    private static func mainButton(in dialog: AXUIElement) -> AXUIElement? {
-        var queue: [(element: AXUIElement, parent: Int)] = [(dialog, -1)]
-        var buttons: [(element: AXUIElement, parent: Int)] = []
+    /// MIC-56: the last button of the dialog's action row, when that row (the last button's
+    /// siblings) has exactly two labelled buttons. A close "X" in the title sits in another row.
+    /// At most 400 elements are read.
+    static func mainButton<Node: ConsentNode>(in dialog: Node) -> Node? {
+        var queue: [(node: Node, parent: Int)] = [(dialog, -1)]
+        var buttons: [(node: Node, parent: Int)] = []
         var index = 0
         while index < queue.count, index < 400 {
-            let (element, _) = queue[index]
-            if string(element, kAXRoleAttribute) == kAXButtonRole { buttons.append(queue[index]) }
-            queue.append(contentsOf: children(element).map { ($0, index) })
+            let node = queue[index].node
+            if node.role == kAXButtonRole { buttons.append(queue[index]) }
+            queue.append(contentsOf: node.children.map { ($0, index) })
             index += 1
         }
         guard let last = buttons.last else { return nil }
         let row = buttons.filter { $0.parent == last.parent }
-        guard row.count == 2, row.allSatisfy({ hasLabel($0.element) }) else { return nil }
-        return last.element
+        guard row.count == 2, row.allSatisfy({ $0.node.hasLabel }) else { return nil }
+        return last.node
     }
 
-    private static func children(_ element: AXUIElement) -> [AXUIElement] {
-        var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &value) == .success else { return [] }
-        return value as? [AXUIElement] ?? []
-    }
-
-    private static func string(_ element: AXUIElement, _ attribute: String) -> String? {
+    static func string(_ element: AXUIElement, _ attribute: String) -> String? {
         var value: CFTypeRef?
         return AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success ? value as? String : nil
-    }
-
-    private static func hasLabel(_ element: AXUIElement) -> Bool {
-        [kAXTitleAttribute, kAXDescriptionAttribute, kAXValueAttribute].contains { string(element, $0)?.isEmpty == false }
     }
 }

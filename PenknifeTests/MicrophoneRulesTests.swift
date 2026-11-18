@@ -187,19 +187,90 @@ struct MicrophoneRulesTests {
     // MIC-56 / MIC-57 / B-3: after an unmute press, a dialog is answered only while it hides the
     // mic button (modal, as the consent alert) and it is the only new one. While the button shows,
     // dialogs are notices (Teams' "recording started" one stays open for minutes) and are ignored.
+    // MIC-57: still muted 0.6 s after the shortcut (`buttonDue`) → Teams ignored it: the mic
+    // button is pressed, once (after it, `buttonDue` is false again).
     @Test("MIC-56 MIC-57 B-3 what the consent watch does", arguments: [
-        (false as Bool?, 0, TeamsConsent.Watch.unmuted),
-        (false, 1, .unmuted),
-        (true, 0, .stillMuted),
-        (true, 1, .stillMuted),          // B-3: a notice while the mic shows muted is never answered
-        (true, 2, .stillMuted),
-        (nil, 0, .wait),                 // button hidden, the alert still rendering
-        (nil, 1, .answer),
-        (nil, 2, .tooMany),
-        (nil, 3, .tooMany),
+        (false as Bool?, 0, false, TeamsConsent.Watch.unmuted),
+        (false, 1, true, .unmuted),
+        (true, 0, false, .wait),           // before 0.6 s, or after the button was pressed
+        (true, 0, true, .pressMicButton),
+        (true, 1, false, .wait),           // B-3: a notice while the mic shows muted is never answered
+        (true, 1, true, .pressMicButton),  // B-3: … and the button is still pressed
+        (true, 2, true, .pressMicButton),
+        (nil, 0, true, .wait),             // button hidden, the alert still rendering
+        (nil, 1, false, .answer),
+        (nil, 1, true, .answer),
+        (nil, 2, false, .tooMany),
+        (nil, 3, true, .tooMany),
     ])
-    func consentWatch(micState: Bool?, newDialogs: Int, step: TeamsConsent.Watch) {
-        #expect(TeamsConsent.watch(micState: micState, newDialogs: newDialogs) == step)
+    func consentWatch(micState: Bool?, newDialogs: Int, buttonDue: Bool, step: TeamsConsent.Watch) {
+        #expect(TeamsConsent.watch(micState: micState, newDialogs: newDialogs, buttonDue: buttonDue) == step)
+    }
+
+    /// An Accessibility element as the consent rules see it.
+    struct Node: ConsentNode, Equatable {
+        var name = ""
+        var role: String?
+        var subrole: String?
+        var hasLabel = false
+        var children: [Node] = []
+
+        static func button(_ name: String, label: Bool = true) -> Node { Node(name: name, role: "AXButton", hasLabel: label) }
+        static func group(_ children: [Node], subrole: String? = nil, name: String = "") -> Node {
+            Node(name: name, role: "AXGroup", subrole: subrole, children: children)
+        }
+        static let text = Node(role: "AXStaticText", hasLabel: true)
+    }
+
+    // MIC-56: the main button is the last one of the dialog's action row, only when that row has
+    // exactly two labelled buttons; a close "X" sits in another row. No text is read.
+    @Test("MIC-56 the alert's main button")
+    func mainButton() {
+        let row = Node.group([.button("No"), .button("Yes")])
+        let consent = Node.group([.text, .group([.button("Close")]), row], subrole: "AXApplicationDialog")
+        #expect(TeamsConsent.mainButton(in: consent)?.name == "Yes")
+        // The action row deeper than the close button.
+        #expect(TeamsConsent.mainButton(in: Node.group([.group([row]), .button("Close")]))?.name == "Yes")
+        // Not a two-button choice → nothing.
+        #expect(TeamsConsent.mainButton(in: Node.group([.group([.button("A"), .button("B"), .button("C")])])) == nil)
+        #expect(TeamsConsent.mainButton(in: Node.group([.group([.button("OK")])])) == nil)
+        #expect(TeamsConsent.mainButton(in: Node.group([.group([.button("No"), .button("", label: false)])])) == nil)
+        #expect(TeamsConsent.mainButton(in: Node.group([.text])) == nil)
+    }
+
+    // MIC-56: at most 400 elements of a dialog are read.
+    @Test("MIC-56 a dialog is read up to 400 elements")
+    func mainButtonBudget() {
+        let row = Node.group([.button("No"), .button("Yes")])
+        #expect(TeamsConsent.mainButton(in: Node.group(Array(repeating: .text, count: 390) + [row]))?.name == "Yes")
+        #expect(TeamsConsent.mainButton(in: Node.group(Array(repeating: .text, count: 450) + [row])) == nil)
+    }
+
+    // MIC-56: web dialogs are told by subrole and not searched inside; other groups are.
+    @Test("MIC-56 the open dialogs in the call's window")
+    func openDialogs() {
+        let inner = Node.group([], subrole: "AXApplicationAlertDialog", name: "inner")
+        let window = Node.group([
+            .group([.group([inner], subrole: "AXApplicationDialog", name: "dialog")], subrole: "AXLandmarkMain"),
+            .group([.button("Stop")], subrole: "AXApplicationAlertDialog", name: "alert"),
+        ])
+        let result = TeamsConsent.dialogs(in: [window], expired: { false })
+        #expect(result.complete)
+        #expect(result.found.map(\.0.name) == ["alert", "dialog"])
+        #expect(result.found.map(\.1) == ["AXApplicationAlertDialog", "AXApplicationDialog"])
+    }
+
+    // MIC-55: a call window that can't be read whole (4000 elements or the time budget) isn't
+    // complete, and then nothing is watched.
+    @Test("MIC-55 a window too large to check")
+    func windowTooLarge() {
+        let small = Node.group(Array(repeating: .text, count: 3998))
+        #expect(TeamsConsent.dialogs(in: [small], expired: { false }).complete)
+        let large = Node.group(Array(repeating: .text, count: 4000))
+        #expect(!TeamsConsent.dialogs(in: [large], expired: { false }).complete)
+        var reads = 0
+        let slow = TeamsConsent.dialogs(in: [small], expired: { reads += 1; return reads > 10 })
+        #expect(!slow.complete)
     }
 
     // MIC-55 / B-3: a dialog open before the press stays "the same" even as a new element when it
