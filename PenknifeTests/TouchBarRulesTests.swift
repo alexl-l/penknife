@@ -310,6 +310,48 @@ struct TouchBarRulesTests {
         #expect(TouchBarModule.watched(shown: [.time, .cpu, .weather, .jiggler, .lock, .screenshot]).isEmpty)
     }
 
+    // B-7 (a) / TB-27: after a rebuild or a restart, with no sequence running the speed test
+    // button shows the needle (a test runs) or idle, never a phase left from before.
+    @Test("B-7 TB-27 the speed test button after a rebuild", arguments: [
+        (false, true, true, TouchBarModule.SpeedRebuild.idle),
+        (false, false, false, .idle),
+        (true, true, false, .keep),
+        (true, true, true, .keep),
+        (true, false, true, .startNeedle),
+        (true, false, false, .idle),
+    ])
+    func speedAfterRebuild(shown: Bool, sequenceRunning: Bool, testRunning: Bool, expected: TouchBarModule.SpeedRebuild) {
+        #expect(TouchBarModule.speedAfterRebuild(shown: shown, sequenceRunning: sequenceRunning, testRunning: testRunning) == expected)
+    }
+
+    // B-7 (b) / TB-43: off while stepped aside for a dialog, then on: the bar is presented again.
+    @Test("B-7 TB-43 a step-aside doesn't survive off and on")
+    func stepAsideReset() {
+        let presenter = FakePresenter()
+        let (bar, dialogs) = Self.makeBar(presenter)
+        bar.start()
+        dialogs.onChange?(true) // a dialog came to the front
+        #expect(presenter.minimized == 1)
+        bar.stop()
+        let before = presenter.presented
+        bar.start()
+        #expect(presenter.presented == before + 1)
+        bar.stop()
+    }
+
+    // B-7 (c) / TB-60: each off → on cycle must not leave one more jiggler tracking behind.
+    @Test("B-7 TB-60 one jiggler tracking after off and on")
+    func oneJigglerTracking() {
+        let (bar, _) = Self.makeBar(FakePresenter())
+        for _ in 1...3 {
+            bar.start()
+            bar.stop()
+        }
+        bar.start()
+        #expect(bar.jigglerTrackings == 1)
+        bar.stop()
+    }
+
     /// A new empty suite (never written, so no plist is created); fails if any key is already there.
     static func emptySuite(keys: [String]) throws -> UserDefaults {
         let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))

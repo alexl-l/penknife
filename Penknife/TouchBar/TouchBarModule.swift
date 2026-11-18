@@ -192,6 +192,8 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     func stop() {
         guard running else { return }
         running = false
+        // B-7: a step-aside is not kept for the next start; Native Dialogs tells again then.
+        stepAside = false
         dialogs.onChange = nil
         weather.onChange = nil
         speedTest.onChange = nil
@@ -455,15 +457,30 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     /// After a rebuild: a speed test button that left the bar stops its timers; one that came
     /// back during a test starts the needle, otherwise it shows the idle look (B-6).
     private func syncSpeedTest() {
-        if !Self.watched(shown: shownItems).contains(.speedTest) {
+        switch Self.speedAfterRebuild(shown: Self.watched(shown: shownItems).contains(.speedTest),
+                                      sequenceRunning: speedTimer?.isValid == true, testRunning: speedTest.isRunning) {
+        case .idle:
             speedTimer?.invalidate()
             speedTimer = nil
             speedPhase = .normal
-        } else if speedTimer == nil, speedTest.isRunning {
+        case .startNeedle:
             speedTestChanged()
             return
+        case .keep:
+            break
         }
         updateSpeedTest()
+    }
+
+    enum SpeedRebuild: Equatable { case idle, startNeedle, keep }
+
+    /// Every phase but idle has its timer, and `stop` ends it, so with no sequence running the
+    /// button can only show the needle (a test runs) or idle: never a phase left from before the
+    /// module was turned off, or a result that came while it was off (B-6, B-7).
+    static func speedAfterRebuild(shown: Bool, sequenceRunning: Bool, testRunning: Bool) -> SpeedRebuild {
+        guard shown else { return .idle }
+        if sequenceRunning { return .keep }
+        return testRunning ? .startNeedle : .idle
     }
 
     private func updateSpeedTest() {
@@ -633,16 +650,24 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         Double(level).formatted(.percent.precision(.fractionLength(0)))
     }
 
+    /// Armed jiggler trackings not fired yet. A tracking can't be cancelled, so one left armed by
+    /// `stop` is reused by the next start: never more than one (B-7).
+    private(set) var jigglerTrackings = 0
+
     /// The jiggler is @Observable: re-arm the tracking after every change.
     private func trackJiggler() {
-        guard running else { return }
+        guard running, jigglerTrackings == 0 else { return }
+        jigglerTrackings += 1
         withObservationTracking {
             _ = jiggler.isActive
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
-                    self?.updateJiggler()
-                    self?.trackJiggler()
+                    guard let self else { return }
+                    self.jigglerTrackings -= 1
+                    guard self.running else { return }
+                    self.updateJiggler()
+                    self.trackJiggler()
                 }
             }
         }
