@@ -186,8 +186,8 @@ struct MicrophoneRulesTests {
         #expect(MeetingTracker.state(fromLabel: label) == muted)
     }
 
-    // MIC-71: every visible string has a Spanish translation (checked over the whole catalog).
-    @Test("MIC-71 every string has Spanish", arguments: ["Localizable.xcstrings", "InfoPlist.xcstrings"])
+    // MIC-71 / TB-63: every visible string has a Spanish translation (checked over the whole catalog).
+    @Test("MIC-71 TB-63 every string has Spanish", arguments: ["Localizable.xcstrings", "InfoPlist.xcstrings"])
     func everyStringHasSpanish(catalog: String) throws {
         let url = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "Penknife/Resources/\(catalog)")

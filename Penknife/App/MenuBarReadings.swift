@@ -36,12 +36,14 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
 
     static let styleKey = "menuBar.readingStyle"
     /// On by default only where there is no Touch Bar to show these readings.
-    static var shownByDefault: Bool { !TouchBarPrivate.hasTouchBar }
+    static var shownByDefault: Bool { shownByDefault(hasTouchBar: TouchBarPrivate.hasTouchBar) }
+    static func shownByDefault(hasTouchBar: Bool) -> Bool { !hasTouchBar }
     /// Celsius from which the temperature turns orange (Color style only).
     private static let hot = 85
 
-    static func isShown(_ kind: Kind) -> Bool {
-        UserDefaults.standard.object(forKey: kind.key) as? Bool ?? shownByDefault
+    static func isShown(_ kind: Kind) -> Bool { isShown(kind, in: .standard, hasTouchBar: TouchBarPrivate.hasTouchBar) }
+    static func isShown(_ kind: Kind, in defaults: UserDefaults, hasTouchBar: Bool) -> Bool {
+        defaults.object(forKey: kind.key) as? Bool ?? shownByDefault(hasTouchBar: hasTouchBar)
     }
 
     static var style: Style {

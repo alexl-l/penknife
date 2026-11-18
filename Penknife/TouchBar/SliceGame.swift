@@ -21,6 +21,8 @@ final class SliceGameView: NSView {
 
     static let styleKey = "touchBar.gameStyle"
     static let bestKey = "touchBar.gameBest"
+    static func style(in defaults: UserDefaults) -> Style { Style(rawValue: defaults.integer(forKey: styleKey)) ?? .glossy }
+    static func best(in defaults: UserDefaults) -> Int { defaults.integer(forKey: bestKey) }
 
     /// Called once when the game closes (X, or a while after game over).
     var onFinish: (() -> Void)?
@@ -73,7 +75,7 @@ final class SliceGameView: NSView {
     private var score = 0 { didSet { if score != oldValue { scoreText = nil; needsDisplay = true } } }
     private var lives = 3 { didSet { if lives != oldValue { needsDisplay = true } } }
     private var scoreText: NSAttributedString?
-    private var best = UserDefaults.standard.integer(forKey: SliceGameView.bestKey)
+    private var best = SliceGameView.best(in: .standard)
     private var newRecord = false
     private var gameOverAt: CFTimeInterval?
     private var flash: CGFloat = 0
@@ -104,7 +106,7 @@ final class SliceGameView: NSView {
     private var fieldMaxX: CGFloat { bounds.width - 70 }
 
     override init(frame: NSRect) {
-        style = Style(rawValue: UserDefaults.standard.integer(forKey: Self.styleKey)) ?? .glossy
+        style = Self.style(in: .standard)
         super.init(frame: frame)
         wantsLayer = true
         layerContentsRedrawPolicy = .onSetNeedsDisplay

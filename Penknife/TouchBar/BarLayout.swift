@@ -82,19 +82,18 @@ enum BarLayout {
     static let orderKey = "touchBar.order"
     static let hiddenKey = "touchBar.hidden"
 
-    /// Saved order; unknown names are dropped and buttons added in a later version go at the end.
     static var order: [BarItem] {
-        let saved = (UserDefaults.standard.stringArray(forKey: orderKey) ?? []).compactMap(BarItem.init(rawValue:))
-        return saved + BarItem.allCases.filter { !saved.contains($0) }
+        decode(savedOrder: UserDefaults.standard.stringArray(forKey: orderKey), savedHidden: nil).order
     }
 
     static var hidden: Set<BarItem> {
-        Set((UserDefaults.standard.stringArray(forKey: hiddenKey) ?? []).compactMap(BarItem.init(rawValue:)))
+        decode(savedOrder: nil, savedHidden: UserDefaults.standard.stringArray(forKey: hiddenKey)).hidden
     }
 
     static func save(order: [BarItem], hidden: Set<BarItem>) {
-        UserDefaults.standard.set(order.map(\.rawValue), forKey: orderKey)
-        UserDefaults.standard.set(BarItem.allCases.filter(hidden.contains).map(\.rawValue), forKey: hiddenKey)
+        let saved = encode(order: order, hidden: hidden)
+        UserDefaults.standard.set(saved.order, forKey: orderKey)
+        UserDefaults.standard.set(saved.hidden, forKey: hiddenKey)
     }
 
     static func restoreDefaults() {
@@ -102,10 +101,28 @@ enum BarLayout {
         UserDefaults.standard.removeObject(forKey: hiddenKey)
     }
 
+    static func visible(isOn: (ModuleID) -> Bool) -> [BarItem] {
+        visible(order: order, hidden: hidden, isOn: isOn)
+    }
+
+    // MARK: Rules (pure; TB-36, TB-37, TB-38)
+
+    /// The saved names as buttons: unknown names are dropped and buttons added in a later
+    /// version go at the end, in default order; unknown hidden names are ignored.
+    static func decode(savedOrder: [String]?, savedHidden: [String]?) -> (order: [BarItem], hidden: Set<BarItem>) {
+        let saved = (savedOrder ?? []).compactMap(BarItem.init(rawValue:))
+        return (saved + BarItem.allCases.filter { !saved.contains($0) },
+                Set((savedHidden ?? []).compactMap(BarItem.init(rawValue:))))
+    }
+
+    /// What is saved: every button's name in the user's order, and the hidden ones in default order.
+    static func encode(order: [BarItem], hidden: Set<BarItem>) -> (order: [String], hidden: [String]) {
+        (order.map(\.rawValue), BarItem.allCases.filter(hidden.contains).map(\.rawValue))
+    }
+
     /// The buttons on the bar: saved order, not hidden, module on. Never empty: if the user's
     /// last visible button belongs to a module that was then turned off, the time stays.
-    static func visible(isOn: (ModuleID) -> Bool) -> [BarItem] {
-        let hidden = hidden
+    static func visible(order: [BarItem], hidden: Set<BarItem>, isOn: (ModuleID) -> Bool) -> [BarItem] {
         let items = order.filter { !hidden.contains($0) && ($0.module.map(isOn) ?? true) }
         return items.isEmpty ? [.time] : items
     }

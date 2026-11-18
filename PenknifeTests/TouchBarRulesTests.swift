@@ -1,0 +1,222 @@
+import AppKit
+import Foundation
+import KeyboardShortcuts
+import Testing
+@testable import Penknife
+
+/// Touch Bar rules (docs/requirements/touchbar.md). Each test names the rule it checks.
+/// Nothing here presents the bar (this Mac has a Touch Bar: never call `TouchBarModule.start()`
+/// or `TouchBarPrivate.present`), presses keys, uses Accessibility or writes the user's settings.
+@MainActor
+@Suite("Touch Bar rules")
+struct TouchBarRulesTests {
+
+    static let defaultOrder: [BarItem] = [
+        .battery, .brightness, .keyboardLight, .jiggler, .microphone, .screenshot, .lock,
+        .music, .weather, .cpu, .volume, .speedTest, .time,
+    ]
+
+    // MARK: As-is
+
+    // TB-07: thirteen buttons in this default order.
+    @Test("TB-07 the thirteen buttons in default order")
+    func defaultOrder() {
+        #expect(BarItem.allCases == Self.defaultOrder)
+    }
+
+    // TB-36 / TB-37: the names are what `touchBar.order` and `touchBar.hidden` store, so they
+    // must never change (a renamed button would drop out of every saved layout).
+    @Test("TB-36 TB-37 the stored button names")
+    func storedNames() {
+        #expect(BarItem.allCases.map(\.rawValue) == [
+            "battery", "brightness", "keyboardLight", "jiggler", "microphone", "screenshot", "lock",
+            "music", "weather", "cpu", "volume", "speedTest", "time",
+        ])
+    }
+
+    // TB-08: which module each button belongs to; the bar's own buttons belong to none.
+    @Test("TB-08 each button's module")
+    func buttonModules() {
+        let expected: [BarItem: ModuleID] = [
+            .jiggler: .jiggler, .microphone: .microphone, .screenshot: .screenshot, .lock: .lockScreen,
+            .music: .music, .weather: .weather, .cpu: .cpuTemperature, .speedTest: .speedTest,
+        ]
+        for item in BarItem.allCases { #expect(item.module == expected[item], "\(item)") }
+    }
+
+    // TB-09: each button's own color in the multicolor mode.
+    @Test("TB-09 each button's own color")
+    func buttonColors() {
+        let expected: [BarItem: UInt32] = [
+            .battery: 0xFFFFFF, .time: 0xFFFFFF, .brightness: 0xFFDB00, .keyboardLight: 0x4AD1E6,
+            .jiggler: 0x0099FF, .microphone: 0xFF5D49, .screenshot: 0xCC77F4, .lock: 0x7176EB,
+            .music: 0x08DA73, .weather: 0x75DAD8, .cpu: 0xFFAE02, .volume: 0xFFAE02, .speedTest: 0x34C759,
+        ]
+        for item in BarItem.allCases { #expect(item.hex == expected[item], "\(item)") }
+    }
+
+    // TB-12: holding the battery goes multicolor → monochrome → rainbow → multicolor; the raw
+    // values are stored in `touchBar.colorMode`, so they stay 0 / 1 / 2.
+    @Test("TB-12 the color modes cycle")
+    func colorModesCycle() {
+        #expect(BarColorMode.multicolor.next == .monochrome)
+        #expect(BarColorMode.monochrome.next == .rainbow)
+        #expect(BarColorMode.rainbow.next == .multicolor)
+        #expect(BarColorMode.allCases.map(\.rawValue) == [0, 1, 2])
+    }
+
+    // TB-58: the default F keys, and only a bare F key (F1–F20, no modifiers) gets an Fn twin.
+    @Test("TB-58 default F keys")
+    func defaultFKeys() {
+        #expect(KeyboardShortcuts.Name.screenshot.defaultShortcut == .init(.f1))
+        #expect(KeyboardShortcuts.Name.toggleMicrophone.defaultShortcut == .init(.f5))
+        #expect(KeyboardShortcuts.Name.lockScreen.defaultShortcut == .init(.f6))
+        #expect(KeyboardShortcuts.Name.toggleJiggler.defaultShortcut == .init(.f12))
+    }
+
+    @Test("TB-58 which shortcuts get an Fn twin")
+    func fnTwins() {
+        let cases: [(KeyboardShortcuts.Shortcut, Bool)] = [
+            (.init(.f1), true),
+            (.init(.f12), true),
+            (.init(.f20), true),
+            (.init(.f12, modifiers: [.shift]), false),
+            (.init(.f5, modifiers: [.command]), false),
+            (.init(.f6, modifiers: [.option, .control]), false),
+            (.init(.m, modifiers: [.command, .shift]), false),
+            (.init(.a), false),
+            (.init(.space), false),
+        ]
+        for (shortcut, twin) in cases {
+            #expect(FnHotKeys.needsTwin(carbonKeyCode: shortcut.carbonKeyCode, carbonModifiers: shortcut.carbonModifiers) == twin,
+                    "\(shortcut)")
+        }
+    }
+
+    // MARK: S1 layout, presence and settings
+
+    // TB-01: Apple silicon by the "dispdfr" node (the model is then not read); Intel by name.
+    @Test("TB-01 a display node means a Touch Bar, without reading the model")
+    func displayNode() {
+        var modelReads = 0
+        func model() -> String { modelReads += 1; return "MacBookAir10,1" }
+        let result = TouchBarPrivate.hasTouchBar(dispdfr: true, model: model())
+        #expect(result)
+        #expect(modelReads == 0)
+    }
+
+    @Test("TB-01 Intel models by name", arguments: [
+        ("MacBookPro15,1", true), ("MacBookPro15,4", true), ("MacBookPro16,1", true),
+        ("MacBookPro16,2", true), ("MacBookPro16,4", true),
+        ("MacBookPro16,3", false), ("MacBookPro17,1", false), ("MacBookPro14,3", false),
+        ("MacBookAir10,1", false), ("Mac14,2", false), ("", false),
+    ])
+    func intelModels(model: String, touchBar: Bool) {
+        #expect(TouchBarPrivate.hasTouchBar(dispdfr: false, model: model) == touchBar)
+    }
+
+    // TB-06: the menu bar readings are off by default on a Mac with a Touch Bar, on without one.
+    @Test("TB-06 menu bar readings by default", arguments: [true, false])
+    func menuBarReadingsDefault(hasTouchBar: Bool) throws {
+        let empty = try Self.emptySuite(keys: MenuBarReadings.Kind.allCases.map(\.key))
+        #expect(MenuBarReadings.shownByDefault(hasTouchBar: hasTouchBar) == !hasTouchBar)
+        for kind in MenuBarReadings.Kind.allCases {
+            #expect(MenuBarReadings.isShown(kind, in: empty, hasTouchBar: hasTouchBar) == !hasTouchBar, "\(kind)")
+        }
+    }
+
+    // TB-36: what is saved: all names in the user's order, the hidden ones in default order.
+    @Test("TB-36 what a layout saves")
+    func encodeLayout() {
+        let order: [BarItem] = [.music, .time] + Self.defaultOrder.filter { $0 != .music && $0 != .time }
+        let saved = BarLayout.encode(order: order, hidden: [.time, .weather, .battery])
+        #expect(saved.order == order.map(\.rawValue))
+        #expect(saved.hidden == ["battery", "weather", "time"])
+        #expect(BarLayout.encode(order: Self.defaultOrder, hidden: []).hidden == [])
+    }
+
+    // TB-36 / TB-37: a saved layout reads back as it was (the order survives a relaunch).
+    @Test("TB-36 TB-37 a saved layout reads back")
+    func layoutRoundTrip() {
+        let order = Self.defaultOrder.reversed() as [BarItem]
+        let hidden: Set<BarItem> = [.cpu, .lock]
+        let saved = BarLayout.encode(order: order, hidden: hidden)
+        let read = BarLayout.decode(savedOrder: saved.order, savedHidden: saved.hidden)
+        #expect(read.order == order)
+        #expect(read.hidden == hidden)
+    }
+
+    // TB-37: unknown names are dropped, missing buttons appended in default order, unknown hidden
+    // names ignored; nothing saved = default order, nothing hidden.
+    @Test("TB-37 reading a saved layout")
+    func decodeLayout() {
+        let read = BarLayout.decode(savedOrder: ["time", "bogus", "music"], savedHidden: ["bogus", "weather"])
+        #expect(read.order == [.time, .music] + Self.defaultOrder.filter { $0 != .time && $0 != .music })
+        #expect(read.hidden == [.weather])
+
+        let fresh = BarLayout.decode(savedOrder: nil, savedHidden: nil)
+        #expect(fresh.order == Self.defaultOrder)
+        #expect(fresh.hidden.isEmpty)
+        #expect(BarLayout.decode(savedOrder: ["bogus"], savedHidden: ["bogus"]).hidden.isEmpty)
+    }
+
+    // TB-38 / TB-08: saved order, minus hidden, minus buttons whose module is off.
+    @Test("TB-38 TB-08 the buttons on the bar")
+    func visibleButtons() {
+        let allOn: (ModuleID) -> Bool = { _ in true }
+        #expect(BarLayout.visible(order: Self.defaultOrder, hidden: [], isOn: allOn) == Self.defaultOrder)
+
+        let musicOff = BarLayout.visible(order: Self.defaultOrder, hidden: [], isOn: { $0 != .music })
+        #expect(musicOff == Self.defaultOrder.filter { $0 != .music })
+
+        // The bar's own buttons belong to no module, so they show with every module off.
+        let allOff = BarLayout.visible(order: Self.defaultOrder, hidden: [], isOn: { _ in false })
+        #expect(allOff == [.battery, .brightness, .keyboardLight, .volume, .time])
+
+        let custom: [BarItem] = [.time, .music] + Self.defaultOrder.filter { $0 != .time && $0 != .music }
+        let shown = BarLayout.visible(order: custom, hidden: [.battery, .volume], isOn: allOn)
+        #expect(shown == custom.filter { $0 != .battery && $0 != .volume })
+    }
+
+    // TB-38: never empty: when nothing would show, the time shows, even if hidden.
+    @Test("TB-38 the bar is never empty")
+    func neverEmpty() {
+        let allButJiggler = Set(Self.defaultOrder).subtracting([.jiggler])
+        #expect(BarLayout.visible(order: Self.defaultOrder, hidden: allButJiggler, isOn: { $0 != .jiggler }) == [.time])
+        #expect(BarLayout.visible(order: Self.defaultOrder, hidden: Set(Self.defaultOrder), isOn: { _ in true }) == [.time])
+        #expect(BarLayout.visible(order: Self.defaultOrder, hidden: allButJiggler, isOn: { _ in true }) == [.jiggler])
+    }
+
+    // TB-59: what a Mac that never opened Settings gets. Read from an empty suite, never the
+    // user's settings (a leak of the user's real values would fail the first check).
+    @Test("TB-59 defaults on a fresh Mac")
+    func freshDefaults() throws {
+        let empty = try Self.emptySuite(keys: [
+            "module.touchBar.enabled", "module.dialogs.enabled", TouchBarModule.autoCloseKey,
+            TouchBarModule.colorModeKey, TouchBarModule.monochromeKey, TouchBarModule.batteryIconKey,
+            BarLayout.orderKey, BarLayout.hiddenKey, SliceGameView.styleKey, SliceGameView.bestKey,
+        ])
+        #expect(ModuleManager.isOn(.touchBar, in: empty))
+        #expect(ModuleManager.isOn(.dialogs, in: empty))
+        #expect(TouchBarModule.autoClose(in: empty))
+        #expect(TouchBarModule.colorMode(in: empty) == .multicolor)
+        #expect(TouchBarModule.monochromeHex(in: empty) == 0xFFFFFF)
+        #expect(!TouchBarModule.showsBatteryIcon(in: empty))
+        let layout = BarLayout.decode(savedOrder: empty.stringArray(forKey: BarLayout.orderKey),
+                                      savedHidden: empty.stringArray(forKey: BarLayout.hiddenKey))
+        #expect(layout.order == Self.defaultOrder)
+        #expect(layout.hidden.isEmpty)
+        #expect(SliceGameView.style(in: empty) == .glossy)
+        #expect(SliceGameView.best(in: empty) == 0)
+        for kind in MenuBarReadings.Kind.allCases {
+            #expect(!MenuBarReadings.isShown(kind, in: empty, hasTouchBar: true), "\(kind)")
+        }
+    }
+
+    /// A new empty suite (never written, so no plist is created); fails if any key is already there.
+    static func emptySuite(keys: [String]) throws -> UserDefaults {
+        let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))
+        for key in keys { #expect(empty.object(forKey: key) == nil, "\(key) leaked into the empty suite") }
+        return empty
+    }
+}

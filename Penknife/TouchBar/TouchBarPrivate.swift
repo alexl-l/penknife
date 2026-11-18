@@ -36,21 +36,28 @@ enum TouchBarPrivate {
         presentMethod != nil && minimizeMethod != nil
     }
 
-    /// Whether this Mac has a Touch Bar. Apple silicon models expose the "dispdfr" display;
-    /// the Intel models that run macOS 26 are listed by name.
+    /// Whether this Mac has a Touch Bar (read once).
     static let hasTouchBar: Bool = {
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceNameMatching("dispdfr"))
-        if service != 0 {
-            IOObjectRelease(service)
-            return true
-        }
+        if service != 0 { IOObjectRelease(service) }
+        return TouchBarPrivate.hasTouchBar(dispdfr: service != 0, model: TouchBarPrivate.modelName())
+    }()
+
+    /// TB-01: Apple silicon models expose the "dispdfr" display; the Intel models that run
+    /// macOS 26 are listed by name. The model is read only when there is no such display.
+    static func hasTouchBar(dispdfr: Bool, model: @autoclosure () -> String) -> Bool {
+        if dispdfr { return true }
+        let name = model()
+        return ["MacBookPro15,", "MacBookPro16,1", "MacBookPro16,2", "MacBookPro16,4"].contains { name.hasPrefix($0) }
+    }
+
+    private static func modelName() -> String {
         var size = 0
         sysctlbyname("hw.model", nil, &size, nil, 0)
         var model = [CChar](repeating: 0, count: max(size, 1))
         sysctlbyname("hw.model", &model, &size, nil, 0)
-        let name = String(decoding: model.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
-        return ["MacBookPro15,", "MacBookPro16,1", "MacBookPro16,2", "MacBookPro16,4"].contains { name.hasPrefix($0) }
-    }()
+        return String(decoding: model.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+    }
 
     /// Puts a button in the Control Strip that brings the bar back after the system hid it.
     static func addTrayItem(_ item: NSTouchBarItem) {

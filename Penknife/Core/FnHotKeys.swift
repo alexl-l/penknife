@@ -17,13 +17,17 @@ final class FnHotKeys {
         kVK_F11, kVK_F12, kVK_F13, kVK_F14, kVK_F15, kVK_F16, kVK_F17, kVK_F18, kVK_F19, kVK_F20,
     ]
 
+    /// TB-58: only a bare F key (F1–F20, no modifiers) gets an Fn twin.
+    static func needsTwin(carbonKeyCode: Int, carbonModifiers: Int) -> Bool {
+        carbonModifiers == 0 && functionKeys.contains(carbonKeyCode)
+    }
+
     /// Replaces all twins with the given shortcuts' current values.
     func set(_ entries: [(name: KeyboardShortcuts.Name, action: () -> Void)]) {
         removeAll()
         for entry in entries {
             guard let shortcut = KeyboardShortcuts.getShortcut(for: entry.name),
-                  shortcut.carbonModifiers == 0,
-                  Self.functionKeys.contains(shortcut.carbonKeyCode) else { continue }
+                  Self.needsTwin(carbonKeyCode: shortcut.carbonKeyCode, carbonModifiers: shortcut.carbonModifiers) else { continue }
             installHandlerIfNeeded()
             nextID += 1
             var ref: EventHotKeyRef?

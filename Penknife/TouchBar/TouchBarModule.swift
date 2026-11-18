@@ -54,20 +54,25 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     static let autoCloseKey = "touchBar.autoClose"
 
     /// Monochrome color as "RRGGBB" (R-25); white until the user picks another.
-    static var monochromeColor: NSColor {
-        let hex = UserDefaults.standard.string(forKey: monochromeKey).flatMap { UInt32($0, radix: 16) }
-        return NSColor(hex: hex ?? 0xFFFFFF)
+    static var monochromeColor: NSColor { NSColor(hex: monochromeHex(in: .standard)) }
+    static func monochromeHex(in defaults: UserDefaults) -> UInt32 {
+        defaults.string(forKey: monochromeKey).flatMap { UInt32($0, radix: 16) } ?? 0xFFFFFF
     }
 
-    private static var storedColorMode: BarColorMode {
-        BarColorMode(rawValue: UserDefaults.standard.integer(forKey: colorModeKey)) ?? .multicolor
+    private static var storedColorMode: BarColorMode { colorMode(in: .standard) }
+    static func colorMode(in defaults: UserDefaults) -> BarColorMode {
+        BarColorMode(rawValue: defaults.integer(forKey: colorModeKey)) ?? .multicolor
     }
 
     /// Sliders and the date close by themselves; off means only a tap closes them (R-19).
     static var autoClose: Bool {
-        get { UserDefaults.standard.object(forKey: autoCloseKey) as? Bool ?? true }
+        get { autoClose(in: .standard) }
         set { UserDefaults.standard.set(newValue, forKey: autoCloseKey) }
     }
+    static func autoClose(in defaults: UserDefaults) -> Bool { defaults.object(forKey: autoCloseKey) as? Bool ?? true }
+
+    /// The battery shows a drawn icon instead of its percentage (R-25); off by default.
+    static func showsBatteryIcon(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: batteryIconKey) }
 
     init(jiggler: JigglerModule, microphone: MicrophoneModule, dialogs: DialogsModule,
          music: MusicModule, cpu: CPUTemperatureModule, weather: WeatherModule, speedTest: SpeedTestModule) {
@@ -465,7 +470,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     /// Tap on the battery: percentage ↔ icon, remembered (R-25).
     private func toggleBatteryIcon() {
         if batteryLongPressing || Date().timeIntervalSince(batteryLongPressEnded) < 0.5 { return }
-        UserDefaults.standard.set(!UserDefaults.standard.bool(forKey: Self.batteryIconKey), forKey: Self.batteryIconKey)
+        UserDefaults.standard.set(!Self.showsBatteryIcon(in: .standard), forKey: Self.batteryIconKey)
         updateBattery()
     }
 
@@ -484,7 +489,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             : String(localized: "Battery \(text). Tap to switch between percentage and icon; hold to change the colors.")
 
         // Level colors only in multicolor mode, on the icon (green > 50 %, yellow 20–50 %, red < 20 %).
-        let showIcon = UserDefaults.standard.bool(forKey: Self.batteryIconKey) && percent != nil
+        let showIcon = Self.showsBatteryIcon(in: .standard) && percent != nil
         let stateColor: NSColor? = switch (showIcon, percent) {
         case (true, let p?) where p > 50: .systemGreen
         case (true, let p?) where p >= 20: .systemYellow
