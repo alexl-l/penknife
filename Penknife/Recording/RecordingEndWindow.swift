@@ -506,7 +506,11 @@ private struct RecordingEndView: View {
         VStack(alignment: .leading, spacing: 12) {
             // The video as big as the window allows, in its own proportions.
             ZStack(alignment: .bottom) {
+                // The label goes on the player only: on the ZStack it replaced the labels of
+                // everything inside, so VoiceOver read the trim bar's handles and buttons as
+                // "Preview" (found 2026-11-17).
                 PlayerView(view: playerView)
+                    .accessibilityLabel(String(localized: "Preview, \(duration)"))
                 if model.player == nil {
                     Color.black
                     if !model.failed { ProgressView().controlSize(.small) }
@@ -519,7 +523,6 @@ private struct RecordingEndView: View {
             .aspectRatio(aspect, contentMode: .fit)
             .clipShape(RoundedRectangle(cornerRadius: 10))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .accessibilityLabel(String(localized: "Preview, \(duration)"))
             noteLine
                 .frame(height: 22)
             HStack(spacing: 8) {

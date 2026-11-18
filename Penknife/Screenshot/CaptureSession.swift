@@ -180,7 +180,12 @@ enum CaptureTarget: Equatable {
 
 /// Selection, marks and the toolbar for one screen. Coordinates are points, top-left origin.
 final class CaptureCanvas: NSView, NSTextViewDelegate {
-    private unowned let session: CaptureSession
+    /// Weak, and the state is kept here: the session is released as soon as it hands over to the
+    /// recording (its owner drops it in `onFinish`), which can happen in the middle of this view's
+    /// own event — a drag's mouse-up starts the countdown and then updates the cursor. With
+    /// `unowned` that last step read a freed session and crashed (2026-11-17).
+    private weak var session: CaptureSession?
+    private let state: CaptureEditorState
     private let screen: NSScreen
     private var base: CGImage?
     private var scale: CGFloat
@@ -247,6 +252,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     init(screen: NSScreen, image: CGImage?, windowRects: [CaptureTarget], session: CaptureSession) {
         self.session = session
+        state = session.state
         self.screen = screen
         self.base = image
         scale = image.map { CGFloat($0.width) / screen.frame.width } ?? screen.backingScaleFactor
@@ -487,11 +493,9 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         }
     }
 
-    private var state: CaptureEditorState { session.state }
-
     override func mouseDown(with event: NSEvent) {
         window?.makeKey()
-        session.hideHints()
+        session?.hideHints()
         closeChoices()
         let point = convert(event.locationInWindow, from: nil)
         if textView != nil {
@@ -499,7 +503,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             if state.tool != .text { return }
         }
         guard let selection else {
-            guard session.focus(self) else { return }
+            guard session?.focus(self) ?? false else { return }
             if windowMode {
                 if let target = target(at: point) { select(target) }
                 return
@@ -834,7 +838,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// desktop without windows).
     private func select(_ target: CaptureTarget) {
         guard !capturing else { return }
-        session.hideHints()
+        session?.hideHints()
         if state.recordMode {
             // Nothing to capture now: the window is recorded live.
             hovered = nil
@@ -873,7 +877,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             guard let image else {
                 HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
                                 kind: .error, category: .screenshot)
-                self.session.cancel()
+                self.session?.cancel()
                 return
             }
             self.targetImage = image
@@ -893,7 +897,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     /// The selection is made. In live mode the screen is taken now, without Penknife's windows.
     private func select(_ rect: CGRect) {
-        session.hideHints()
+        session?.hideHints()
         selection = rect.integral.intersection(bounds)
         hovered = nil
         windowMode = false
@@ -920,7 +924,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             guard let image else {
                 HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
                                 kind: .error, category: .screenshot)
-                self.session.cancel()
+                self.session?.cancel()
                 return
             }
             self.base = image
@@ -1017,7 +1021,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             if let textView { window?.makeFirstResponder(textView) }
             return
         case .record:
-            session.enterRecordMode()
+            session?.enterRecordMode()
             return
         default: break
         }
@@ -1086,7 +1090,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         if !state.recordMode, selection != nil, let handled = handleMarkKey(event, flags: flags) { return handled }
         switch Int(event.keyCode) {
         case 53:                                                // Esc
-            session.cancel()
+            session?.cancel()
             return true
         case 49 where selection == nil:                         // Space: window ⇄ area
             guard !capturing else { return true }
@@ -1258,7 +1262,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         if let recordWindow, case .window(let id, let rect)? = selectedTarget, id == recordWindow {
             window = (id, Self.globalFrame(rect, on: screen))
         }
-        session.record(screen: screen, rect: selection, fullScreen: selection == bounds, window: window,
+        session?.record(screen: screen, rect: selection, fullScreen: selection == bounds, window: window,
                        marks: annotations.map { mark in
                            // A blur is blurred live in the recording, not from this screenshot.
                            var mark = mark
@@ -1445,7 +1449,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             pasteboard.setData(png, forType: .png)
         }
         announce(String(localized: "Screenshot copied"))
-        session.cancel()
+        session?.cancel()
     }
 
     private func saveImage() {
@@ -1468,7 +1472,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try png.write(to: url, options: .atomic)
             announce(String(localized: "Screenshot saved"))
-            session.cancel()
+            session?.cancel()
         } catch {
             HUD.shared.show(String(localized: "Couldn't save the screenshot"), detail: folder.lastPathComponent,
                             symbol: "exclamationmark.triangle.fill", kind: .error, category: .screenshot)
