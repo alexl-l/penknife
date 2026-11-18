@@ -242,6 +242,21 @@ struct TouchBarRulesTests {
         dialogs.onChange = nil
     }
 
+    // B-6 / TB-61: a button's watcher or timer runs only while the button is on the bar.
+    @Test("B-6 TB-61 only the buttons on the bar are watched")
+    func watchedButtons() {
+        let all: Set<BarItem> = [.battery, .microphone, .brightness, .keyboardLight, .volume, .music, .speedTest]
+        #expect(TouchBarModule.watched(shown: Self.defaultOrder) == all)
+
+        let hidden: Set<BarItem> = [.music, .microphone, .speedTest, .volume]
+        let shown = Self.defaultOrder.filter { !hidden.contains($0) }
+        #expect(TouchBarModule.watched(shown: shown) == all.subtracting(hidden))
+
+        // The fallback bar (only the time) watches nothing; the time and the CPU have their own timers.
+        #expect(TouchBarModule.watched(shown: [.time]).isEmpty)
+        #expect(TouchBarModule.watched(shown: [.time, .cpu, .weather, .jiggler, .lock, .screenshot]).isEmpty)
+    }
+
     /// A new empty suite (never written, so no plist is created); fails if any key is already there.
     static func emptySuite(keys: [String]) throws -> UserDefaults {
         let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))

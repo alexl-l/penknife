@@ -5,8 +5,11 @@ import os
 
 /// Touch Bar (R-1): Penknife's own bar over the whole Touch Bar, written from scratch
 /// (MTMR only showed which private calls exist). Steps aside while a dialog is in front (R-4).
-/// Everything is event-driven: battery and microphone notifications, a clock timer aligned
-/// to the minute. Nothing runs while the module is off or on Macs without a Touch Bar.
+/// Event-driven (TB-61): notifications for the battery, levels, microphone, music and jiggler;
+/// the only timers are the clock (once a minute), the CPU temperature (10 s, while shown), the
+/// date, the speed test sequence, the battery hold and the game. Each button's watcher or timer
+/// runs only while it is on the bar (B-6). Nothing runs while the module is off or on Macs
+/// without a Touch Bar (Native Dialogs then watches nothing either, B-5).
 final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     let id = ModuleID.touchBar
     let actions: [ModuleAction] = []
@@ -257,7 +260,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
         barView.button(Item.screenshot.rawValue)?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
         barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock Screen"))
-        isOn(.music) ? playbackWatcher.start() : playbackWatcher.stop()
+        updateSources()
         updateBrightness()
         updateKeyboardLight()
         updateVolume()
@@ -268,7 +271,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         updateClock()
         updateWeather()
         updateTemperature()
-        updateSpeedTest()
+        syncSpeedTest()
     }
 
     private func press(for item: Item) -> (BarButton) -> Void {
@@ -327,29 +330,48 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     // MARK: Sources
 
+    /// The buttons with their own watcher (battery source, CoreAudio, DisplayServices,
+    /// CoreBrightness, music notifications) or timer (the speed test's needle and results).
+    /// Each runs only while its button is on the bar (B-6); the clock and the CPU temperature
+    /// already stop by themselves when their button isn't there.
+    static let watchedButtons: Set<BarItem> = [.battery, .microphone, .brightness, .keyboardLight, .volume, .music, .speedTest]
+    static func watched(shown: [BarItem]) -> Set<BarItem> { watchedButtons.intersection(shown) }
+
     private func startSources() {
-        // Battery: the system notifies when any power source changes.
-        let context = Unmanaged.passUnretained(self).toOpaque()
-        if let source = IOPSNotificationCreateRunLoopSource({ context in
-            guard let context else { return }
-            let module = Unmanaged<TouchBarModule>.fromOpaque(context).takeUnretainedValue()
-            MainActor.assumeIsolated { module.updateBattery() }
-        }, context)?.takeRetainedValue() {
-            CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
-            batterySource = source
-        }
-        micWatcher.start()
-        brightnessWatcher.start()
-        keyboardWatcher.start()
-        volumeWatcher.start()
         trackJiggler()
     }
 
-    private func stopSources() {
-        if let batterySource {
+    /// Starts the watchers of the buttons on the bar and stops the others (rebuilt buttons).
+    private func updateSources() {
+        let watched = Self.watched(shown: shownItems)
+        setBatterySource(watched.contains(.battery))
+        watched.contains(.microphone) ? micWatcher.start() : micWatcher.stop()
+        watched.contains(.brightness) ? brightnessWatcher.start() : brightnessWatcher.stop()
+        watched.contains(.keyboardLight) ? keyboardWatcher.start() : keyboardWatcher.stop()
+        watched.contains(.volume) ? volumeWatcher.start() : volumeWatcher.stop()
+        watched.contains(.music) ? playbackWatcher.start() : playbackWatcher.stop()
+    }
+
+    /// Battery: the system notifies when any power source changes.
+    private func setBatterySource(_ on: Bool) {
+        if on, batterySource == nil {
+            let context = Unmanaged.passUnretained(self).toOpaque()
+            if let source = IOPSNotificationCreateRunLoopSource({ context in
+                guard let context else { return }
+                let module = Unmanaged<TouchBarModule>.fromOpaque(context).takeUnretainedValue()
+                MainActor.assumeIsolated { module.updateBattery() }
+            }, context)?.takeRetainedValue() {
+                CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+                batterySource = source
+            }
+        } else if !on, let batterySource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), batterySource, .defaultMode)
+            self.batterySource = nil
         }
-        batterySource = nil
+    }
+
+    private func stopSources() {
+        setBatterySource(false)
         clockTimer?.invalidate()
         clockTimer = nil
         dateTimer?.invalidate()
@@ -378,6 +400,11 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private func speedTestChanged() {
         speedTimer?.invalidate()
         speedTimer = nil
+        // B-6: no timer for a button that isn't on the bar.
+        guard Self.watched(shown: shownItems).contains(.speedTest) else {
+            speedPhase = .normal
+            return
+        }
         if speedTest.isRunning {
             needleStep = 0
             setSpeedPhase(.testing)
@@ -409,6 +436,20 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
                 self?.setSpeedPhase(next, then: rest)
             }
         }
+    }
+
+    /// After a rebuild: a speed test button that left the bar stops its timers; one that came
+    /// back during a test starts the needle, otherwise it shows the idle look (B-6).
+    private func syncSpeedTest() {
+        if !Self.watched(shown: shownItems).contains(.speedTest) {
+            speedTimer?.invalidate()
+            speedTimer = nil
+            speedPhase = .normal
+        } else if speedTimer == nil, speedTest.isRunning {
+            speedTestChanged()
+            return
+        }
+        updateSpeedTest()
     }
 
     private func updateSpeedTest() {
@@ -538,27 +579,30 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     }
 
     private func updateBrightness() {
+        guard let button = barView?.button(Item.brightness.rawValue) else { return } // B-6: no read for a hidden button
         let level = DisplayBrightness().level ?? 1
-        barView?.button(Item.brightness.rawValue)?.show(
+        button.show(
             symbol: level < 0.5 ? "sun.min.fill" : "sun.max.fill",
             label: String(localized: "Brightness \(Self.percent(level))"))
     }
 
     private func updateKeyboardLight() {
+        guard let button = barView?.button(Item.keyboardLight.rawValue) else { return }
         let level = KeyboardBrightness().level ?? 0
-        barView?.button(Item.keyboardLight.rawValue)?.show(
+        button.show(
             symbol: level < 0.5 ? "light.min" : "light.max",
             label: String(localized: "Keyboard backlight \(Self.percent(level))"))
     }
 
     private func updateVolume() {
+        guard let button = barView?.button(Item.volume.rawValue) else { return }
         let output = OutputVolume()
         // Outputs without volume control (HDMI, some DACs) have no level: not shown as muted.
         let level = output.level ?? 0.5
         let muted = output.isMuted || level == 0
         let symbol = muted ? "speaker.slash.fill"
             : level < 0.34 ? "speaker.wave.1.fill" : level < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
-        barView?.button(Item.volume.rawValue)?.show(
+        button.show(
             symbol: symbol,
             label: muted ? String(localized: "Volume, muted") : String(localized: "Volume \(Self.percent(level))"))
     }
