@@ -39,35 +39,40 @@ Optional, off by default: when you unmute in Teams with the shortcut and Teams a
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Clipboard history">
 <h3>Clipboard history</h3>
-Search, pin what you reuse and paste with ⌘1–⌘9. Passwords and other concealed items are never saved.
+Open it with ⌃⌥V, search, pin what you reuse and paste with ⌘1–⌘9. History lives in memory only; pins stay. Passwords and other concealed items are never saved.
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
 <h3>Screenshots and screen recording</h3>
-Select an area or a window, mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Nothing is uploaded.
+Select an area or a window, mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Paste the result into a Finder folder as a file. Nothing is uploaded.
 
 Record the full screen, an area or a window as a video or GIF (⌃⌥R). Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end before you save.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Music settings">
 <h3>Music</h3>
-Play, pause and skip in the player you choose. Headphone clicks go to that player, and Apple Music no longer opens by itself.
+Play, pause and skip in the player you choose: Spotify, Apple Music, YouTube Music, Amazon Music or any other app. Headphone clicks go to that player, and Apple Music no longer opens by itself.
 </td>
 </tr>
 </table>
 
+### Draw while you record
+Drag an area, or press Space and click a window, or press Return for the full screen: recording starts after a 3-2-1. Your marks appear in the file and stay or fade after the time you choose.
+
+<img src="docs/screenshots/recording.gif" width="720" alt="Drawing while recording: a highlight under “Mark up and record your screen” and an arrow to the Download button, which fade after a few seconds">
+
 ### And in the menu bar
-Mouse jiggler to keep your Mac awake and your status active, lock screen and a speed test that shows download, upload and latency in kbps, Mbps or Gbps. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet, and you choose which ones appear and for how long.
+Mouse jiggler to keep your Mac awake and your status active (it moves after 10 seconds without input, or the time you choose, and rests while the Mac is locked), lock screen and a speed test that shows download, upload and latency in kbps, Mbps or Gbps. Weather, Mac temperature and the speed test can sit in the menu bar too, on by default on Macs without a Touch Bar. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet and appear at the top center, under the menu bar or the notch, so they never cover Apple's notification banners. You choose which ones appear and for how long (1 to 15 seconds).
 
 ### Settings
-One window in the style of System Settings: turn any module on or off and give it its own shortcut.
+One window in the style of System Settings: turn any module on or off and give it its own shortcut. Penknife opens at login (you can turn that off) and follows your system language, English or Spanish.
 
 <img src="docs/screenshots/settings.png" alt="Penknife Settings">
 
 ### Have a Touch Bar?
-Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state, and you choose which buttons appear and in what order.
+Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state: tap the battery for percentage or icon, hold it to change colors. You choose which buttons appear and in what order. When an app shows a prompt, the bar steps aside so you see the app's own buttons.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Penknife's Touch Bar in rainbow mode">
 

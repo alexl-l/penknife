@@ -1,6 +1,6 @@
 # Penknife launch kit
 
-## 1. docs/index.html (exact old -> new)
+## 1. docs/index.html (exact old -> new) — APPLIED, kept for reference
 
 (a) Hero
 OLD: <h1>Your Mac, <em>finally done right.</em></h1>
@@ -16,7 +16,7 @@ NEW: <p>Prefer Homebrew? <code>brew install --cask alexl-l/tap/penknife</code></
   <p>Why the warning? Penknife isn't notarized because there's no paid Apple Developer account behind it. The code is open, so you can read it or build it yourself.</p>
 (Note: if the .dl section has no style for <code>, add a tiny rule, e.g. code{font-family:ui-monospace,Menlo,monospace;font-size:.92em}. Wording "Prefer Homebrew?" goes first so brew users skip the steps.)
 
-## 2. READMEs
+## 2. READMEs — APPLIED, kept for reference
 
 README.md
 OLD: 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
@@ -42,11 +42,11 @@ Hi HN, I made Penknife. It's a small, free, MIT-licensed menu bar app for macOS 
 
 The part I built it for: one shortcut mutes the meeting you're actually in. It works with Teams, Google Meet, Zoom, Slack Huddles and Webex, and presses each app's own mute shortcut (editable in Settings). Only apps in a call count. With no call, the same shortcut mutes the Mac's microphone, and the icon shows the real state.
 
-It also has clipboard history (search, pin, paste with Cmd+1-9; concealed items like passwords are never saved), a screenshot editor (arrows, text, blur, highlighter; nothing is uploaded), music keys for the player you choose, and a mouse jiggler. Each part is a module; turn one off and it uses no CPU or memory. If you have a Touch Bar, there's an optional one too, but nothing needs it.
+It also has clipboard history (search, pin, paste with Cmd+1-9; concealed items like passwords are never saved), a screenshot editor (arrows, text, blur, highlighter; nothing is uploaded) that also records your screen as video or GIF while you draw on it, music keys for the player you choose, and a mouse jiggler. Each part is a module; turn one off and it uses no CPU or memory. If you have a Touch Bar, there's an optional one too, but nothing needs it.
 
 Caveats: it isn't notarized (no paid Apple Developer account), so on first launch go to System Settings > Privacy & Security > Open Anyway. It uses some private macOS APIs (for the Touch Bar and brightness), so a macOS update can break a module; the rest keeps running. No account, no analytics.
 
-Install: `brew install --cask alexl-l/tap/penknife` or the release zip. Site: https://alexl-l.github.io/penknife/
+Install: `brew trust alexl-l/tap && brew install --cask alexl-l/tap/penknife` or the release zip. Site: https://alexl-l.github.io/penknife/
 I'd like to hear which meeting apps or setups it gets wrong.
 
 ### r/macapps
@@ -57,9 +57,9 @@ Hi, I'm the developer. Penknife is free and open source (MIT), for macOS 26+.
 
 The hook: one shortcut mutes the meeting you're in, whether that's Teams, Google Meet, Zoom, Slack Huddles or Webex. It uses each app's own shortcut, only counts apps in a call, and falls back to your Mac's microphone when there's no call.
 
-Also included: clipboard history (search, pin, Cmd+1-9; passwords never saved), a screenshot editor, music keys for your chosen player, a mouse jiggler and a speed test. Each module can be turned off completely. It has an optional Touch Bar, but you don't need one.
+Also included: clipboard history (search, pin, Cmd+1-9; passwords never saved), a screenshot editor with screen recording (video or GIF, draw while you record), music keys for your chosen player, a mouse jiggler and a speed test. Each module can be turned off completely. It has an optional Touch Bar, but you don't need one.
 
-Heads up: it isn't notarized (no paid developer account). Open it once, then System Settings > Privacy & Security > Open Anyway. Or: `brew install --cask alexl-l/tap/penknife`
+Heads up: it isn't notarized (no paid developer account). Open it once, then System Settings > Privacy & Security > Open Anyway. Or: `brew trust alexl-l/tap && brew install --cask alexl-l/tap/penknife`
 
 GitHub: https://github.com/alexl-l/penknife
 Site: https://alexl-l.github.io/penknife/
@@ -70,7 +70,7 @@ Title (66): I built a free menu bar app to mute the meeting you're actually in
 Body:
 I'm the author. I kept fumbling for the right mute button across Teams, Meet and Zoom, so Penknife has one shortcut that mutes whichever meeting is live (Slack Huddles and Webex too) using that app's own shortcut. No call: it mutes the Mac mic.
 
-It also has clipboard history, a screenshot editor and music keys. Free, MIT, macOS 26+, no account or analytics. Not notarized (no paid developer account), so the first launch needs Open Anyway in Privacy & Security.
+It also has clipboard history, a screenshot editor with screen recording and music keys. Free, MIT, macOS 26+, no account or analytics. Not notarized (no paid developer account), so the first launch needs Open Anyway in Privacy & Security.
 https://github.com/alexl-l/penknife
 (Only post if the sub allows app posts; otherwise skip.)
 
@@ -79,7 +79,7 @@ Edit applications.json (NOT README.md), one PR per app, description short and en
 PR title: Add Penknife
 Entry (check icon path exists; docs/screenshots/icon.png is in the repo):
 {
-    "short_description": "Menu bar app that mutes the meeting you're in, plus clipboard history and a screenshot editor.",
+    "short_description": "Menu bar app that mutes the meeting you're in, plus clipboard history and a screenshot editor with screen recording.",
     "categories": ["menubar", "utilities"],
     "repo_url": "https://github.com/alexl-l/penknife",
     "title": "Penknife",
@@ -92,6 +92,6 @@ Entry (check icon path exists; docs/screenshots/icon.png is in the repo):
 
 ### PR: jaywcjlove/awesome-mac
 Edit README.md. No CONTRIBUTING.md found; follow existing lines. Section: "### Menu Bar Tools" (under Utilities), alphabetical, so after entries starting with "P" before it. Alternate: Clipboard Tools (don't double-list). Entry line (exact format of neighbours):
-* [Penknife](https://alexl-l.github.io/penknife/) - Mutes the meeting you're in, with clipboard history, a screenshot editor, music keys and a mouse jiggler. [![Open-Source Software][OSS Icon]](https://github.com/alexl-l/penknife) ![Freeware][Freeware Icon]
+* [Penknife](https://alexl-l.github.io/penknife/) - Mutes the meeting you're in, with clipboard history, a screenshot editor and screen recorder, music keys and a mouse jiggler. [![Open-Source Software][OSS Icon]](https://github.com/alexl-l/penknife) ![Freeware][Freeware Icon]
 PR title: Add Penknife to Menu Bar Tools
 Check whether the repo also has README-zh/ja/ko/pt files that need the same line (they appear to be translated mirrors; ask in the PR).

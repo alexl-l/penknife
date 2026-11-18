@@ -39,35 +39,40 @@ Opcional, desactivado por defecto: si al activar el micro en Teams con el atajo 
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">
 <h3>Historial del portapapeles</h3>
-Busca, fija lo que más usas y pega con ⌘1–⌘9. Nunca guarda contraseñas ni otros elementos ocultos.
+Ábrelo con ⌃⌥V, busca, fija lo que más usas y pega con ⌘1–⌘9. El historial vive solo en memoria; lo fijado se conserva. Nunca guarda contraseñas ni otros elementos ocultos.
 </td>
 </tr>
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
 <h3>Capturas y grabación de pantalla</h3>
-Selecciona una zona o una ventana, márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. No se sube nada a internet.
+Selecciona una zona o una ventana, márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. Pega el resultado en una carpeta del Finder como archivo. No se sube nada a internet.
 
 Graba toda la pantalla, una zona o una ventana como vídeo o GIF (⌃⌥R). Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final antes de guardar.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Ajustes de música">
 <h3>Música</h3>
-Reproduce, pausa y salta canciones en el reproductor que elijas. Los clics de los auriculares van a ese reproductor, y Apple Music ya no se abre solo.
+Reproduce, pausa y salta canciones en el reproductor que elijas: Spotify, Apple Music, YouTube Music, Amazon Music o cualquier otra app. Los clics de los auriculares van a ese reproductor, y Apple Music ya no se abre solo.
 </td>
 </tr>
 </table>
 
+### Dibuja mientras grabas
+Arrastra una zona, o pulsa Espacio y haz clic en una ventana, o pulsa Intro para toda la pantalla: la grabación empieza tras un 3-2-1. Tus marcas aparecen en el archivo y se quedan o se desvanecen pasado el tiempo que elijas.
+
+<img src="docs/screenshots/recording.gif" width="720" alt="Dibujando mientras se graba: un resaltado bajo “Mark up and record your screen” y una flecha al botón Download, que se desvanecen tras unos segundos">
+
 ### Y en la barra de menús
-Mover el ratón para mantener el Mac despierto y tu estado activo, bloquear la pantalla y un test de velocidad que muestra bajada, subida y latencia en kbps, Mbps o Gbps. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos, y tú eliges cuáles aparecen y cuánto duran.
+Mover el ratón para mantener el Mac despierto y tu estado activo (lo mueve tras 10 segundos sin actividad, o el tiempo que elijas, y descansa mientras el Mac está bloqueado), bloquear la pantalla y un test de velocidad que muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y el test de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
 
 ### Ajustes
-Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo.
+Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo. Penknife se abre al iniciar sesión (puedes desactivarlo) y sigue el idioma del sistema, español o inglés.
 
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
 ### ¿Tienes Touch Bar?
-Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual y tú eliges qué botones aparecen y en qué orden.
+Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Touch Bar de Penknife en modo arcoíris">
 

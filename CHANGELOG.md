@@ -3,6 +3,12 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.9 — 2026-11-18
+
+Alerts no longer collide with Apple's notification banners.
+
+- **Alerts at the top center.** Penknife's alerts now appear centered under the menu bar (or the notch) instead of the top right. A Teams message or another Apple banner no longer covers them, and they no longer cover it or the volume indicator. With the pointer on a second screen, the alert shows on that screen.
+
 ## 1.8 — 2026-11-18
 
 GIFs from screen recordings look right from the first frame and are several times smaller.
