@@ -6,14 +6,14 @@ Source of truth for what the microphone module must do TODAY (Penknife 1.9). The
 
 Code paths are relative to `Penknife/`: `MM` = Modules/MicrophoneModule.swift, `MS` = Modules/MeetingSync.swift (MeetingPlatform, MeetingTracker), `TC` = Modules/TeamsConsent.swift. "R-28 (11-17)" = the REQUIREMENTS.md R-28 line dated 2026-11-17; "D: <title>" = the DECISIONS.md bullet with that bold title.
 Verify kinds: **auto** (unit test as the code is today) · **auto after refactor** (seam named; see §4) · **manual** (the user's normal action only) · **log** (`/usr/bin/log show --last 1h --predicate 'subsystem == "Penknife" AND category == "Microphone"' --style compact`).
-Count (2026-11-18, after S2): 85 rules = 18 auto (all tested) · 13 auto after refactor · 20 log · 34 manual.
+Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto after refactor · 20 log · 33 manual.
 **Tests:** `scripts/test.sh` (unit tests in `PenknifeTests/`, ~3 s once built; safe on this Mac: the test host starts no module and nothing writes the user's settings). Each test is named after its rule ("MIC-24 …").
 
 ## 1. Rules
 
 ### A. Triggers and pressing with no call
 
-- **MIC-01** The same toggle runs from three places: the global shortcut "Mute Microphone" (default F5, editable in Settings › Shortcuts), the menu item "Mute Microphone" (checkmark on while the Mac's mic reads muted when the menu opens), and the Touch Bar mic button.
+- **MIC-01** The same toggle runs from three places: the global shortcut "Mute Microphone" (default F5, editable in Settings › Shortcuts), the menu item "Mute Microphone" (checkmark on while the mic shows muted when the menu opens, MIC-40), and the Touch Bar mic button.
   Source: R-3; R-28 (11-16); menu checkmark code only · Code: MM:actions, Core/ModuleManager.swift:init/run, App/StatusMenu.swift (menu build), TouchBar/TouchBarModule.swift:run · Verify: manual — press F5, use the menu item, tap the Touch Bar button; each flips the mic.
 - **MIC-02** One press = one action: the shortcut runs on key release (once even when held); a bare F key's Fn twin arriving < 0.1 s after the same press is dropped; Touch Bar and menu presses always run; no de-dup window between real presses.
   Source: D: One press = one action (11-16) · Code: ModuleManager:runHotKey, run · Verify: auto after refactor — `shouldRun(last:(fn,at)?, fn:Bool, now) -> Bool`: same twin 0.05 s later → true; other twin 0.05 s → false; other twin 0.2 s → true.
@@ -112,8 +112,8 @@ Count (2026-11-18, after S2): 85 rules = 18 auto (all tested) · 13 auto after r
   Source: D: Meeting detection fix (a) (11-16) · Code: MM:isSiriListening · Verify: **auto, tested** (S2) — `isSiriListening(recorders:)`: [CoreSpeech]→true; [CoreSpeech, teams2]→false; [CoreSpeech, Penknife]→false; []→false.
 - **MIC-39** While Siri listens, a press that would change the Mac's mic does nothing (no change, no HUD); checked once at the press.
   Source: R-28 TRUTHFUL MIC STATE (11-16) · Code: MM:setMac · Verify: auto (S1) — `macGate(siriListening: true, …)` → `.siriListening`, checked before the device; log — `Toggle ignored: Siri is listening`.
-- **MIC-40** No Siri badge: during a Siri session the Touch Bar icon and the dot show the mic open, and the previous state when Siri ends. **BROKEN (B-2):** it relied on Siri clearing the mute itself, which a called Siri doesn't always do.
-  Source: R-28 (11-16); D: Siri and the mic icon · Code: TouchBarModule:updateMicrophone; StatusMenu:updateIcon · Verify: manual — muted, say "Hey Siri" → icon open while it listens, muted after.
+- **MIC-40** No Siri badge: while Siri hears the user (its panel is on screen AND Siri records), the Touch Bar icon, the dot and the menu's checkmark show the mic open, whatever the mute says; when the panel closes they show the device again. Siri woken by a Mac sound shows no panel, so the mic stays shown muted (R-34); "Type to Siri" (panel, no recording) changes nothing. Works with music playing and with AirPods. The panel is found by Accessibility: macOS 26 draws it in Notification Center as an element identified `SiriWindow` (a notification banner is another element); it shows ~0.7 s after Siri starts listening. Without Accessibility: the device only (watched again once it is granted).
+  Source: R-28 (11-16); B-2 fix (11-18, user: "si siri se activa, el ícono del mic se debería abrir… y después que siri lo cierre, el ícono cambia"; "listo, arreglado"); D: Siri's panel tells when Siri hears you · Code: MM:SiriWatcher, siriHears, shownMuted, showsMuted; TouchBarModule:updateMicrophone; StatusMenu:updateIcon · Verify: **auto, tested** — `siriHears(panelShown:recorders:)`, `shownMuted(deviceMuted:siriHears:)`; log (debug) — `Siri panel: shown, hears you: true` / `Siri panel: gone, hears you: false`; manual — muted, with and without music, "Hey Siri" → icon open while Siri shows, muted after (checked by the user 2026-11-18: 4 sessions).
 - **MIC-41** Touch Bar taps make no sound (only the slicing game clicks), so a tap never triggers Siri's mute clear that undid the tap.
   Source: R-25 TAP FEEDBACK REMOVED (11-16); D: Hey Siri vs the mic mute · Code: TouchBar/BarView.swift (GameSound only) · Verify: manual — "Hey Siri" on, tap the mic button several times → each tap sticks.
 - **MIC-42** Called Siri still hears you: a mute cleared with no sound started in the previous 0.5 s is not put back by Penknife; Siri restores the mute itself when done.
@@ -167,7 +167,7 @@ Count (2026-11-18, after S2): 85 rules = 18 auto (all tested) · 13 auto after r
 
 ### K. Truthful icon, Touch Bar, menu bar dot, HUD
 
-- **MIC-63** TRUTHFUL: the Touch Bar button and the dot show the real state of the default input, never what Penknife thinks, and change at once whatever changes it (Penknife, Teams, Control Center, Siri, a device switch), via CoreAudio listeners on mute, input volume and default input device.
+- **MIC-63** TRUTHFUL: the Touch Bar button and the dot show the real state of the default input, never what Penknife thinks, and change at once whatever changes it (Penknife, Teams, Control Center, Siri, a device switch), via CoreAudio listeners on mute, input volume and default input device; plus open while Siri hears the user (MIC-40). Presses and Keep muted decide by the device state only.
   Source: R-28 TRUTHFUL MIC STATE IMPERATIVE (11-16); MM:isMuted comment (user 11-16) · Code: MM:MicrophoneWatcher, TouchBarModule:updateMicrophone, StatusMenu:updateIcon · Verify: manual — mute from Control Center → Touch Bar and dot change at once.
 - **MIC-64** Read policy (same control that is written, MIC-04): settable+readable mute → mute ≠ 0; else readable volume → volume == 0; else readable mute → mute ≠ 0; else open; no device → open (open decision O-1).
   Source: D: Mic state bug (11-16) · Code: MM:isMuted · Verify: auto after refactor — `readMuted(muteSettable:mute:volume:) -> Bool`.
@@ -193,24 +193,24 @@ Count (2026-11-18, after S2): 85 rules = 18 auto (all tested) · 13 auto after r
 
 - **MIC-72** Browser window titles (they can name the meeting) are used only to match and are never logged or stored.
   Source: D: Meeting detection fix (c) "Titles are never logged" · Code: MS:windowTitle, findCurrent · Verify: log — no meeting title appears in a day of Microphone logs.
-- **MIC-73** No text of Teams' dialogs or buttons is read for matching or logged; logs carry outcome, role/subrole, counts and ms only.
+- **MIC-73** No text of Teams' dialogs or buttons is read for matching or logged; logs carry outcome, role/subrole, counts and ms only. Siri's panel is found by its element identifier; nothing of Notification Center (banners included) is read beyond identifiers, or logged.
   Source: R-31 v2 (11-17); legal-advisor "no storing/logging" · Code: TC (all), MS:readMuted (roles only) · Verify: log — `Teams dialog:` and `App mic:` lines contain no label text.
-- **MIC-74** Logs: subsystem `Penknife`, category `Microphone`; press lines at notice (kept by `log show`), keep-muted at debug; recording processes' bundle IDs are logged in clear.
+- **MIC-74** Logs: subsystem `Penknife`, category `Microphone`; press lines at notice (kept by `log show`), keep-muted and Siri's panel at debug; recording processes' bundle IDs are logged in clear.
   Source: D: Meeting = in a call (".notice"); R-34 Built (debug) · Code: MM, MS, TC loggers · Verify: log.
 - **MIC-75** Nothing is stored or sent: recent apps and the saved input volume live in memory only; the module makes no network calls; the Hey Siri preference is only read.
   Source: code only (R-31 legal "no storing") · Code: MM:savedVolume, heySiriOn; MS:recent · Verify: manual — code review (no writes besides the settings keys, no URLSession).
-- **MIC-76** Permissions: Accessibility for meeting presses (titles, button read, key posting, Teams consent); no Automation/Apple Events; the mute toggle itself needs no Microphone permission (only the screen recording's voice does).
+- **MIC-76** Permissions: Accessibility for meeting presses (titles, button read, key posting, Teams consent) and for Siri's panel (MIC-40); no Automation/Apple Events; the mute toggle itself needs no Microphone permission (only the screen recording's voice does).
   Source: D: Meeting detection fix (c); "needs no Microphone permission" is code only · Code: MM:needsAccessibility; GeneralTab (Accessibility text) · Verify: manual — fresh install: F5 with no call works before granting anything.
 
 ### N. Resource use
 
-- **MIC-77** No polling. Between presses only: one NSWorkspace activation observer; with Keep muted on, CoreAudio listeners on the default input (mute, volume, device) and on the default output's "is running"; the dot's watcher only while the mic dot is shown; the Touch Bar's watcher while the Touch Bar runs. Call detection, the call's state and the Siri check are read only at the press. Idle: 0 % CPU.
+- **MIC-77** No polling. Between presses only: one NSWorkspace activation observer; with Keep muted on, CoreAudio listeners on the default input (mute, volume, device) and on the default output's "is running"; the dot's watcher only while the mic dot is shown; the Touch Bar's watcher while the Touch Bar runs; with Accessibility, one AX observer on Notification Center (window created / element destroyed; one look 0.15 s after a burst, the recorder list read only while Siri's panel shows). Call detection, the call's state and the Siri check at a press are read only at the press. Idle: 0 % CPU.
   Source: R-28 (11-16) "no constant watching"; R-34 acceptance "zero cost"; D: Menu bar dots · Code: MS:start, MM:updateKeeper, StatusMenu:updateIcon, TouchBarModule:startSources · Verify: manual — `measure-resources` skill on idle Penknife: 0 % CPU, no wakeups from Microphone.
 - **MIC-78** The Chromium/Electron web accessibility tree (`AXManualAccessibility`, `AXEnhancedUserInterface`) is turned on only for the read and turned off right after, unless it was already on (VoiceOver); measured +80 MB while on, freed after.
   Source: D: Reading a meeting app's mute state; D: Meeting button read in Chrome · Code: MS:withWebTree · Verify: auto after refactor — inject the AX get/set: attributes already on are never set; the ones set are cleared at the end.
 - **MIC-79** All Accessibility work runs off the main thread and every wait is bounded (browser ≤ 1 s; read ≤ ~1 s retry; Teams watch 1.5 s, +1.5 s after a button press).
   Source: MS:findCurrent/readMuted comments; R-31 · Code: MS, TC (global queue) · Verify: log — `(<ms> ms)` in `App mic:` and `Teams dialog:` lines (measured 50–1300 ms).
-- **MIC-80** Module off releases everything it holds: activation observer, defaults observer, keep-muted listeners (B-1 fixed 2026-11-18).
+- **MIC-80** Module off releases everything it holds: activation observer, defaults observer, keep-muted listeners (B-1 fixed 2026-11-18), the Siri panel observer.
   Source: R-15 · Code: MM:stop · Verify: **auto, tested** — start/stop twice, `holdsObservers` is false (fails without the B-1 fix; checked 2026-11-18).
 
 ### O. The screen recording's microphone (R-29)
@@ -239,7 +239,7 @@ Not measured, no decision yet:
 - **O-6 R-31 after consent (2026-11-18 log).** (1) A second press 44 ms after accepting read Teams still muted (the user may have pressed twice); (2) a later unmute again needed the mic button, without an alert. Act only if a single press ever leaves the user muted.
 
 Known bugs:
-- **B-2 Called Siri hears you while the icon says muted (breaks MIC-40, MIC-63).** Measured 2026-11-18 (user: "el ícono no mostraba el estado real. ESE ERA EL BUG"): "Hey Siri" with the Mac muted → Siri recorded ~5 s and answered, the input mute stayed 1 the whole time, with Penknife running AND with Penknife quit, so the icon (which follows the mute) stayed closed. Not caused by a commit: since R-34 (verified live 11-17) only B-1 and S1 touched the module, and with Penknife quit nothing of Penknife runs. The 11-16/11-17 measurements saw Siri clear the mute when called; today it didn't (a sound still makes it clear the mute: 12:46, 0.05 s after the sound). macOS announces nothing (again: no CoreAudio process or device event, no app activation, no Siri window). Fix to decide with the user.
+- **B-2 Called Siri hears you while the icon says muted (breaks MIC-40, MIC-63).** Measured 2026-11-18 (user: "el ícono no mostraba el estado real. ESE ERA EL BUG"): "Hey Siri" with the Mac muted → Siri recorded ~5 s and answered, the input mute stayed 1 the whole time, with Penknife running AND with Penknife quit, so the icon (which follows the mute) stayed closed. Not caused by a commit: since R-34 (verified live 11-17) only B-1 and S1 touched the module, and with Penknife quit nothing of Penknife runs. The 11-16/11-17 measurements saw Siri clear the mute when called; today it didn't (a sound still makes it clear the mute: 12:46, 0.05 s after the sound). macOS announces nothing (again: no CoreAudio process or device event, no app activation, no Siri window). FIXED 2026-11-18 (MIC-40 rewritten; user: "listo, arreglado"): the icon also follows Siri's panel. Tried first and replaced the same day: the built-in speakers' "running" state (it does follow a called Siri, also with AirPods) plus who plays (a Mac sound's player shows at once): it worked without music, but with music Siri records all the time and calling it announces nothing (user: "SOLO PASA CON MUSICA"); a rule on Siri's voice (`com.apple.sirittsd`) didn't help either (no announcement when it spoke over music).
 - **B-1 Module off kept a CoreAudio listener (broke R-15).** `MM:stop()` stopped `keeper` but not `outputWatcher`; each off→on cycle left one more listener on the default output's "is running". FIXED 2026-11-18 (on main, not released yet); test "MIC-80 module off holds nothing" fails without the fix.
 
 Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked superseded): "Also mute the Mac" default (ON wins), option A's "send only if needed" (always sent), R-31 v1 text-matching flow (v2 text-free wins), "MuteGuard" rejected vs R-34 built (R-34 wins, narrower), old Apple Events/bundle-prefix browser detection (window title + responsible pid win), stale headers ("not built", "not released"). The stale code comments (`MS:findCurrent` "Apple Events", `SettingsView` "quoting Teams' text", MM's "only a workspace notification") were fixed on 2026-11-18.
@@ -260,10 +260,11 @@ Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked supersede
 - Consent: camera, screen sharing, pressing in the background, Teams in a browser, detecting consent meetings in advance; a sharing check and an alert-kind check were not applied (sharing already needs consent; text-free by the user's choice).
 - Advising users to "disable Hey Siri for the best experience", or claiming the mic "never opens": sounds broken; say "mutes it again" instead (growth review).
 - Native macOS notifications for mic alerts: hidden while sharing/DND, so no mic confirmation in meetings.
+- Telling a called Siri by audio (B-2, 2026-11-18): the built-in speakers' running state + who plays fails with music (Siri records all the time); polling who records doesn't help either. Siri's panel is the signal.
 
 ## 4. Test plan (step B in progress)
 
-Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1 and S2 (20 tests pass). Next: S3–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
+Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1, S2 and B-2 (22 tests pass). Next: S3–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
 
 Warning: with Penknife.app as the test host, `UserDefaults.standard` is the user's real settings. Readers must take an injected suite before any defaults test.
 

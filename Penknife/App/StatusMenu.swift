@@ -19,7 +19,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         image?.accessibilityDescription = "Penknife"
         return image
     }()
-    private lazy var micWatcher = MicrophoneWatcher { [weak self] in self?.updateIcon() }
+    private lazy var micWatcher = MicrophoneWatcher(followsSiri: true) { [weak self] in self?.updateIcon() }
     private var defaultsObserver: NSObjectProtocol?
     private var lastDotsOn: Bool?
     /// What the icon shows now (nil = no dot), to redraw only on a real change.
@@ -92,7 +92,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         // The microphone is watched only while its dot is shown.
         if showMic { micWatcher.start() } else { micWatcher.stop() }
 
-        let micOpen = hasMic ? !(microphone?.isMuted ?? false) : nil
+        let micOpen = hasMic ? !(microphone?.showsMuted ?? false) : nil
         let jigglerOn = showJiggler ? (jiggler?.isActive ?? false) : nil
         let time = recording.time
         if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn, shown.recording == time, shown.paused == recording.paused { return }

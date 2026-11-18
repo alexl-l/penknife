@@ -268,6 +268,33 @@ struct MicrophoneRulesTests {
         #expect(!read)
     }
 
+    // MARK: B-2 Siri's panel shows the mic open
+
+    // MIC-40: Siri hears the user while its panel is on screen and it records; a Mac sound makes
+    // Siri record without a panel (stays muted); "Type to Siri" shows the panel without recording.
+    @Test("MIC-40 Siri hears you while its panel shows and it records", arguments: [
+        (true, [siri], true),
+        (true, [siri, teams], true),   // Siri called during a call still hears you
+        (false, [siri], false),        // a Mac sound woke Siri (R-34: stays muted)
+        (true, [], false),             // Type to Siri
+        (true, [teams], false),
+        (false, [], false),
+    ])
+    func siriHearsYou(panelShown: Bool, recorders: [String], hears: Bool) {
+        #expect(Mic.siriHears(panelShown: panelShown, recorders: recorders) == hears)
+    }
+
+    // MIC-40 / MIC-63: the icon shows open while Siri hears the user; otherwise the device.
+    @Test("MIC-40 MIC-63 what the icon shows", arguments: [
+        (true, false, true),
+        (true, true, false),
+        (false, false, false),
+        (false, true, false),
+    ])
+    func whatTheIconShows(deviceMuted: Bool, siriHears: Bool, shownMuted: Bool) {
+        #expect(Mic.shownMuted(deviceMuted: deviceMuted, siriHears: siriHears) == shownMuted)
+    }
+
     // MIC-08 / MIC-80 (R-15): a module that is off holds no observers or listeners, also after
     // turning it off and on again (B-1: the Mac-sound listener used to stay behind). Starting the
     // module only adds listeners for a moment; it changes nothing. Depends on the user's "Keep the

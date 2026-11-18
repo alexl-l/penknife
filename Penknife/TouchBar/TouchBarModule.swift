@@ -32,7 +32,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private var clockTimer: Timer?
     private var dateTimer: Timer?
     private var showingDate = false
-    private lazy var micWatcher = MicrophoneWatcher { [weak self] in self?.updateMicrophone() }
+    private lazy var micWatcher = MicrophoneWatcher(followsSiri: true) { [weak self] in self?.updateMicrophone() }
     private lazy var brightnessWatcher = BrightnessWatcher { [weak self] in self?.levelChanged(.brightness) }
     private lazy var keyboardWatcher = KeyboardLightWatcher { [weak self] in self?.levelChanged(.keyboardLight) }
     private lazy var volumeWatcher = VolumeWatcher { [weak self] in self?.levelChanged(.volume) }
@@ -593,11 +593,10 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             label: on ? String(localized: "Mouse jiggler, on") : String(localized: "Mouse jiggler, off"))
     }
 
-    /// Follows the real microphone (R-28). While Siri listens it clears the mute itself, so the
-    /// symbol shows open without any special case.
+    /// Follows the real microphone (R-28), open while a called Siri hears the user (B-2).
     private func updateMicrophone() {
         guard let button = barView?.button(Item.microphone.rawValue) else { return }
-        let muted = microphone.isMuted
+        let muted = microphone.showsMuted
         button.show(symbol: muted ? "mic.slash.fill" : "mic.fill",
                     label: muted ? String(localized: "Microphone muted") : String(localized: "Microphone on"))
     }

@@ -21,17 +21,31 @@ final class MicrophoneModule: Module {
     private var outputStarted = Date.distantPast
     private var outputWatcher: OutputWatcher?
     private var defaultsObserver: NSObjectProtocol?
+    /// B-2: tells when the user called Siri, who hears them with the mute left on.
+    private var siri: SiriWatcher?
+    /// Posted when what `showsMuted` says changes without the device changing (a Siri session).
+    static let shownStateChanged = Notification.Name("PenknifeMicrophoneShownStateChanged")
 
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .toggleMicrophone, title: String(localized: "Mute Microphone"), symbol: "mic.slash",
-                      state: { [weak self] in self?.isMuted ?? false },
+                      state: { [weak self] in self?.showsMuted ?? false },
                       perform: { [weak self] in self?.toggle() })]
     }
 
     private let meetings = MeetingTracker()
 
+    init() {
+        // B-2: Siri's panel can be watched only with Accessibility.
+        Permissions.shared.onChange.append { [weak self] in self?.siri?.attach() }
+    }
+
     func start() {
         meetings.start()
+        if siri == nil {
+            let watcher = SiriWatcher { NotificationCenter.default.post(name: Self.shownStateChanged, object: nil) }
+            watcher.start()
+            siri = watcher
+        }
         updateKeeper()
         defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
                                                                   queue: .main) { [weak self] _ in
@@ -48,10 +62,12 @@ final class MicrophoneModule: Module {
         // R-15: a module that is off holds nothing (B-1: this listener used to stay behind).
         outputWatcher?.stop()
         outputWatcher = nil
+        siri?.stop()
+        siri = nil
     }
 
     /// For tests (R-15, MIC-80): whether the module still holds an observer or listener.
-    var holdsObservers: Bool { keeper != nil || outputWatcher != nil || defaultsObserver != nil }
+    var holdsObservers: Bool { keeper != nil || outputWatcher != nil || defaultsObserver != nil || siri != nil }
 
     // MARK: Keep muted (R-34)
 
@@ -122,6 +138,10 @@ final class MicrophoneModule: Module {
         if let mute: UInt32 = Self.get(device, kAudioDevicePropertyMute) { return mute != 0 }
         return false
     }
+
+    /// What the Touch Bar button, the menu bar dot and the menu's checkmark show (TRUTHFUL, R-28):
+    /// the device, and open while a called Siri hears the user (B-2). Presses decide by `isMuted`.
+    var showsMuted: Bool { Self.shownMuted(deviceMuted: isMuted, siriHears: siri?.hears ?? false) }
 
     /// Mutes the current meeting (the one in front, or the last one used) with its own shortcut;
     /// with no meeting, or when the setting asks for it, also the Mac's microphone (R-28).
@@ -297,6 +317,17 @@ final class MicrophoneModule: Module {
         recorders.contains(siriBundleID) && recorders.allSatisfy { $0 == siriBundleID }
     }
 
+    /// B-2 (tested): Siri hears the user while its panel is on screen and it records. A sound the
+    /// Mac plays makes Siri record but never shows the panel (R-34: stays muted); "Type to Siri"
+    /// shows the panel without recording.
+    static func siriHears(panelShown: Bool, recorders: [String]) -> Bool {
+        panelShown && recorders.contains(siriBundleID)
+    }
+
+    static func shownMuted(deviceMuted: Bool, siriHears: Bool) -> Bool {
+        deviceMuted && !siriHears
+    }
+
     /// S2 (tested): whether "Keep the microphone muted" puts the mute back (see `microphoneChanged`).
     /// `recorders` is read only when everything else holds (a CoreAudio query).
     static func shouldRemute(wasMuted: Bool, isMuted: Bool, now: Date, ownChangeUntil: Date, outputStarted: Date,
@@ -406,16 +437,147 @@ final class OutputWatcher {
     }
 }
 
+/// B-2: tells when Siri hears the user. A called Siri listens with the mute left on (measured
+/// 2026-11-18), and CoreAudio announces nothing that tells it apart (with music, Siri records all
+/// the time). Its panel is announced: macOS 26 draws it in Notification Center as an element
+/// identified "SiriWindow" (a notification banner is another element), and Accessibility reports
+/// windows created and destroyed there. Bursts collapse into one look 0.15 s after the last one.
+/// Nothing runs between those announcements.
+final class SiriWatcher {
+    private let onChange: () -> Void
+    private(set) var hears = false
+    private var panelShown = false
+    private let log = Logger(subsystem: "Penknife", category: "Microphone")
+    private var observer: AXObserver?
+    private var observed: AXUIElement?
+    private var launchObserver: NSObjectProtocol?
+    private var pendingCheck: DispatchWorkItem?
+
+    nonisolated private static let bundleID = "com.apple.notificationcenterui"
+    private static let notifications = [kAXWindowCreatedNotification, kAXUIElementDestroyedNotification]
+
+    init(onChange: @escaping () -> Void) {
+        self.onChange = onChange
+    }
+
+    func start() {
+        guard launchObserver == nil else { return }
+        // Notification Center restarted (rare): watch the new one.
+        launchObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didLaunchApplicationNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            guard app?.bundleIdentifier == Self.bundleID else { return }
+            MainActor.assumeIsolated { self?.attach() }
+        }
+        attach()
+    }
+
+    func stop() {
+        if let launchObserver { NSWorkspace.shared.notificationCenter.removeObserver(launchObserver) }
+        launchObserver = nil
+        detach()
+        pendingCheck?.cancel()
+        pendingCheck = nil
+        hears = false
+    }
+
+    /// Also called when Accessibility is granted.
+    func attach() {
+        guard launchObserver != nil else { return }
+        detach()
+        guard AXIsProcessTrusted(),
+              let app = NSRunningApplication.runningApplications(withBundleIdentifier: Self.bundleID).first else { return }
+        let element = AXUIElementCreateApplication(app.processIdentifier)
+        AXUIElementSetMessagingTimeout(element, 0.2)
+        var newObserver: AXObserver?
+        guard AXObserverCreate(app.processIdentifier, Self.callback, &newObserver) == .success, let newObserver else { return }
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        for name in Self.notifications {
+            AXObserverAddNotification(newObserver, element, name as CFString, refcon)
+        }
+        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(newObserver), .defaultMode)
+        observer = newObserver
+        observed = element
+        scheduleCheck()
+    }
+
+    private func detach() {
+        if let observer {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+            if let observed {
+                for name in Self.notifications {
+                    AXObserverRemoveNotification(observer, observed, name as CFString)
+                }
+            }
+        }
+        observer = nil
+        observed = nil
+    }
+
+    private static let callback: AXObserverCallback = { _, _, _, refcon in
+        guard let refcon else { return }
+        let watcher = Unmanaged<SiriWatcher>.fromOpaque(refcon).takeUnretainedValue()
+        MainActor.assumeIsolated { watcher.scheduleCheck() }
+    }
+
+    private func scheduleCheck() {
+        pendingCheck?.cancel()
+        let work = DispatchWorkItem { [weak self] in MainActor.assumeIsolated { self?.check() } }
+        pendingCheck = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+    }
+
+    private func check() {
+        guard let observed else { return }
+        let shown = Self.siriPanelShown(in: observed)
+        let next = MicrophoneModule.siriHears(panelShown: shown,
+                                              recorders: shown ? MeetingTracker.appsUsingMicrophone().map(\.bundleID) : [])
+        if shown != panelShown || next != hears {
+            log.debug("Siri panel: \(shown ? "shown" : "gone", privacy: .public), hears you: \(next)")
+        }
+        panelShown = shown
+        guard next != hears else { return }
+        hears = next
+        onChange()
+    }
+
+    /// Looks for Siri's panel among Notification Center's windows (a few small trees; bounded).
+    private static func siriPanelShown(in app: AXUIElement) -> Bool {
+        func children(_ element: AXUIElement, _ attribute: String) -> [AXUIElement] {
+            var value: CFTypeRef?
+            guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return [] }
+            return value as? [AXUIElement] ?? []
+        }
+        var level = children(app, kAXWindowsAttribute)
+        var seen = 0
+        for _ in 0..<6 where !level.isEmpty && seen < 300 {
+            for element in level {
+                var identifier: CFTypeRef?
+                if AXUIElementCopyAttributeValue(element, kAXIdentifierAttribute as CFString, &identifier) == .success,
+                   identifier as? String == "SiriWindow" { return true }
+            }
+            seen += level.count
+            level = level.flatMap { children($0, kAXChildrenAttribute) }
+        }
+        return false
+    }
+}
+
 /// Calls `onChange` when the default input is muted or unmuted from anywhere (Penknife, Teams,
 /// Control Center) or when the default input device changes. CoreAudio listeners cost nothing
-/// between changes. Used by the Touch Bar button and the menu bar dot.
+/// between changes. Used by the Touch Bar button and the menu bar dot, which with `followsSiri`
+/// also hear when a called Siri session starts or ends (B-2).
 final class MicrophoneWatcher {
     private let onChange: () -> Void
+    private let followsSiri: Bool
     private var device: AudioObjectID?
     private var deviceListener: AudioObjectPropertyListenerBlock?
     private var defaultListener: AudioObjectPropertyListenerBlock?
+    private var siriObserver: NSObjectProtocol?
 
-    init(onChange: @escaping () -> Void) {
+    init(followsSiri: Bool = false, onChange: @escaping () -> Void) {
+        self.followsSiri = followsSiri
         self.onChange = onChange
     }
 
@@ -433,10 +595,18 @@ final class MicrophoneWatcher {
         AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
         defaultListener = listener
         watchDevice()
+        if followsSiri {
+            siriObserver = NotificationCenter.default.addObserver(forName: MicrophoneModule.shownStateChanged, object: nil,
+                                                                  queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.onChange() }
+            }
+        }
     }
 
     func stop() {
         unwatchDevice()
+        if let siriObserver { NotificationCenter.default.removeObserver(siriObserver) }
+        siriObserver = nil
         guard let defaultListener else { return }
         var address = Self.defaultInputAddress
         AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, defaultListener)
