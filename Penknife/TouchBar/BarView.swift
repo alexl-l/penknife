@@ -251,16 +251,24 @@ final class BarView: NSView {
     }
 
     func applyColors() {
-        let count = max(buttons.count - 1, 1)
         for (index, button) in buttons.enumerated() {
-            switch colorMode {
-            case .multicolor: button.setTint(button.stateColor ?? button.ownColor, colorText: false)
-            case .monochrome: button.setTint(monochromeColor, colorText: true)
-            case .rainbow:
-                // Red to violet, left to right, texts included.
-                let hue = CGFloat(index) / CGFloat(count) * 0.83
-                button.setTint(NSColor(hue: hue, saturation: 0.75, brightness: 1, alpha: 1), colorText: true)
-            }
+            let tint = Self.tint(mode: colorMode, index: index, count: buttons.count,
+                                 own: button.ownColor, state: button.stateColor, mono: monochromeColor)
+            button.setTint(tint.color, colorText: tint.colorsText)
+        }
+    }
+
+    /// The color of the button at `index` of `count` (TB-11): multicolor = the state's color
+    /// (battery level) or the button's own, texts white; monochrome = one color, texts too;
+    /// rainbow = red to violet from left to right, texts too.
+    static func tint(mode: BarColorMode, index: Int, count: Int, own: NSColor, state: NSColor?,
+                     mono: NSColor) -> (color: NSColor, colorsText: Bool) {
+        switch mode {
+        case .multicolor: return (state ?? own, false)
+        case .monochrome: return (mono, true)
+        case .rainbow:
+            let hue = CGFloat(index) / CGFloat(max(count - 1, 1)) * 0.83
+            return (NSColor(hue: hue, saturation: 0.75, brightness: 1, alpha: 1), true)
         }
     }
 

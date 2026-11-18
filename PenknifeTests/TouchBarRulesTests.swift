@@ -213,6 +213,181 @@ struct TouchBarRulesTests {
         }
     }
 
+    // MARK: S2 button looks
+
+    // TB-16: the level color only on the icon (green above 50 %, yellow 20–50 %, red below 20 %);
+    // text mode has none; no reading shows "—" as text, even with the icon chosen.
+    @Test("TB-16 battery look", arguments: [
+        (100, true, true, "100%", BarLooks.BatteryLevel?.some(.green)),
+        (51, true, true, "51%", .green),
+        (50, true, true, "50%", .yellow),
+        (20, true, true, "20%", .yellow),
+        (19, true, true, "19%", .red),
+        (0, true, true, "0%", .red),
+        (85, false, false, "85%", nil),
+        (10, false, false, "10%", nil),
+        (nil, true, false, "—", nil),
+        (nil, false, false, "—", nil),
+    ] as [(Int?, Bool, Bool, String, BarLooks.BatteryLevel?)])
+    func batteryLook(percent: Int?, showIcon: Bool, icon: Bool, text: String, level: BarLooks.BatteryLevel?) {
+        for charging in [false, true] {
+            let look = BarLooks.battery(percent: percent, charging: charging, showIcon: showIcon)
+            #expect(look.icon == icon)
+            #expect(look.text == text)
+            #expect(look.level == level)
+        }
+        #expect(BarLooks.battery(percent: percent, charging: true, showIcon: showIcon).label
+                != BarLooks.battery(percent: percent, charging: false, showIcon: showIcon).label)
+    }
+
+    // TB-17: the small sun below half; unreadable counts as full.
+    @Test("TB-17 brightness symbol", arguments: [
+        (Float?.some(0), "sun.min.fill"), (0.49, "sun.min.fill"), (0.5, "sun.max.fill"), (1, "sun.max.fill"), (nil, "sun.max.fill"),
+    ] as [(Float?, String)])
+    func brightnessSymbol(level: Float?, symbol: String) {
+        #expect(BarLooks.brightness(level).symbol == symbol)
+    }
+
+    // TB-18: the small light below half; unreadable counts as off.
+    @Test("TB-18 keyboard light symbol", arguments: [
+        (Float?.some(0), "light.min"), (0.49, "light.min"), (0.5, "light.max"), (1, "light.max"), (nil, "light.min"),
+    ] as [(Float?, String)])
+    func keyboardSymbol(level: Float?, symbol: String) {
+        #expect(BarLooks.keyboardLight(level).symbol == symbol)
+    }
+
+    // TB-19: crossed speaker when muted or at 0; 1/2/3 waves below 34 %, below 67 %, from 67 %;
+    // an output with no volume control counts as 50 %, not muted.
+    @Test("TB-19 volume symbol", arguments: [
+        (Float?.some(0.33), false, "speaker.wave.1.fill"),
+        (0.01, false, "speaker.wave.1.fill"),
+        (0.34, false, "speaker.wave.2.fill"),
+        (0.66, false, "speaker.wave.2.fill"),
+        (0.67, false, "speaker.wave.3.fill"),
+        (1, false, "speaker.wave.3.fill"),
+        (0.8, true, "speaker.slash.fill"),
+        (0, false, "speaker.slash.fill"),
+        (nil, false, "speaker.wave.2.fill"),
+        (nil, true, "speaker.slash.fill"),
+    ] as [(Float?, Bool, String)])
+    func volumeSymbol(level: Float?, muted: Bool, symbol: String) {
+        #expect(BarLooks.volume(level: level, muted: muted).symbol == symbol)
+    }
+
+    // TB-20 / MIC-65 / TB-24: the state is in the symbol (and the words), never in color alone.
+    @Test("TB-20 MIC-65 TB-24 state symbols")
+    func stateSymbols() {
+        #expect(BarLooks.jiggler(on: true).symbol == "cursorarrow.motionlines")
+        #expect(BarLooks.jiggler(on: false).symbol == "cursorarrow")
+        #expect(BarLooks.jiggler(on: true).label != BarLooks.jiggler(on: false).label)
+        #expect(BarLooks.microphone(muted: true).symbol == "mic.slash.fill")
+        #expect(BarLooks.microphone(muted: false).symbol == "mic.fill")
+        #expect(BarLooks.microphone(muted: true).label != BarLooks.microphone(muted: false).label)
+        #expect(BarLooks.music(playing: true).symbol == "music.quarternote.3")
+        #expect(BarLooks.music(playing: false).symbol == "music.note")
+        #expect(BarLooks.music(playing: true).label != BarLooks.music(playing: false).label)
+    }
+
+    // TB-25 / TB-14: a report shows its condition and temperature; location denied → location.slash;
+    // nothing yet → a plain cloud (no loading placeholder).
+    @Test("TB-25 TB-14 weather look")
+    func weatherLook() {
+        let report = WeatherModule.Report(celsius: 18, code: 0, isDay: true, date: .now)
+        for noLocation in [false, true] {
+            let look = BarLooks.weather(report: report, noLocation: noLocation)
+            #expect(look.symbol == report.symbol)
+            #expect(look.text == TemperatureText.short(celsius: 18))
+        }
+        #expect(BarLooks.weather(report: nil, noLocation: true).symbol == "location.slash")
+        #expect(BarLooks.weather(report: nil, noLocation: false).symbol == "cloud")
+        #expect(BarLooks.weather(report: nil, noLocation: false).text.isEmpty)
+    }
+
+    // TB-26 / TB-14: low below 50 °C, medium below 75 °C, high from 75 °C; unreadable → medium with "—".
+    @Test("TB-26 thermometer", arguments: [
+        (0, "thermometer.low"), (49, "thermometer.low"), (50, "thermometer.medium"),
+        (74, "thermometer.medium"), (75, "thermometer.high"), (110, "thermometer.high"),
+    ])
+    func thermometer(celsius: Int, symbol: String) {
+        #expect(BarLooks.thermometer(celsius: celsius) == symbol)
+        #expect(BarLooks.cpu(celsius: celsius).symbol == symbol)
+        #expect(BarLooks.cpu(celsius: celsius).text == TemperatureText.short(celsius: Double(celsius)))
+    }
+
+    @Test("TB-26 TB-14 CPU temperature unreadable")
+    func cpuUnreadable() {
+        let look = BarLooks.cpu(celsius: nil)
+        #expect(look.symbol == "thermometer.medium")
+        #expect(look.text == "—")
+    }
+
+    // TB-27: testing = the needle; a result = download 3 s, upload 3 s, idle; a failure = 6 s, idle.
+    @Test("TB-27 speed test sequence")
+    func speedSequence() {
+        typealias S = BarLooks.SpeedStep
+        for (failed, result) in [(false, false), (true, false), (false, true), (true, true)] {
+            #expect(BarLooks.speedSteps(isRunning: true, failed: failed, hasResult: result) == [S(at: 0, phase: .testing)])
+        }
+        #expect(BarLooks.speedSteps(isRunning: false, failed: false, hasResult: true)
+                == [S(at: 0, phase: .download), S(at: 3, phase: .upload), S(at: 6, phase: .idle)])
+        #expect(BarLooks.speedSteps(isRunning: false, failed: true, hasResult: false)
+                == [S(at: 0, phase: .failed), S(at: 6, phase: .idle)])
+        // A failure after an earlier result shows the failure, not the old result.
+        #expect(BarLooks.speedSteps(isRunning: false, failed: true, hasResult: true)
+                == [S(at: 0, phase: .failed), S(at: 6, phase: .idle)])
+        #expect(BarLooks.speedSteps(isRunning: false, failed: false, hasResult: false) == [S(at: 0, phase: .idle)])
+    }
+
+    // TB-27: the needle sweeps 0 → 33 → 67 → 100 and starts again, one step every 0.6 s.
+    @Test("TB-27 speed test needle")
+    func speedNeedle() {
+        let percents = (0...4).map { BarLooks.needle(step: $0) }
+        #expect(percents == ["gauge.with.dots.needle.0percent", "gauge.with.dots.needle.33percent",
+                             "gauge.with.dots.needle.67percent", "gauge.with.dots.needle.100percent",
+                             "gauge.with.dots.needle.0percent"])
+        #expect(BarLooks.needleInterval == 0.6)
+        #expect(BarLooks.speedTest(phase: .testing, needleStep: 2, result: nil).symbol == "gauge.with.dots.needle.67percent")
+    }
+
+    // TB-27: each phase's look; a download or upload phase without a result shows idle.
+    @Test("TB-27 speed test looks")
+    func speedLooks() {
+        let result = SpeedTestModule.Result(download: 245, upload: 9.4, latency: 20, rpm: 800, date: .now)
+        let down = BarLooks.speedTest(phase: .download, needleStep: 0, result: result)
+        #expect(down.symbol == "arrow.down")
+        #expect(down.text == SpeedText(mbps: 245).number && down.unit == "Mbps")
+        let up = BarLooks.speedTest(phase: .upload, needleStep: 0, result: result)
+        #expect(up.symbol == "arrow.up")
+        #expect(up.text == SpeedText(mbps: 9.4).number && up.unit == "Mbps")
+        #expect(BarLooks.speedTest(phase: .failed, needleStep: 0, result: result).symbol == "wifi.exclamationmark")
+        #expect(BarLooks.speedTest(phase: .idle, needleStep: 0, result: result).symbol == "speedometer")
+        #expect(BarLooks.speedTest(phase: .download, needleStep: 0, result: nil).symbol == "speedometer")
+        #expect(BarLooks.speedTest(phase: .upload, needleStep: 0, result: nil).symbol == "speedometer")
+    }
+
+    // TB-11 / TB-16: multicolor = the state color (battery level) or the button's own, white text;
+    // monochrome = one color for symbols and texts; rainbow = red → violet left to right, texts too.
+    @Test("TB-11 TB-16 button colors by mode")
+    func tints() {
+        let own = NSColor(hex: 0x08DA73), state = NSColor.systemRed, mono = NSColor(hex: 0x123456)
+        let multi = BarView.tint(mode: .multicolor, index: 3, count: 13, own: own, state: nil, mono: mono)
+        #expect(multi.color == own && !multi.colorsText)
+        #expect(BarView.tint(mode: .multicolor, index: 3, count: 13, own: own, state: state, mono: mono).color == state)
+        let single = BarView.tint(mode: .monochrome, index: 3, count: 13, own: own, state: state, mono: mono)
+        #expect(single.color == mono && single.colorsText)
+
+        for (index, count, hue) in [(0, 13, 0.0), (6, 13, 0.415), (12, 13, 0.83), (0, 1, 0.0), (1, 2, 0.83)] {
+            let rainbow = BarView.tint(mode: .rainbow, index: index, count: count, own: own, state: state, mono: mono)
+            let color = rainbow.color
+            // Hue is a circle: red reads back as 1.0 as well as 0.
+            let distance = abs(color.hueComponent - hue)
+            #expect(min(distance, 1 - distance) < 0.002, "\(index) of \(count): \(color.hueComponent)")
+            #expect(abs(color.saturationComponent - 0.75) < 0.002)
+            #expect(abs(color.brightnessComponent - 1) < 0.002)
+            #expect(rainbow.colorsText)
+        }
+    }
+
     // MARK: S6 module lifecycle
 
     /// Records what the module asks of the system; never touches the real Touch Bar.

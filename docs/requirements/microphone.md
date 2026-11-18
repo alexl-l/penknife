@@ -6,7 +6,7 @@ Source of truth for what the microphone module must do TODAY (Penknife 1.9). The
 
 Code paths are relative to `Penknife/`: `MM` = Modules/MicrophoneModule.swift, `MS` = Modules/MeetingSync.swift (MeetingPlatform, MeetingTracker), `TC` = Modules/TeamsConsent.swift. "R-28 (11-17)" = the REQUIREMENTS.md R-28 line dated 2026-11-17; "D: <title>" = the DECISIONS.md bullet with that bold title.
 Verify kinds: **auto** (unit test as the code is today) · **auto after refactor** (seam named; see §4) · **manual** (the user's normal action only) · **log** (`/usr/bin/log show --last 1h --predicate 'subsystem == "Penknife" AND category == "Microphone"' --style compact`).
-Count (2026-11-18, after S6): 85 rules = 34 auto (all tested) · 0 auto after refactor · 19 log · 32 manual.
+Count (2026-11-18, after S6 and the Touch Bar S2): 85 rules = 35 auto (all tested) · 0 auto after refactor · 19 log · 31 manual.
 **Tests:** `scripts/test.sh` (unit tests in `PenknifeTests/`, ~3 s once built; safe on this Mac: the test host starts no module and nothing writes the user's settings). Each test is named after its rule ("MIC-24 …").
 
 ## 1. Rules
@@ -172,7 +172,7 @@ Count (2026-11-18, after S6): 85 rules = 34 auto (all tested) · 0 auto after re
 - **MIC-64** Read policy (same control that is written, MIC-04): settable+readable mute → mute ≠ 0; else readable volume → volume == 0; else readable mute → mute ≠ 0; else open; no device → open (open decision O-1).
   Source: D: Mic state bug (11-16) · Code: MM:isMuted, readMuted · Verify: **auto, tested** (S4) — `readMuted(_:)` over `MicControls` (CoreAudio's `InputDevice` in the app, a plain struct in the tests): 8 device kinds, and nil (no device) → open.
 - **MIC-65** Touch Bar mic button: `mic.slash.fill` muted / `mic.fill` open, VoiceOver "Microphone muted" / "Microphone on", color #FF5D49 (state by symbol, not only color); shown only while the mic module is on and the button isn't hidden; refreshed right after its own tap.
-  Source: R-25 (11-13) "ALL ICONS"; D: Touch Bar icons; R-19 · Code: TouchBarModule:updateMicrophone, run; BarLayout · Verify: manual — tap it; the symbol flips.
+  Source: R-25 (11-13) "ALL ICONS"; D: Touch Bar icons; R-19 · Code: TouchBarModule:updateMicrophone, run; TouchBar/BarLooks.swift:microphone; BarLayout · Verify: **auto** — `BarLooks.microphone(muted:)` (test "TB-20 MIC-65 TB-24 …"); manual — tap it; the symbol flips.
 - **MIC-66** Menu bar dot: top slot, system orange, 4 pt; filled = open, 1 pt ring = muted; same look under Increase Contrast; shown only with "Show status dots in the menu bar" on (default on, `menuBar.statusDots`), the module on and an input device present; redrawn only on a real change; kept beside the red record symbol while recording.
   Source: R-20 MENU BAR DOTS IMPERATIVE (11-13); D: Menu bar dots · Code: StatusMenu:updateIcon, icon, showRecording · Verify: manual — press F5, look at the dot.
 - **MIC-67** VoiceOver: the status item's value states both dots ("Mouse jiggler on, Microphone muted") and VoiceOver is told when it changes from elsewhere.

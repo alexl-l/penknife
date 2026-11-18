@@ -405,51 +405,46 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     // MARK: Speed test (R-10)
 
-    private enum SpeedPhase { case normal, testing, download, upload, failed }
-    private var speedPhase = SpeedPhase.normal
+    private var speedPhase = BarLooks.SpeedPhase.idle
     private var needleStep = 0
-    private static let needles = ["gauge.with.dots.needle.0percent", "gauge.with.dots.needle.33percent",
-                                  "gauge.with.dots.needle.67percent", "gauge.with.dots.needle.100percent"]
 
     /// Design chosen by the user (variant 4, 2026-11-14): while testing the needle sweeps
-    /// (one symbol change every 0.6 s); then download for 3 s, upload for 3 s, back to normal.
+    /// (one symbol change every 0.6 s); then download for 3 s, upload for 3 s, back to idle.
     private func speedTestChanged() {
         speedTimer?.invalidate()
         speedTimer = nil
         // B-6: no timer for a button that isn't on the bar.
         guard Self.watched(shown: shownItems).contains(.speedTest) else {
-            speedPhase = .normal
+            speedPhase = .idle
             return
         }
-        if speedTest.isRunning {
-            needleStep = 0
-            setSpeedPhase(.testing)
-            speedTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.needleStep = (self.needleStep + 1) % Self.needles.count
-                    self.updateSpeedTest()
-                }
+        let steps = BarLooks.speedSteps(isRunning: speedTest.isRunning, failed: speedTest.failed,
+                                        hasResult: speedTest.result != nil)
+        guard steps[0].phase == .testing else {
+            setSpeedPhase(steps[0].phase, then: Array(steps.dropFirst()))
+            return
+        }
+        needleStep = 0
+        setSpeedPhase(.testing)
+        speedTimer = Timer.scheduledTimer(withTimeInterval: BarLooks.needleInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.needleStep = (self.needleStep + 1) % BarLooks.needles.count
+                self.updateSpeedTest()
             }
-        } else if speedTest.failed {
-            setSpeedPhase(.failed, then: [(6, .normal)])
-        } else if speedTest.result != nil {
-            setSpeedPhase(.download, then: [(3, .upload), (6, .normal)])
-        } else {
-            setSpeedPhase(.normal)
         }
     }
 
-    /// Shows `phase` now and the next ones after the given seconds (counted from now).
-    private func setSpeedPhase(_ phase: SpeedPhase, then steps: [(TimeInterval, SpeedPhase)] = []) {
+    /// Shows `phase` now and the next ones at their times (counted from now).
+    private func setSpeedPhase(_ phase: BarLooks.SpeedPhase, then steps: [BarLooks.SpeedStep] = []) {
         speedPhase = phase
         updateSpeedTest()
-        guard let (delay, next) = steps.first else { return }
-        let rest = steps.dropFirst().map { ($0.0 - delay, $0.1) }
-        speedTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+        guard let next = steps.first else { return }
+        let rest = steps.dropFirst().map { BarLooks.SpeedStep(at: $0.at - next.at, phase: $0.phase) }
+        speedTimer = Timer.scheduledTimer(withTimeInterval: next.at, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.speedTimer = nil
-                self?.setSpeedPhase(next, then: rest)
+                self?.setSpeedPhase(next.phase, then: rest)
             }
         }
     }
@@ -462,7 +457,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .idle:
             speedTimer?.invalidate()
             speedTimer = nil
-            speedPhase = .normal
+            speedPhase = .idle
         case .startNeedle:
             speedTestChanged()
             return
@@ -485,38 +480,14 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     private func updateSpeedTest() {
         guard let button = barView?.button(Item.speedTest.rawValue) else { return }
-        let result = speedTest.result
-        switch speedPhase {
-        case .testing:
-            button.show(symbol: Self.needles[needleStep], label: String(localized: "Speed test: testing…"))
-        case .download where result != nil:
-            let speed = SpeedText(mbps: result!.download)
-            button.show(symbol: "arrow.down", text: speed.number, unit: speed.unit,
-                        label: String(localized: "Download \(speed.spoken)"))
-        case .upload where result != nil:
-            let speed = SpeedText(mbps: result!.upload)
-            button.show(symbol: "arrow.up", text: speed.number, unit: speed.unit,
-                        label: String(localized: "Upload \(speed.spoken)"))
-        case .failed:
-            button.show(symbol: "wifi.exclamationmark", label: String(localized: "Speed test failed. Tap to try again."))
-        default:
-            button.show(symbol: "speedometer", label: String(localized: "Speed Test"))
-        }
+        button.show(BarLooks.speedTest(phase: speedPhase, needleStep: needleStep, result: speedTest.result))
     }
 
     // MARK: Weather and CPU
 
     private func updateWeather() {
         guard let button = barView?.button(Item.weather.rawValue) else { return }
-        if let report = weather.report {
-            let text = TemperatureText.short(celsius: report.celsius)
-            button.show(symbol: report.symbol, text: text,
-                        label: String(localized: "Weather: \(report.summary), \(TemperatureText.long(celsius: report.celsius))"))
-        } else if weather.status == .noLocation {
-            button.show(symbol: "location.slash", label: String(localized: "Weather: location not allowed. Tap to open the settings."))
-        } else {
-            button.show(symbol: "cloud", label: String(localized: "Weather: no data yet"))
-        }
+        button.show(BarLooks.weather(report: weather.report, noLocation: weather.status == .noLocation))
     }
 
     /// Reads the CPU temperature now and again in ~10 s, only while its button is on screen.
@@ -524,13 +495,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         cpuTimer?.invalidate()
         cpuTimer = nil
         guard running, !screensAsleep, let button = barView?.button(Item.cpu.rawValue) else { return }
-        if let celsius = cpu.read() {
-            let symbol = celsius < 50 ? "thermometer.low" : celsius < 75 ? "thermometer.medium" : "thermometer.high"
-            button.show(symbol: symbol, text: TemperatureText.short(celsius: Double(celsius)),
-                        label: String(localized: "CPU temperature: \(TemperatureText.long(celsius: Double(celsius)))"))
-        } else {
-            button.show(symbol: "thermometer.medium", text: "—", label: String(localized: "CPU temperature not available"))
-        }
+        button.show(BarLooks.cpu(celsius: cpu.read()))
         let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.updateTemperature() }
         }
@@ -555,28 +520,19 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }.first { $0[kIOPSCurrentCapacityKey] != nil }
         let percent = description?[kIOPSCurrentCapacityKey] as? Int
         let charging = description?[kIOPSIsChargingKey] as? Bool ?? false
-        let text = percent.map { "\($0)%" } ?? "—"
-        let label = charging
-            ? String(localized: "Battery \(text), charging. Tap to switch between percentage and icon; hold to change the colors.")
-            : String(localized: "Battery \(text). Tap to switch between percentage and icon; hold to change the colors.")
+        let look = BarLooks.battery(percent: percent, charging: charging, showIcon: Self.showsBatteryIcon(in: .standard))
 
-        // Level colors only in multicolor mode, on the icon (green > 50 %, yellow 20–50 %, red < 20 %).
-        let showIcon = Self.showsBatteryIcon(in: .standard) && percent != nil
-        let stateColor: NSColor? = switch (showIcon, percent) {
-        case (true, let p?) where p > 50: .systemGreen
-        case (true, let p?) where p >= 20: .systemYellow
-        case (true, _?): .systemRed
-        default: nil
-        }
+        // Level colors only in multicolor mode (applyColors), on the icon.
+        let stateColor = look.level?.color
         if stateColor != button.stateColor {
             button.stateColor = stateColor
             barView.applyColors()
         }
-        if showIcon, let percent {
+        if look.icon, let percent {
             button.show(drawing: { BatteryIcon.image(fraction: CGFloat(percent) / 100, charging: charging, color: $0) },
-                        key: "\(percent)\(charging)", label: label)
+                        key: "\(percent)\(charging)", label: look.label)
         } else {
-            button.show(symbol: nil, text: text, label: label)
+            button.show(symbol: nil, text: look.text, label: look.label)
         }
     }
 
@@ -611,43 +567,22 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     private func updateBrightness() {
         guard let button = barView?.button(Item.brightness.rawValue) else { return } // B-6: no read for a hidden button
-        let level = DisplayBrightness().level ?? 1
-        button.show(
-            symbol: level < 0.5 ? "sun.min.fill" : "sun.max.fill",
-            label: String(localized: "Brightness \(Self.percent(level))"))
+        button.show(BarLooks.brightness(DisplayBrightness().level))
     }
 
     private func updateKeyboardLight() {
         guard let button = barView?.button(Item.keyboardLight.rawValue) else { return }
-        let level = KeyboardBrightness().level ?? 0
-        button.show(
-            symbol: level < 0.5 ? "light.min" : "light.max",
-            label: String(localized: "Keyboard backlight \(Self.percent(level))"))
+        button.show(BarLooks.keyboardLight(KeyboardBrightness().level))
     }
 
     private func updateVolume() {
         guard let button = barView?.button(Item.volume.rawValue) else { return }
         let output = OutputVolume()
-        // Outputs without volume control (HDMI, some DACs) have no level: not shown as muted.
-        let level = output.level ?? 0.5
-        let muted = output.isMuted || level == 0
-        let symbol = muted ? "speaker.slash.fill"
-            : level < 0.34 ? "speaker.wave.1.fill" : level < 0.67 ? "speaker.wave.2.fill" : "speaker.wave.3.fill"
-        button.show(
-            symbol: symbol,
-            label: muted ? String(localized: "Volume, muted") : String(localized: "Volume \(Self.percent(level))"))
+        button.show(BarLooks.volume(level: output.level, muted: output.isMuted))
     }
 
     private func updateMusic() {
-        let playing = playbackWatcher.isPlaying
-        let hint = String(localized: "One tap plays or pauses, two go to the next song, three to the previous one.")
-        barView?.button(Item.music.rawValue)?.show(
-            symbol: playing ? "music.quarternote.3" : "music.note",
-            label: (playing ? String(localized: "Music, playing.") : String(localized: "Music, paused.")) + " " + hint)
-    }
-
-    private static func percent(_ level: Float) -> String {
-        Double(level).formatted(.percent.precision(.fractionLength(0)))
+        barView?.button(Item.music.rawValue)?.show(BarLooks.music(playing: playbackWatcher.isPlaying))
     }
 
     /// Armed jiggler trackings not fired yet. A tracking can't be cancelled, so one left armed by
@@ -675,18 +610,13 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     private func updateJiggler() {
         // State is shown by the symbol, not only by color (R-19).
-        let on = jiggler.isActive
-        barView?.button(Item.jiggler.rawValue)?.show(
-            symbol: on ? "cursorarrow.motionlines" : "cursorarrow",
-            label: on ? String(localized: "Mouse jiggler, on") : String(localized: "Mouse jiggler, off"))
+        barView?.button(Item.jiggler.rawValue)?.show(BarLooks.jiggler(on: jiggler.isActive))
     }
 
     /// Follows the real microphone (R-28), open while a called Siri hears the user (B-2).
     private func updateMicrophone() {
         guard let button = barView?.button(Item.microphone.rawValue) else { return }
-        let muted = microphone.showsMuted
-        button.show(symbol: muted ? "mic.slash.fill" : "mic.fill",
-                    label: muted ? String(localized: "Microphone muted") : String(localized: "Microphone on"))
+        button.show(BarLooks.microphone(muted: microphone.showsMuted))
     }
 
     // MARK: Clock
