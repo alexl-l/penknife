@@ -450,6 +450,9 @@ final class SiriWatcher {
     private let log = Logger(subsystem: "Penknife", category: "Microphone")
     private var observer: AXObserver?
     private var observed: AXUIElement?
+    private var observedPID: pid_t?
+    /// Drops a look that finished after a newer one started.
+    private var generation = 0
     private var launchObserver: NSObjectProtocol?
     private var pendingCheck: DispatchWorkItem?
 
@@ -499,6 +502,7 @@ final class SiriWatcher {
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(newObserver), .defaultMode)
         observer = newObserver
         observed = element
+        observedPID = app.processIdentifier
         scheduleCheck()
     }
 
@@ -513,6 +517,7 @@ final class SiriWatcher {
         }
         observer = nil
         observed = nil
+        observedPID = nil
     }
 
     private static let callback: AXObserverCallback = { _, _, _, refcon in
@@ -528,9 +533,20 @@ final class SiriWatcher {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
     }
 
+    /// The look runs off the main thread (MIC-79): a hung Notification Center can't freeze Penknife.
     private func check() {
-        guard let observed else { return }
-        let shown = Self.siriPanelShown(in: observed)
+        guard let pid = observedPID else { return }
+        generation += 1
+        let mine = generation
+        let apply: @MainActor @Sendable (Bool) -> Void = { [weak self] shown in self?.apply(shown: shown, generation: mine) }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let shown = Self.siriPanelShown(pid: pid)
+            DispatchQueue.main.async { apply(shown) }
+        }
+    }
+
+    private func apply(shown: Bool, generation: Int) {
+        guard generation == self.generation, observed != nil else { return }
         let next = MicrophoneModule.siriHears(panelShown: shown,
                                               recorders: shown ? MeetingTracker.appsUsingMicrophone().map(\.bundleID) : [])
         if shown != panelShown || next != hears {
@@ -542,23 +558,31 @@ final class SiriWatcher {
         onChange()
     }
 
-    /// Looks for Siri's panel among Notification Center's windows (a few small trees; bounded).
-    private static func siriPanelShown(in app: AXUIElement) -> Bool {
+    /// Looks for Siri's panel among Notification Center's windows: identifiers only, breadth-first,
+    /// at most 6 levels and 300 elements, 0.2 s per element, 0.5 s in all.
+    nonisolated private static func siriPanelShown(pid: pid_t) -> Bool {
+        let deadline = Date().addingTimeInterval(0.5)
         func children(_ element: AXUIElement, _ attribute: String) -> [AXUIElement] {
             var value: CFTypeRef?
             guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return [] }
             return value as? [AXUIElement] ?? []
         }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.2)
         var level = children(app, kAXWindowsAttribute)
         var seen = 0
-        for _ in 0..<6 where !level.isEmpty && seen < 300 {
+        for _ in 0..<6 where !level.isEmpty {
+            var next: [AXUIElement] = []
             for element in level {
+                seen += 1
+                guard seen <= 300, Date() < deadline else { return false }
+                AXUIElementSetMessagingTimeout(element, 0.2)
                 var identifier: CFTypeRef?
                 if AXUIElementCopyAttributeValue(element, kAXIdentifierAttribute as CFString, &identifier) == .success,
                    identifier as? String == "SiriWindow" { return true }
+                next += children(element, kAXChildrenAttribute)
             }
-            seen += level.count
-            level = level.flatMap { children($0, kAXChildrenAttribute) }
+            level = next
         }
         return false
     }

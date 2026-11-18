@@ -193,7 +193,7 @@ Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto
 
 - **MIC-72** Browser window titles (they can name the meeting) are used only to match and are never logged or stored.
   Source: D: Meeting detection fix (c) "Titles are never logged" · Code: MS:windowTitle, findCurrent · Verify: log — no meeting title appears in a day of Microphone logs.
-- **MIC-73** No text of Teams' dialogs or buttons is read for matching or logged; logs carry outcome, role/subrole, counts and ms only. Siri's panel is found by its element identifier; nothing of Notification Center (banners included) is read beyond identifiers, or logged.
+- **MIC-73** No text of Teams' dialogs or buttons is read for matching or logged; logs carry outcome, role/subrole, counts and ms only. Siri's panel is found by its element identifier; nothing of Notification Center (banners included) is read beyond identifiers and the window/children structure, or logged.
   Source: R-31 v2 (11-17); legal-advisor "no storing/logging" · Code: TC (all), MS:readMuted (roles only) · Verify: log — `Teams dialog:` and `App mic:` lines contain no label text.
 - **MIC-74** Logs: subsystem `Penknife`, category `Microphone`; press lines at notice (kept by `log show`), keep-muted and Siri's panel at debug; recording processes' bundle IDs are logged in clear.
   Source: D: Meeting = in a call (".notice"); R-34 Built (debug) · Code: MM, MS, TC loggers · Verify: log.
@@ -208,7 +208,7 @@ Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto
   Source: R-28 (11-16) "no constant watching"; R-34 acceptance "zero cost"; D: Menu bar dots · Code: MS:start, MM:updateKeeper, StatusMenu:updateIcon, TouchBarModule:startSources · Verify: manual — `measure-resources` skill on idle Penknife: 0 % CPU, no wakeups from Microphone.
 - **MIC-78** The Chromium/Electron web accessibility tree (`AXManualAccessibility`, `AXEnhancedUserInterface`) is turned on only for the read and turned off right after, unless it was already on (VoiceOver); measured +80 MB while on, freed after.
   Source: D: Reading a meeting app's mute state; D: Meeting button read in Chrome · Code: MS:withWebTree · Verify: auto after refactor — inject the AX get/set: attributes already on are never set; the ones set are cleared at the end.
-- **MIC-79** All Accessibility work runs off the main thread and every wait is bounded (browser ≤ 1 s; read ≤ ~1 s retry; Teams watch 1.5 s, +1.5 s after a button press).
+- **MIC-79** All Accessibility work runs off the main thread and every wait is bounded (browser ≤ 1 s; read ≤ ~1 s retry; Teams watch 1.5 s, +1.5 s after a button press; Siri's panel look ≤ 0.5 s, 0.2 s per element, 300 elements).
   Source: MS:findCurrent/readMuted comments; R-31 · Code: MS, TC (global queue) · Verify: log — `(<ms> ms)` in `App mic:` and `Teams dialog:` lines (measured 50–1300 ms).
 - **MIC-80** Module off releases everything it holds: activation observer, defaults observer, keep-muted listeners (B-1 fixed 2026-11-18), the Siri panel observer.
   Source: R-15 · Code: MM:stop · Verify: **auto, tested** — start/stop twice, `holdsObservers` is false (fails without the B-1 fix; checked 2026-11-18).
