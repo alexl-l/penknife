@@ -1,6 +1,70 @@
 import AppKit
 import QuartzCore
 
+/// The slicing game's rules (S5, TB-49…TB-52): every number in one place, the randomness passed
+/// in, so the tests pass plain values. The view keeps the layers, the motion and the touches.
+nonisolated enum SliceRules {
+    static let lives = 3
+    /// The first object comes 0.6 s after a (re)start.
+    static let firstSpawn: TimeInterval = 0.6
+    /// Cuts closer than this in one swipe are a combo.
+    static let comboWindow: TimeInterval = 0.35
+    /// After game over a tap restarts after 0.8 s; the buttons come back after 6 s.
+    static let restartAfter: TimeInterval = 0.8
+    static let gameOverHold: TimeInterval = 6
+
+    /// 0 at the start, 1 after a minute (TB-50).
+    static func difficulty(elapsed: TimeInterval) -> CGFloat { CGFloat(min(elapsed / 60, 1)) }
+    /// Speed and gravity grow up to × 1.6.
+    static func boost(elapsed: TimeInterval) -> CGFloat { 1 + difficulty(elapsed: elapsed) * 0.6 }
+
+    /// Bombs start after the first 4 s, 13 % of the spawns (`roll` in 0..<1, drawn only then).
+    static func isBomb(elapsed: TimeInterval, roll: @autoclosure () -> Double) -> Bool {
+        elapsed > 4 && roll() < 0.13
+    }
+
+    /// Seconds to the next object: max(0.35, 0.95 − t/90) × `spacing` (0.6…1.3); after 15 s, 25 %
+    /// of the spawns bring another one 0.12 s later (`pairRoll` in 0..<1, drawn only then).
+    static func nextSpawn(elapsed: TimeInterval, spacing: Double, pairRoll: @autoclosure () -> Double) -> TimeInterval {
+        if elapsed > 15 && pairRoll() < 0.25 { return 0.12 }
+        return max(0.35, 0.95 - elapsed / 90) * spacing
+    }
+
+    /// A fruit that rose and falls back out of the bar (TB-50).
+    static func hasEscaped(risen: Bool, y: CGFloat, radius: CGFloat) -> Bool { risen && y < -radius - 1 }
+    /// Only an uncut fruit costs a life, and only while playing; a bomb that falls out costs nothing.
+    static func escapeCostsLife(bomb: Bool, gameOver: Bool) -> Bool { !bomb && !gameOver }
+
+    static func afterEscape(lives: Int) -> (lives: Int, gameOver: Bool) { (lives - 1, lives - 1 <= 0) }
+
+    /// The n-th cut of a combo (each ≤ 0.35 s after the previous in the same swipe); the first is 1.
+    static func comboIndex(sinceLastCut: TimeInterval, previous: Int) -> Int {
+        sinceLastCut < comboWindow ? previous + 1 : 1
+    }
+
+    /// The n-th fruit of a combo is worth n ("+n combo" from the second); a single cut is worth 1.
+    static func points(comboIndex: Int) -> Int { comboIndex }
+
+    enum GameOver: Equatable { case wait, tapRestarts, close }
+
+    /// TB-51: the result alone for 0.8 s, then a tap starts a new game; after 6 s the buttons return.
+    static func afterGameOver(elapsed: TimeInterval) -> GameOver {
+        elapsed > gameOverHold ? .close : elapsed > restartAfter ? .tapRestarts : .wait
+    }
+
+    /// TB-49: the finger's segment a → b cuts a fruit when its closest point is within the radius
+    /// + 2 pt horizontally (the bar is 30 pt tall); a fruit mostly below the edge can't be cut.
+    static func canCut(center c: CGPoint, radius r: CGFloat, from a: CGPoint, to b: CGPoint) -> Bool {
+        let dir = CGVector(dx: b.x - a.x, dy: b.y - a.y)
+        let len = max(hypot(dir.dx, dir.dy), 0.001)
+        let k = max(0, min(1, ((c.x - a.x) * dir.dx + (c.y - a.y) * dir.dy) / (len * len)))
+        return !(c.y < -r * 0.4 || abs(c.x - (a.x + dir.dx * k)) > r + 2)
+    }
+
+    /// TB-52: the score to save, when it beats the best.
+    static func newBest(score: Int, best: Int) -> Int? { score > best ? score : nil }
+}
+
 /// R-23: a slicing game on the whole Touch Bar. Fruits jump up from the bottom edge; a swipe
 /// through one cuts it in two. 3 lives (an uncut fruit that falls back costs one), a cut bomb
 /// ends the game, the best score is kept. Three looks the user picks inside the game.
@@ -155,8 +219,8 @@ final class SliceGameView: NSView {
 
     private func restart() {
         things = []; halves = []; drops = []; floaters = []
-        score = 0; lives = 3; gameOverAt = nil; flash = 0; newRecord = false
-        startTime = CACurrentMediaTime(); last = startTime; nextSpawn = startTime + 0.6
+        score = 0; lives = SliceRules.lives; gameOverAt = nil; flash = 0; newRecord = false
+        startTime = CACurrentMediaTime(); last = startTime; nextSpawn = startTime + SliceRules.firstSpawn
         needsDisplay = true
         renderedEmpty = false
         render(now: startTime)
@@ -165,15 +229,12 @@ final class SliceGameView: NSView {
 
     // MARK: Simulation
 
-    /// 0 at the start, 1 after a minute: speed and spawn rate grow with it.
-    private func difficulty(_ now: CFTimeInterval) -> CGFloat { CGFloat(min((now - startTime) / 60, 1)) }
-
     private func spawn(now: CFTimeInterval) {
         let elapsed = now - startTime
-        let bomb = elapsed > 4 && Double.random(in: 0..<1) < 0.13
+        let bomb = SliceRules.isBomb(elapsed: elapsed, roll: Double.random(in: 0..<1))
         let x = CGFloat.random(in: (fieldMinX + 30)...(fieldMaxX - 30))
         let toCenter: CGFloat = x < (fieldMinX + fieldMaxX) / 2 ? 1 : -1
-        let speed = 1 + difficulty(now) * 0.6
+        let speed = SliceRules.boost(elapsed: elapsed)
         let r: CGFloat = bomb ? 10 : CGFloat(Int.random(in: 20...24)) / 2 // half-point steps: few sprites
         // The center peaks 14–20 pt up the bar.
         let peak = CGFloat.random(in: 14...20) + r
@@ -181,9 +242,8 @@ final class SliceGameView: NSView {
         things.append(Thing(kind: Int.random(in: 0..<Self.fruits.count), bomb: bomb, p: CGPoint(x: x, y: -r),
                             v: CGVector(dx: toCenter * .random(in: 30...140) * speed, dy: vy),
                             r: r, angle: 0, spin: .random(in: -3...3)))
-        let interval = max(0.35, 0.95 - elapsed / 90)
-        nextSpawn = now + interval * Double.random(in: 0.6...1.3)
-        if elapsed > 15 && Double.random(in: 0..<1) < 0.25 { nextSpawn = now + 0.12 } // a pair now and then
+        nextSpawn = now + SliceRules.nextSpawn(elapsed: elapsed, spacing: Double.random(in: 0.6...1.3),
+                                               pairRoll: Double.random(in: 0..<1)) // a pair now and then
     }
 
     private func tick() {
@@ -193,10 +253,10 @@ final class SliceGameView: NSView {
         if let over = gameOverAt {
             // The result stays a while; then the normal buttons come back. Once nothing moves,
             // the 60 Hz timer gives way to a single wake-up.
-            if now - over > 6 { finish(); return }
+            if SliceRules.afterGameOver(elapsed: now - over) == .close { finish(); return }
             if things.isEmpty && halves.isEmpty && drops.isEmpty && floaters.isEmpty && trail.isEmpty && flash == 0 {
                 timer?.invalidate()
-                timer = Timer.scheduledTimer(withTimeInterval: max(0, 6 - (now - over)), repeats: false) { [weak self] _ in
+                timer = Timer.scheduledTimer(withTimeInterval: max(0, SliceRules.gameOverHold - (now - over)), repeats: false) { [weak self] _ in
                     MainActor.assumeIsolated { self?.finish() }
                 }
                 render(now: now)
@@ -205,7 +265,7 @@ final class SliceGameView: NSView {
         } else if now >= nextSpawn {
             spawn(now: now)
         }
-        let g = gravity * (1 + difficulty(now) * 0.6)
+        let g = gravity * SliceRules.boost(elapsed: now - startTime)
         var kept: [Thing] = []
         kept.reserveCapacity(things.count)
         for var t in things {
@@ -217,8 +277,8 @@ final class SliceGameView: NSView {
             // Bounce off the controls on the left and the lives on the right.
             if t.p.x < fieldMinX - t.r { t.p.x = fieldMinX - t.r; t.v.dx = abs(t.v.dx) }
             if t.p.x > fieldMaxX + t.r { t.p.x = fieldMaxX + t.r; t.v.dx = -abs(t.v.dx) }
-            if t.risen && t.p.y < -t.r - 1 {
-                if !t.bomb && gameOverAt == nil { loseLife() }
+            if SliceRules.hasEscaped(risen: t.risen, y: t.p.y, radius: t.r) {
+                if SliceRules.escapeCostsLife(bomb: t.bomb, gameOver: gameOverAt != nil) { loseLife() }
                 continue
             }
             kept.append(t)
@@ -246,9 +306,10 @@ final class SliceGameView: NSView {
     private var fieldRect: CGRect { CGRect(x: fieldMinX - 14, y: 0, width: fieldMaxX - fieldMinX + 28, height: height) }
 
     private func loseLife() {
-        lives -= 1
+        let after = SliceRules.afterEscape(lives: lives)
+        lives = after.lives
         flash = 0.5
-        if lives <= 0 { endGame() }
+        if after.gameOver { endGame() }
     }
 
     private func endGame() {
@@ -260,8 +321,8 @@ final class SliceGameView: NSView {
     }
 
     private func saveBest() {
-        guard score > best else { return }
-        best = score
+        guard let newBest = SliceRules.newBest(score: score, best: best) else { return }
+        best = newBest
         newRecord = true
         UserDefaults.standard.set(best, forKey: Self.bestKey)
     }
@@ -282,7 +343,7 @@ final class SliceGameView: NSView {
             return
         }
         if let over = gameOverAt {
-            if CACurrentMediaTime() - over > 0.8 { GameSound.play(); restart() }
+            if SliceRules.afterGameOver(elapsed: CACurrentMediaTime() - over) != .wait { GameSound.play(); restart() }
             return
         }
         lastTouch = p
@@ -309,9 +370,8 @@ final class SliceGameView: NSView {
         let len = max(hypot(dir.dx, dir.dy), 0.001)
         var survivors: [Thing] = []
         for (index, t) in things.enumerated() {
-            let k = max(0, min(1, ((t.p.x - a.x) * dir.dx + (t.p.y - a.y) * dir.dy) / (len * len)))
             // Mostly below the bar edge (just launched or falling out): not visible, can't be cut.
-            if t.p.y < -t.r * 0.4 || abs(t.p.x - (a.x + dir.dx * k)) > t.r + 2 { survivors.append(t); continue }
+            guard SliceRules.canCut(center: t.p, radius: t.r, from: a, to: b) else { survivors.append(t); continue }
             if t.bomb {
                 flash = 1
                 for _ in 0..<18 {
@@ -333,11 +393,10 @@ final class SliceGameView: NSView {
                 drops.append(Drop(p: t.p, v: CGVector(dx: dir.dx / len * 90 + .random(in: -50...50), dy: .random(in: 0...80)),
                                   color: Self.fruits[t.kind].flesh.cgColor, life: 1))
             }
-            score += 1
-            swipeCuts = now - swipeCutTime < 0.35 ? swipeCuts + 1 : 1
+            swipeCuts = SliceRules.comboIndex(sinceLastCut: now - swipeCutTime, previous: swipeCuts)
             swipeCutTime = now
+            score += SliceRules.points(comboIndex: swipeCuts)
             if swipeCuts >= 2 {
-                score += swipeCuts - 1
                 floaters.append(Floater(text: String(localized: "+\(swipeCuts) combo"), p: t.p, life: 1))
             }
             GameSound.play()

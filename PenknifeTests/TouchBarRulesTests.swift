@@ -605,6 +605,99 @@ struct TouchBarRulesTests {
         #expect(!open(Node.app(window: inner, focus: inner.deepest(below: 2))))
     }
 
+    // MARK: S5 game rules
+
+    // TB-49: a swipe cuts a fruit it crosses within its radius + 2 pt horizontally; a fruit mostly
+    // below the edge (center under −0.4 × radius) can't be cut.
+    @Test("TB-49 what a swipe cuts")
+    func canCut() {
+        let fruit = CGPoint(x: 100, y: 15), r: CGFloat = 11
+        func cuts(_ a: CGPoint, _ b: CGPoint, center: CGPoint = fruit) -> Bool {
+            SliceRules.canCut(center: center, radius: r, from: a, to: b)
+        }
+        #expect(cuts(CGPoint(x: 90, y: 15), CGPoint(x: 110, y: 15)))   // straight through
+        #expect(cuts(CGPoint(x: 60, y: 2), CGPoint(x: 140, y: 28)))    // a slanted swipe through it
+        #expect(cuts(CGPoint(x: 60, y: 15), CGPoint(x: 87, y: 15)))    // ends 2 pt short of the edge
+        #expect(!cuts(CGPoint(x: 60, y: 15), CGPoint(x: 86, y: 15)))   // 3 pt beside it
+        #expect(cuts(CGPoint(x: 100, y: 0), CGPoint(x: 100, y: 30)))   // up and down through it
+        #expect(!cuts(CGPoint(x: 120, y: 0), CGPoint(x: 120, y: 30)))  // up and down beside it
+        #expect(cuts(CGPoint(x: 90, y: 0), CGPoint(x: 110, y: 0), center: CGPoint(x: 100, y: -4.3)))
+        #expect(!cuts(CGPoint(x: 90, y: 0), CGPoint(x: 110, y: 0), center: CGPoint(x: 100, y: -4.5)))
+    }
+
+    // TB-50: difficulty grows for 60 s; speed and gravity up to × 1.6.
+    @Test("TB-50 difficulty", arguments: [(0.0, 0.0, 1.0), (30, 0.5, 1.3), (60, 1, 1.6), (600, 1, 1.6)])
+    func difficulty(elapsed: TimeInterval, level: CGFloat, boost: CGFloat) {
+        #expect(abs(SliceRules.difficulty(elapsed: elapsed) - level) < 1e-9)
+        #expect(abs(SliceRules.boost(elapsed: elapsed) - boost) < 1e-9)
+    }
+
+    // TB-50: bombs after the first 4 s, 13 % of the spawns; a new object every
+    // max(0.35, 0.95 − t/90) s × 0.6–1.3; after 15 s, 25 % bring another one 0.12 s later.
+    @Test("TB-50 spawns")
+    func spawns() {
+        var rolls = 0
+        func roll(_ value: Double) -> Double { rolls += 1; return value }
+        // Outside #expect, which would evaluate the rolls up front.
+        let early = SliceRules.isBomb(elapsed: 4, roll: roll(0))
+        let calm = SliceRules.nextSpawn(elapsed: 15, spacing: 1, pairRoll: roll(0))
+        #expect(!early && rolls == 0)
+        #expect(abs(calm - (0.95 - 15.0 / 90)) < 1e-9 && rolls == 0)
+
+        #expect(SliceRules.isBomb(elapsed: 4.01, roll: 0.129))
+        #expect(!SliceRules.isBomb(elapsed: 4.01, roll: 0.13))
+        #expect(abs(SliceRules.nextSpawn(elapsed: 0, spacing: 1, pairRoll: 0) - 0.95) < 1e-9)
+        #expect(abs(SliceRules.nextSpawn(elapsed: 0, spacing: 0.6, pairRoll: 0) - 0.57) < 1e-9)
+        #expect(abs(SliceRules.nextSpawn(elapsed: 0, spacing: 1.3, pairRoll: 0) - 1.235) < 1e-9)
+        #expect(abs(SliceRules.nextSpawn(elapsed: 54, spacing: 1, pairRoll: 0.9) - 0.35) < 1e-9)
+        #expect(abs(SliceRules.nextSpawn(elapsed: 300, spacing: 1, pairRoll: 0.9) - 0.35) < 1e-9)
+        #expect(SliceRules.nextSpawn(elapsed: 16, spacing: 1, pairRoll: 0.24) == 0.12)
+        #expect(SliceRules.nextSpawn(elapsed: 16, spacing: 1, pairRoll: 0.25) != 0.12)
+        #expect(SliceRules.firstSpawn == 0.6)
+    }
+
+    // TB-50: 3 lives; an uncut fruit that falls back out costs one (not a bomb, not after game over).
+    @Test("TB-50 lives")
+    func lives() {
+        #expect(SliceRules.lives == 3)
+        #expect(SliceRules.afterEscape(lives: 3) == (2, false))
+        #expect(SliceRules.afterEscape(lives: 2) == (1, false))
+        #expect(SliceRules.afterEscape(lives: 1) == (0, true))
+        #expect(SliceRules.escapeCostsLife(bomb: false, gameOver: false))
+        #expect(!SliceRules.escapeCostsLife(bomb: true, gameOver: false))
+        #expect(!SliceRules.escapeCostsLife(bomb: false, gameOver: true))
+        #expect(SliceRules.hasEscaped(risen: true, y: -12.1, radius: 11))
+        #expect(!SliceRules.hasEscaped(risen: true, y: -12, radius: 11))
+        #expect(!SliceRules.hasEscaped(risen: false, y: -30, radius: 11)) // just launched, below the edge
+    }
+
+    // TB-50: the n-th fruit of a combo (each cut ≤ 0.35 s after the previous) is worth n; a single cut 1.
+    @Test("TB-50 combos and points")
+    func combos() {
+        #expect(SliceRules.comboIndex(sinceLastCut: 10, previous: 0) == 1)
+        #expect(SliceRules.comboIndex(sinceLastCut: 0.1, previous: 0) == 1) // a new swipe starts at 0
+        #expect(SliceRules.comboIndex(sinceLastCut: 0.2, previous: 1) == 2)
+        #expect(SliceRules.comboIndex(sinceLastCut: 0.34, previous: 2) == 3)
+        #expect(SliceRules.comboIndex(sinceLastCut: 0.35, previous: 3) == 1)
+        #expect((1...3).map { SliceRules.points(comboIndex: $0) } == [1, 2, 3]) // 6 points for three in a swipe
+    }
+
+    // TB-51: after game over a tap restarts after 0.8 s; the buttons come back after 6 s.
+    @Test("TB-51 after game over", arguments: [
+        (0.5, SliceRules.GameOver.wait), (0.8, .wait), (0.9, .tapRestarts), (6, .tapRestarts), (6.1, .close),
+    ])
+    func afterGameOver(elapsed: TimeInterval, expected: SliceRules.GameOver) {
+        #expect(SliceRules.afterGameOver(elapsed: elapsed) == expected)
+    }
+
+    // TB-52: the best score is replaced only when beaten.
+    @Test("TB-52 a new best")
+    func newBest() {
+        #expect(SliceRules.newBest(score: 5, best: 3) == 5)
+        #expect(SliceRules.newBest(score: 3, best: 3) == nil)
+        #expect(SliceRules.newBest(score: 0, best: 0) == nil)
+    }
+
     // MARK: S6 module lifecycle
 
     /// Records what the module asks of the system; never touches the real Touch Bar.
