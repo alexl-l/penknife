@@ -4,7 +4,7 @@
 
 # Penknife
 
-**Silencia la reunión en la que estás, encuentra lo que copiaste, marca cualquier captura.**<br>
+**Silencia la reunión en la que estás, encuentra lo que copiaste, marca y graba tu pantalla.**<br>
 Una app diminuta de la barra de menús para tu Mac. Gratis y de código abierto.
 
 <a href="https://github.com/alexl-l/penknife/releases/latest"><img src="https://img.shields.io/badge/Descargar_para_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Descargar para macOS"></a>
@@ -32,6 +32,8 @@ Cada parte es un módulo. Desactiva lo que no necesites y no gastará CPU ni mem
 <h3>Silenciar el micrófono en reuniones</h3>
 Un atajo silencia la reunión en la que estás: Teams, Google Meet, Zoom, Slack Huddles o Webex. Solo cuentan las apps con una llamada en curso, y cada una usa su propio atajo, que puedes editar en Ajustes. Sin llamada, silencia el micrófono del Mac. El icono y el punto de estado muestran siempre el estado real.
 
+Silenciado se queda silenciado: si "Oye Siri" abre el micrófono del Mac porque el Mac ha reproducido un sonido, Penknife lo vuelve a silenciar en un momento ("Mantener el micrófono silenciado" en Ajustes, activado por defecto).
+
 Opcional, desactivado por defecto: si al activar el micro en Teams con el atajo Teams te pide consentimiento, Penknife puede aceptarlo por ti. Sigues siendo responsable del consentimiento; consulta la política de tu empresa. Penknife no está afiliado a Microsoft.
 </td>
 <td width="50%" valign="top">
@@ -43,8 +45,10 @@ Busca, fija lo que más usas y pega con ⌘1–⌘9. Nunca guarda contraseñas n
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
-<h3>Capturas de pantalla</h3>
-Selecciona una zona o una ventana, márcala con flechas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. No se sube nada a internet.
+<h3>Capturas y grabación de pantalla</h3>
+Selecciona una zona o una ventana, márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. No se sube nada a internet.
+
+Graba toda la pantalla, una zona o una ventana como vídeo o GIF (⌃⌥R). Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final antes de guardar.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Ajustes de música">
@@ -103,7 +107,8 @@ Penknife pide solo lo que necesitan los módulos que actives:
 - **Accesibilidad**: atajos que actúan sobre otras apps, teclas multimedia, mover el ratón y leer el botón de silencio de la reunión para que la llamada y el Mac coincidan.
 - **Automatización (Apple Events)**: para controlar Spotify y Apple Music.
 - **Ubicación** (opcional): el tiempo local.
-- **Grabación de pantalla**: capturas de pantalla.
+- **Grabación de pantalla**: capturas y grabaciones de pantalla.
+- **Micrófono** (opcional): solo si lo activas al grabar.
 
 </details>
 
@@ -121,13 +126,20 @@ Safari no necesita nada. Si no se puede leer el botón, Penknife envía igualmen
 </details>
 
 <details>
+<summary><b>"Oye Siri" abre mi micrófono cuando el Mac reproduce un sonido</b></summary>
+
+Con "Oye Siri" activado, macOS puede abrir el micrófono unos segundos cuando el Mac reproduce un sonido, aunque estés silenciado. "Mantener el micrófono silenciado" (Ajustes → Micrófono, activado por defecto) lo vuelve a silenciar en un momento. Si llamas tú a Siri, te sigue oyendo. Si prefieres que Siri no escuche mientras estás silenciado, puedes cambiar "Al oír" en los ajustes de Siri.
+
+</details>
+
+<details>
 <summary><b>Privacidad</b></summary>
 
 Penknife no tiene cuenta, ni analíticas, ni rastreo.
 
 - **El tiempo** envía a [Open-Meteo](https://open-meteo.com/) solo coordenadas redondeadas a unos 11 km. Open-Meteo ve tu dirección IP.
 - **El test de velocidad** usa la herramienta `networkQuality` de macOS, que contacta con servidores de prueba de Apple.
-- **El historial del portapapeles** y **las capturas** se quedan en tu Mac.
+- **El historial del portapapeles**, **las capturas** y **las grabaciones de pantalla** se quedan en tu Mac.
 
 </details>
 

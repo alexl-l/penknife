@@ -4,7 +4,7 @@
 
 # Penknife
 
-**Mute the meeting you're in, find anything you copied, mark up any screenshot.**<br>
+**Mute the meeting you're in, find anything you copied, mark up and record your screen.**<br>
 One tiny menu bar app for your Mac. Free and open source.
 
 <a href="https://github.com/alexl-l/penknife/releases/latest"><img src="https://img.shields.io/badge/Download_for_macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS"></a>
@@ -32,6 +32,8 @@ Every part is a module. Turn off what you don't need and it uses no CPU or memor
 <h3>Microphone mute for meetings</h3>
 One shortcut mutes the meeting you're in: Teams, Google Meet, Zoom, Slack Huddles or Webex. Only apps in a call count, and each uses its own shortcut, which you can edit in Settings. With no call, it mutes your Mac's microphone. The icon and status dot always show the real state.
 
+Muted stays muted: when "Hey Siri" opens the Mac's microphone because the Mac played a sound, Penknife mutes it again within a moment ("Keep the microphone muted" in Settings, on by default).
+
 Optional, off by default: when you unmute in Teams with the shortcut and Teams asks for your consent, Penknife can accept it for you. You remain responsible for consent; check your employer's policy. Penknife is not affiliated with Microsoft.
 </td>
 <td width="50%" valign="top">
@@ -43,8 +45,10 @@ Search, pin what you reuse and paste with ⌘1–⌘9. Passwords and other conce
 <tr>
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
-<h3>Screenshots</h3>
-Select an area or a window, mark it with arrows, text, highlighter, shapes, pen and blur, then copy or save. Nothing is uploaded.
+<h3>Screenshots and screen recording</h3>
+Select an area or a window, mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Nothing is uploaded.
+
+Record the full screen, an area or a window as a video or GIF (⌃⌥R). Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end before you save.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Music settings">
@@ -103,7 +107,8 @@ Penknife asks only for what the modules you turn on need:
 - **Accessibility**: shortcuts that act on other apps, media keys, the mouse jiggler, and reading a meeting's mute button so the call and your Mac stay in sync.
 - **Automation (Apple Events)**: to control Spotify and Apple Music.
 - **Location** (optional): local weather.
-- **Screen Recording**: screenshots.
+- **Screen Recording**: screenshots and screen recordings.
+- **Microphone** (optional): only if you switch it on while recording.
 
 </details>
 
@@ -121,13 +126,20 @@ Safari needs nothing. If the button can't be read, Penknife still sends the meet
 </details>
 
 <details>
+<summary><b>"Hey Siri" opens my microphone when the Mac plays a sound</b></summary>
+
+With "Hey Siri" on, macOS can open the microphone for a few seconds when the Mac plays a sound, even if you are muted. Penknife's "Keep the microphone muted" (Settings → Microphone, on by default) mutes it again within a moment. If you call Siri yourself, it still hears you. If you'd rather Siri didn't listen while you're muted, you can change "Listen for" in Siri settings.
+
+</details>
+
+<details>
 <summary><b>Privacy</b></summary>
 
 Penknife has no account, no analytics and no tracking.
 
 - **Weather** sends only coordinates rounded to about 11 km to [Open-Meteo](https://open-meteo.com/). Open-Meteo sees your IP address.
 - **Speed test** runs macOS's own `networkQuality` tool, which contacts Apple's test servers.
-- **Clipboard history** and **screenshots** stay on your Mac.
+- **Clipboard history**, **screenshots** and **screen recordings** stay on your Mac.
 
 </details>
 
