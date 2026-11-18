@@ -61,7 +61,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
     private var jiggler: JigglerModule? { manager.module(.jiggler) as? JigglerModule }
     private var microphone: MicrophoneModule? { manager.module(.microphone) as? MicrophoneModule }
-    private var dotsOn: Bool { UserDefaults.standard.object(forKey: Self.dotsKey) as? Bool ?? true }
+    private var dotsOn: Bool { Self.dotsOn(in: .standard) }
+    static func dotsOn(in defaults: UserDefaults) -> Bool { defaults.object(forKey: dotsKey) as? Bool ?? true }
 
     /// Redraws when the jiggler turns on or off, or a module is switched on or off. Event-driven, no timer.
     private func trackState() {

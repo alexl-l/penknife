@@ -67,9 +67,11 @@ nonisolated enum MeetingPlatform: String, CaseIterable, Identifiable {
     private var enabledKey: String { "meeting.\(rawValue).enabled" }
 
     var isEnabled: Bool {
-        get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
+        get { isEnabled(in: .standard) }
         nonmutating set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
     }
+
+    func isEnabled(in defaults: UserDefaults) -> Bool { defaults.object(forKey: enabledKey) as? Bool ?? true }
 
     /// Fallback symbol when the app isn't installed (Meet has no app).
     var symbol: String {
@@ -362,24 +364,36 @@ final class MeetingTracker {
     nonisolated static func withWebTree<T>(pid: pid_t, chromium: Bool, _ body: (AXUIElement, Bool) -> T?) -> T? {
         let app = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(app, 0.25)
+        return withWebTreeAttributes(chromium: chromium, isOn: { attribute in
+            var current: CFTypeRef?
+            return AXUIElementCopyAttributeValue(app, attribute as CFString, &current) == .success
+                && (current as? Bool) == true
+        }, set: { attribute, on in
+            AXUIElementSetAttributeValue(app, attribute as CFString, on ? kCFBooleanTrue : kCFBooleanFalse)
+        }) { freshTree in
+            // Chrome also builds it when a client asks for the focused element.
+            var focused: CFTypeRef?
+            AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused)
+            return body(app, freshTree)
+        }
+    }
+
+    /// The on/off rule of `withWebTree`, with the Accessibility reads and writes passed in: each
+    /// attribute that isn't on yet is set (each one checked right before its own set) and cleared
+    /// after `body`; one already on is never touched. `body` gets whether any was turned on.
+    nonisolated static func withWebTreeAttributes<T>(chromium: Bool, isOn: (String) -> Bool,
+                                                     set: (String, Bool) -> Void, _ body: (Bool) -> T?) -> T? {
         var enabledHere: [String] = []
         if chromium {
-            for attribute in [manualAccessibility, enhancedUserInterface] {
-                var current: CFTypeRef?
-                let wasOn = AXUIElementCopyAttributeValue(app, attribute as CFString, &current) == .success
-                    && (current as? Bool) == true
-                guard !wasOn else { continue }
-                AXUIElementSetAttributeValue(app, attribute as CFString, kCFBooleanTrue)
+            for attribute in [manualAccessibility, enhancedUserInterface] where !isOn(attribute) {
+                set(attribute, true)
                 enabledHere.append(attribute)
             }
         }
         defer {
-            for attribute in enabledHere { AXUIElementSetAttributeValue(app, attribute as CFString, kCFBooleanFalse) }
+            for attribute in enabledHere { set(attribute, false) }
         }
-        // Chrome also builds it when a client asks for the focused element.
-        var focused: CFTypeRef?
-        AXUIElementCopyAttributeValue(app, kAXFocusedUIElementAttribute as CFString, &focused)
-        return body(app, !enabledHere.isEmpty)
+        return body(!enabledHere.isEmpty)
     }
 
     /// The meeting's mic state read in one window (true = muted), nil when its button isn't
@@ -496,7 +510,7 @@ final class MeetingTracker {
         }
     }
 
-    private static func flags(_ modifiers: NSEvent.ModifierFlags) -> CGEventFlags {
+    static func flags(_ modifiers: NSEvent.ModifierFlags) -> CGEventFlags {
         var flags: CGEventFlags = []
         if modifiers.contains(.command) { flags.insert(.maskCommand) }
         if modifiers.contains(.shift) { flags.insert(.maskShift) }

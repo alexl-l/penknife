@@ -18,7 +18,8 @@ enum AlertCategory: String, CaseIterable, Identifiable {
         }
     }
 
-    var isShown: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+    var isShown: Bool { isShown(in: .standard) }
+    func isShown(in defaults: UserDefaults) -> Bool { defaults.object(forKey: key) as? Bool ?? true }
 }
 
 /// What the alert says, which sets the symbol color. State is also in the text, never only in color (R-19).
@@ -43,8 +44,9 @@ final class HUD {
 
     static let durationKey = "hud.duration"
     static let durations: [Double] = [1, 2, 4, 8, 15]
-    static var duration: Double {
-        let value = UserDefaults.standard.double(forKey: durationKey)
+    static var duration: Double { duration(in: .standard) }
+    static func duration(in defaults: UserDefaults) -> Double {
+        let value = defaults.double(forKey: durationKey)
         return value > 0 ? value : 4
     }
 

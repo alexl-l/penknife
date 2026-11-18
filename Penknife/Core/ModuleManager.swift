@@ -47,8 +47,7 @@ final class ModuleManager {
     /// Starts the modules that are on. Called once at launch.
     func startEnabledModules() {
         for module in modules {
-            let on = defaults.object(forKey: key(module.id)) as? Bool ?? module.id.defaultOn
-            if on {
+            if Self.isOn(module.id, in: defaults) {
                 enabled.insert(module.id)
                 module.start()
             } else {
@@ -60,7 +59,7 @@ final class ModuleManager {
 
     func setEnabled(_ id: ModuleID, _ on: Bool) {
         guard let module = module(id), on != isEnabled(id) else { return }
-        defaults.set(on, forKey: key(id))
+        defaults.set(on, forKey: Self.key(id))
         if on {
             enabled.insert(id)
             setShortcuts(of: module, active: true)
@@ -111,9 +110,15 @@ final class ModuleManager {
     private func runHotKey(_ action: ModuleAction, fn: Bool) {
         let now = Date()
         let name = action.shortcut.rawValue
-        if let last = lastHotKey[name], last.fn != fn, now.timeIntervalSince(last.at) < 0.1 { return }
+        guard Self.shouldRun(last: lastHotKey[name], fn: fn, now: now) else { return }
         lastHotKey[name] = (fn, now)
         action.perform()
+    }
+
+    /// False only for the other twin of the same press: it arrives < 0.1 s after the last run.
+    static func shouldRun(last: (fn: Bool, at: Date)?, fn: Bool, now: Date) -> Bool {
+        guard let last else { return true }
+        return last.fn == fn || now.timeIntervalSince(last.at) >= 0.1
     }
 
     /// F-key shortcuts also fire with Fn (Touch Bar F keys), see FnHotKeys.
@@ -125,5 +130,10 @@ final class ModuleManager {
         fnKeys.set(enabledActions.map { action in (action.shortcut, { [weak self] in self?.runHotKey(action, fn: true) }) })
     }
 
-    private func key(_ id: ModuleID) -> String { "module.\(id.rawValue).enabled" }
+    /// Whether a module is on at launch: the user's choice, else its default.
+    static func isOn(_ id: ModuleID, in defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: key(id)) as? Bool ?? id.defaultOn
+    }
+
+    private static func key(_ id: ModuleID) -> String { "module.\(id.rawValue).enabled" }
 }

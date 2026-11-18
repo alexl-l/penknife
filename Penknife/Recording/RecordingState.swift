@@ -11,9 +11,11 @@ enum RecordingPrefs {
     static let fades: [Double] = [0, 1, 3, 5, 10]
 
     static var microphone: Bool {
-        get { UserDefaults.standard.bool(forKey: micKey) }
+        get { microphone(in: .standard) }
         set { UserDefaults.standard.set(newValue, forKey: micKey) }
     }
+
+    static func microphone(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: micKey) }
 
     static var macSound: Bool {
         get { UserDefaults.standard.bool(forKey: soundKey) }

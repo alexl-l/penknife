@@ -48,6 +48,90 @@ struct MicrophoneRulesTests {
         }
     }
 
+    // MIC-69 (with MIC-18, MIC-37, MIC-43): what a Mac that never opened Settings gets. Read from an
+    // empty suite, never the user's settings (this Mac has hud.duration, teamsConsent and
+    // recording.microphone changed, so a leak would fail here).
+    @Test("MIC-69 MIC-18 MIC-37 MIC-43 defaults on a fresh Mac")
+    func freshDefaults() throws {
+        let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))
+        let keys = ["module.microphone.enabled", MicrophoneModule.alsoMuteMacKey, MicrophoneModule.keepMutedKey,
+                    TeamsConsent.enabledKey, StatusMenu.dotsKey, AlertCategory.microphone.key, HUD.durationKey,
+                    RecordingPrefs.micKey] + MeetingPlatform.allCases.map { "meeting.\($0.rawValue).enabled" }
+        for key in keys { #expect(empty.object(forKey: key) == nil, "\(key) leaked into the empty suite") }
+
+        #expect(ModuleManager.isOn(.microphone, in: empty))
+        #expect(KeyboardShortcuts.Name.toggleMicrophone.defaultShortcut == .init(.f5))
+        for platform in MeetingPlatform.allCases { #expect(platform.isEnabled(in: empty), "\(platform)") }
+        #expect(MicrophoneModule.alsoMuteMac(in: empty))
+        #expect(MicrophoneModule.keepMuted(in: empty))
+        #expect(!TeamsConsent.isEnabled(in: empty))
+        #expect(StatusMenu.dotsOn(in: empty))
+        #expect(AlertCategory.microphone.isShown(in: empty))
+        #expect(HUD.duration(in: empty) == 4)
+        #expect(!RecordingPrefs.microphone(in: empty))
+    }
+
+    // MIC-02: one press = one action. A bare F key also arrives through its Fn twin; only that
+    // second twin of the same press is dropped, never a real second press.
+    @Test("MIC-02 one press runs once", arguments: [
+        (false, 0.05, true),   // same twin again: a real press, however fast
+        (true, 0.05, false),   // the other twin right after: the same press
+        (true, 0.2, true),     // the other twin later: a new press
+    ])
+    func onePressRunsOnce(fn: Bool, after seconds: Double, runs: Bool) {
+        let press = Date()
+        #expect(ModuleManager.shouldRun(last: nil, fn: fn, now: press))
+        #expect(ModuleManager.shouldRun(last: (fn: false, at: press), fn: fn, now: press + seconds) == runs)
+    }
+
+    // MIC-20: a desktop meeting app gets the recorded modifiers with the key.
+    @Test("MIC-20 the shortcut's modifiers are sent")
+    func shortcutModifiers() {
+        #expect(MeetingTracker.flags([.command, .shift]) == [.maskCommand, .maskShift])
+        #expect(MeetingTracker.flags([.option, .control]) == [.maskAlternate, .maskControl])
+        #expect(MeetingTracker.flags([.command, .shift, .option, .control])
+                == [.maskCommand, .maskShift, .maskAlternate, .maskControl])
+        #expect(MeetingTracker.flags([]) == [])
+    }
+
+    // MIC-78: the web accessibility tree is on only during the read; one already on (VoiceOver)
+    // is never set nor cleared.
+    @Test("MIC-78 the web tree is turned on only for the read", arguments: [
+        ([], true),
+        (["AXManualAccessibility"], true),
+        (["AXManualAccessibility", "AXEnhancedUserInterface"], false),
+    ] as [(Set<String>, Bool)])
+    func webTreeOnlyForTheRead(alreadyOn: Set<String>, fresh: Bool) {
+        let all: Set = ["AXManualAccessibility", "AXEnhancedUserInterface"]
+        var on = alreadyOn
+        var writes: [String] = []
+        var duringRead: Set<String> = []
+        var sawFresh: Bool?
+        let result = MeetingTracker.withWebTreeAttributes(chromium: true, isOn: { on.contains($0) }, set: { attribute, value in
+            writes.append(attribute)
+            if value { on.insert(attribute) } else { on.remove(attribute) }
+        }) { freshTree in
+            duringRead = on
+            sawFresh = freshTree
+            return 7
+        }
+        #expect(result == 7)
+        #expect(duringRead == all)
+        #expect(on == alreadyOn)
+        #expect(sawFresh == fresh)
+        #expect(writes.count == 2 * all.subtracting(alreadyOn).count)
+        #expect(Set(writes).isDisjoint(with: alreadyOn))
+    }
+
+    @Test("MIC-78 a non-Chromium app's tree is not touched")
+    func webTreeNotChromium() {
+        var touched = false
+        let fresh = MeetingTracker.withWebTreeAttributes(chromium: false, isOn: { _ in touched = true; return false },
+                                                          set: { _, _ in touched = true }) { $0 }
+        #expect(fresh == false)
+        #expect(!touched)
+    }
+
     // MIC-22: IT MUST WORK IN CHROME, CHROME DEV, OPERA, SAFARI AND FIREFOX (user, 2026-11-16).
     @Test("MIC-22 the five required browsers are known")
     func requiredBrowsersAreKnown() {

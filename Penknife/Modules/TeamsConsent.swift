@@ -48,7 +48,8 @@ nonisolated struct AXNode: ConsentNode {
 /// Never camera or screen sharing. Only the outcome is logged, never text.
 nonisolated enum TeamsConsent {
     static let enabledKey = "microphone.teamsConsent"
-    static var isEnabled: Bool { UserDefaults.standard.bool(forKey: enabledKey) }
+    static var isEnabled: Bool { isEnabled(in: .standard) }
+    static func isEnabled(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: enabledKey) }
 
     private static let log = Logger(subsystem: "Penknife", category: "Microphone")
 

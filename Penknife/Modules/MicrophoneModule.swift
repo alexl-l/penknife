@@ -93,7 +93,8 @@ final class MicrophoneModule: Module {
     /// On by default (designer + user, 2026-11-17): a mute that doesn't stay muted breaks the
     /// promise. With "Listen for Siri" on, every sound the Mac plays makes Siri clear the mute and
     /// listen ~5.5 s (measured 2026-11-17).
-    static var keepMuted: Bool { UserDefaults.standard.object(forKey: keepMutedKey) as? Bool ?? true }
+    static var keepMuted: Bool { keepMuted(in: .standard) }
+    static func keepMuted(in defaults: UserDefaults) -> Bool { defaults.object(forKey: keepMutedKey) as? Bool ?? true }
 
     /// Whether macOS listens for "Hey Siri" (what opens the microphone on every sound).
     static var heySiriOn: Bool { UserDefaults(suiteName: "com.apple.Siri")?.bool(forKey: "VoiceTriggerUserEnabled") ?? false }
@@ -139,7 +140,8 @@ final class MicrophoneModule: Module {
     /// On by default (user, 2026-11-16): a meeting app's own mute state can't be read (Teams'
     /// local API was retired in June 2026), so the Mac's microphone is muted too and the icon,
     /// which follows the Mac's microphone, matches the call.
-    static var alsoMuteMac: Bool { UserDefaults.standard.object(forKey: alsoMuteMacKey) as? Bool ?? true }
+    static var alsoMuteMac: Bool { alsoMuteMac(in: .standard) }
+    static func alsoMuteMac(in defaults: UserDefaults) -> Bool { defaults.object(forKey: alsoMuteMacKey) as? Bool ?? true }
 
     /// The REAL state of the device (user, 2026-11-16: the Touch Bar and the dot must show what
     /// the microphone is doing, never what Penknife thinks), read from the control a press writes (`readMuted`).
