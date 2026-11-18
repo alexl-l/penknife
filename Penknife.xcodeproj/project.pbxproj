@@ -192,6 +192,7 @@
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Penknife controls your music player and reads the active browser tab to find your meeting.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Penknife records your voice in screen recordings, only when you turn on the microphone.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -228,6 +229,7 @@
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Penknife controls your music player and reads the active browser tab to find your meeting.";
 				INFOPLIST_KEY_NSLocationUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Penknife shows the weather for your approximate location. Only rounded coordinates are sent to Open-Meteo.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Penknife records your voice in screen recordings, only when you turn on the microphone.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

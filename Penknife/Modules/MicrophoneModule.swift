@@ -11,6 +11,15 @@ final class MicrophoneModule: Module {
     private let log = Logger(subsystem: "Penknife", category: "Microphone")
     /// Input volume before muting, for devices without a mute control.
     private var savedVolume: Float32?
+    /// R-34: watches the microphone while "Keep the microphone muted" is on.
+    private var keeper: MicrophoneWatcher?
+    private var lastMuted = false
+    /// Penknife itself changes the mute until then (never undone).
+    private var ownChangeUntil = Date.distantPast
+    /// When the Mac last started playing a sound (the speakers or headphones began running).
+    private var outputStarted = Date.distantPast
+    private var outputWatcher: OutputWatcher?
+    private var defaultsObserver: NSObjectProtocol?
 
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .toggleMicrophone, title: String(localized: "Mute Microphone"), symbol: "mic.slash",
@@ -22,10 +31,69 @@ final class MicrophoneModule: Module {
 
     func start() {
         meetings.start()
+        updateKeeper()
+        defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
+                                                                  queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.updateKeeper() }
+        }
     }
 
     func stop() {
         meetings.stop()
+        if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        defaultsObserver = nil
+        keeper?.stop()
+        keeper = nil
+    }
+
+    // MARK: Keep muted (R-34)
+
+    static let keepMutedKey = "microphone.keepMuted"
+    /// On by default (designer + user, 2026-11-17): a mute that doesn't stay muted breaks the
+    /// promise. With "Listen for Siri" on, every sound the Mac plays makes Siri clear the mute and
+    /// listen ~5.5 s (measured 2026-11-17).
+    static var keepMuted: Bool { UserDefaults.standard.object(forKey: keepMutedKey) as? Bool ?? true }
+
+    /// Whether macOS listens for "Hey Siri" (what opens the microphone on every sound).
+    static var heySiriOn: Bool { UserDefaults(suiteName: "com.apple.Siri")?.bool(forKey: "VoiceTriggerUserEnabled") ?? false }
+
+    /// CoreAudio tells us when the mute changes: no polling, nothing between changes.
+    private func updateKeeper() {
+        guard Self.keepMuted else {
+            keeper?.stop()
+            keeper = nil
+            outputWatcher?.stop()
+            outputWatcher = nil
+            return
+        }
+        guard keeper == nil else { return }
+        lastMuted = isMuted
+        let watcher = MicrophoneWatcher { [weak self] in self?.microphoneChanged() }
+        watcher.start()
+        keeper = watcher
+        let output = OutputWatcher { [weak self] in self?.outputStarted = Date() }
+        output.start()
+        outputWatcher = output
+    }
+
+    /// Something cleared the mute. Siri on its own clears it right after the Mac starts playing
+    /// a sound (measured: 0.05 s after); when the user calls Siri, it clears it with nothing
+    /// playing, and its answer starts after (0.13–0.17 s). So: cleared within half a second of a
+    /// sound starting, not by Penknife, with nothing but Siri on the microphone → muted again at
+    /// once. Called Siri listens as before, and puts the mute back itself when it ends (user,
+    /// 2026-11-17: "quiero las dos cosas").
+    private func microphoneChanged() {
+        let muted = isMuted
+        defer { lastMuted = isMuted }
+        guard lastMuted, !muted, Date() > ownChangeUntil, Date().timeIntervalSince(outputStarted) < 0.5 else { return }
+        let others = MeetingTracker.appsUsingMicrophone().map(\.bundleID).filter { $0 != Self.siriBundleID }
+        guard others.isEmpty, let device = Self.defaultInputDevice() else { return }
+        if Self.isSettable(device, kAudioDevicePropertyMute) {
+            Self.set(device, kAudioDevicePropertyMute, UInt32(1))
+        } else if Self.isSettable(device, kAudioDevicePropertyVolumeScalar) {
+            Self.set(device, kAudioDevicePropertyVolumeScalar, Float32(0))
+        }
+        log.debug("Kept muted: the mute was cleared by someone else")
     }
 
     static let alsoMuteMacKey = "microphone.alsoMuteMac"
@@ -104,6 +172,8 @@ final class MicrophoneModule: Module {
             return
         }
         log.notice("Toggle: \(mute ? "mute" : "unmute", privacy: .public), mute settable: \(Self.isSettable(device, kAudioDevicePropertyMute)), volume settable: \(Self.isSettable(device, kAudioDevicePropertyVolumeScalar))")
+        // Our own change: "Keep the microphone muted" never undoes it.
+        ownChangeUntil = Date().addingTimeInterval(1)
 
         if Self.isSettable(device, kAudioDevicePropertyMute) {
             Self.set(device, kAudioDevicePropertyMute, UInt32(mute ? 1 : 0))
@@ -173,6 +243,75 @@ final class MicrophoneModule: Module {
         var address = address(selector, device)
         var value = value
         AudioObjectSetPropertyData(device, &address, 0, nil, UInt32(MemoryLayout<T>.size), &value)
+    }
+}
+
+/// Calls `onStart` when the default output device starts running (the Mac begins playing a
+/// sound), following the default output when it changes. Listeners only: nothing between events.
+final class OutputWatcher {
+    private let onStart: () -> Void
+    private var device: AudioObjectID?
+    private var deviceListener: AudioObjectPropertyListenerBlock?
+    private var defaultListener: AudioObjectPropertyListenerBlock?
+
+    private static let defaultOutputAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioHardwarePropertyDefaultOutputDevice, mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain)
+    private static let runningAddress = AudioObjectPropertyAddress(
+        mSelector: kAudioDevicePropertyDeviceIsRunningSomewhere, mScope: kAudioObjectPropertyScopeGlobal,
+        mElement: kAudioObjectPropertyElementMain)
+
+    init(onStart: @escaping () -> Void) {
+        self.onStart = onStart
+    }
+
+    func start() {
+        guard defaultListener == nil else { return }
+        var address = Self.defaultOutputAddress
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            MainActor.assumeIsolated { self?.watchDevice() }
+        }
+        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, listener)
+        defaultListener = listener
+        watchDevice()
+    }
+
+    func stop() {
+        unwatchDevice()
+        guard let defaultListener else { return }
+        var address = Self.defaultOutputAddress
+        AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, .main, defaultListener)
+        self.defaultListener = nil
+    }
+
+    private func watchDevice() {
+        unwatchDevice()
+        var address = Self.defaultOutputAddress
+        var device = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device) == noErr,
+              device != kAudioObjectUnknown else { return }
+        let listener: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            MainActor.assumeIsolated {
+                guard let self, let device = self.device else { return }
+                var address = Self.runningAddress
+                var running: UInt32 = 0
+                var size = UInt32(MemoryLayout<UInt32>.size)
+                if AudioObjectGetPropertyData(device, &address, 0, nil, &size, &running) == noErr, running != 0 { self.onStart() }
+            }
+        }
+        var running = Self.runningAddress
+        AudioObjectAddPropertyListenerBlock(device, &running, .main, listener)
+        self.device = device
+        deviceListener = listener
+    }
+
+    private func unwatchDevice() {
+        guard let device, let deviceListener else { return }
+        var address = Self.runningAddress
+        AudioObjectRemovePropertyListenerBlock(device, &address, .main, deviceListener)
+        self.device = nil
+        self.deviceListener = nil
     }
 }
 

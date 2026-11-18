@@ -23,7 +23,16 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private var defaultsObserver: NSObjectProtocol?
     private var lastDotsOn: Bool?
     /// What the icon shows now (nil = no dot), to redraw only on a real change.
-    private var shown: (mic: Bool?, jiggler: Bool?)?
+    private var shown: (mic: Bool?, jiggler: Bool?, recording: String?, paused: Bool)?
+    private let recording = RecordingIndicator.shared
+    /// While recording (R-29): a red record symbol and the time; a click stops.
+    private let recordGlyph: NSImage? = {
+        let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+            .applying(.init(paletteColors: [.white, .systemRed]))
+        let image = NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: nil)?.withSymbolConfiguration(configuration)
+        image?.isTemplate = false
+        return image
+    }()
 
     init(manager: ModuleManager, updater: Updater, openSettings: @escaping () -> Void) {
         self.manager = manager
@@ -59,6 +68,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         withObservationTracking {
             _ = jiggler?.isActive
             _ = manager.enabled
+            _ = recording.time
+            _ = recording.paused
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
@@ -83,8 +94,23 @@ final class StatusMenu: NSObject, NSMenuDelegate {
 
         let micOpen = hasMic ? !(microphone?.isMuted ?? false) : nil
         let jigglerOn = showJiggler ? (jiggler?.isActive ?? false) : nil
-        if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn { return }
-        shown = (micOpen, jigglerOn)
+        let time = recording.time
+        if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn, shown.recording == time, shown.paused == recording.paused { return }
+        let wasRecording = shown?.recording != nil
+        shown = (micOpen, jigglerOn, time, recording.paused)
+
+        if let time, let recordGlyph {
+            showRecording(time, glyph: recordGlyph, micOpen: micOpen, jigglerOn: jigglerOn)
+            return
+        }
+        if wasRecording {
+            item.menu = menu
+            button.action = nil
+            button.target = nil
+            button.title = ""
+            button.imagePosition = .imageOnly
+            button.setAccessibilityLabel("Penknife")
+        }
 
         guard micOpen != nil || jigglerOn != nil else {
             item.length = NSStatusItem.squareLength
@@ -107,18 +133,41 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         NSAccessibility.post(element: button, notification: .valueChanged)
     }
 
+    /// The red record symbol and the time instead of the logo; the dots stay; a click stops.
+    private func showRecording(_ time: String, glyph: NSImage, micOpen: Bool?, jigglerOn: Bool?) {
+        guard let button = item.button else { return }
+        item.menu = nil
+        button.target = self
+        button.action = #selector(stopRecording)
+        item.length = NSStatusItem.variableLength
+        button.image = micOpen == nil && jigglerOn == nil ? glyph : Self.icon(glyph: glyph, tinted: false, micOpen: micOpen, jigglerOn: jigglerOn)
+        button.imagePosition = .imageLeading
+        button.attributedTitle = NSAttributedString(string: " " + time, attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
+        ])
+        button.setAccessibilityLabel(recording.paused
+            ? String(localized: "Recording paused at \(time). Click to stop.")
+            : String(localized: "Recording, \(time). Click to stop."))
+    }
+
+    @objc private func stopRecording() {
+        recording.stop()
+    }
+
     /// The logo in the menu bar text color plus a fixed 6 pt column for the dots, so the icon keeps
     /// its width. 4 pt dots, 2 pt apart, 3 pt from the logo. Drawn when the menu bar draws, so it
-    /// follows light, dark and tinted menu bars.
-    private static func icon(glyph: NSImage, micOpen: Bool?, jigglerOn: Bool?) -> NSImage {
+    /// follows light, dark and tinted menu bars. `tinted` false keeps the glyph's own colors.
+    private static func icon(glyph: NSImage, tinted: Bool = true, micOpen: Bool?, jigglerOn: Bool?) -> NSImage {
         let glyphSize = glyph.size
         let dot: CGFloat = 4, gap: CGFloat = 2, spacing: CGFloat = 3, column: CGFloat = 6, trailing: CGFloat = 2
         let size = NSSize(width: glyphSize.width + spacing + column + trailing, height: glyphSize.height)
         let image = NSImage(size: size, flipped: false) { _ in
             let glyphRect = NSRect(origin: .zero, size: glyphSize)
             glyph.draw(in: glyphRect)
-            NSColor.labelColor.set()
-            glyphRect.fill(using: .sourceAtop)
+            if tinted {
+                NSColor.labelColor.set()
+                glyphRect.fill(using: .sourceAtop)
+            }
 
             let x = glyphSize.width + spacing + (column - dot) / 2
             let mid = size.height / 2

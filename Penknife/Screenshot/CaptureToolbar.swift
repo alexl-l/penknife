@@ -11,14 +11,21 @@ final class CaptureEditorState {
     var expanded: Expansion?
     var canUndo = false
     var canRedo = false
+    /// Record mode (R-29, R-33): choosing a region starts the recording at once.
+    var recordMode = false
+    /// Opened with the record shortcut: no screenshot editor, Esc cancels.
+    var recordOnly = false
+    var microphone = RecordingPrefs.microphone
+    var macSound = RecordingPrefs.macSound
 
-    enum Expansion { case colors, sizes }
+    typealias Expansion = StyleRow
 
     var color: NSColor { CapturePalette.colors[colorIndex] }
 }
 
 enum CaptureCommand {
-    case undo, redo, copy, save, toggle(CaptureEditorState.Expansion), tool(CaptureTool), color(Int), size(Int)
+    case undo, redo, copy, save, toggle(CaptureEditorState.Expansion), pointer, tool(CaptureTool), color(Int), size(Int)
+    case record
 }
 
 /// One glass capsule below the selection (variant B, chosen by the user): tools | color, size |
@@ -30,61 +37,30 @@ struct CaptureToolbar: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
+        editorControls
+        .buttonStyle(.plain)
+        .padding(8)
+        .background {
+            // Opaque, with a border when contrast is increased (R-19).
+            if opaque {
+                Capsule().fill(Color(nsColor: .windowBackgroundColor))
+                    .overlay(Capsule().strokeBorder(Color.primary.opacity(contrast == .increased ? 1 : 0.15)))
+            }
+        }
+        .glassEffect(opaque ? .identity : .regular, in: .capsule)
+        .fixedSize()
+    }
+
+    private var editorControls: some View {
         HStack(spacing: 4) {
-            ForEach(CaptureTool.allCases) { tool in
-                let selected = state.tool == tool
-                Button { run(.tool(tool)) } label: {
-                    symbol(tool.symbol)
-                        .foregroundStyle(selected ? Color.white : Color.primary)
-                        .background(selected ? Color.accentColor : .clear, in: Circle())
-                }
-                .help("\(tool.title) (\(tool.key))")
-                .accessibilityLabel(tool.title)
-                .accessibilityAddTraits(selected ? .isSelected : [])
+            MarkToolButtons(selected: state.tool,
+                            pointerHelp: String(localized: "Pointer: move the selection or a drawing"),
+                            pointerHint: String(localized: "Drag to move the selection; click a drawing to change it")) { tool in
+                run(tool.map { .tool($0) } ?? .pointer)
             }
             separator
-            // The trigger gives way to the choices while they are open (no repeated option).
-            if state.expanded != .colors {
-                Button { run(.toggle(.colors)) } label: {
-                    swatch(state.colorIndex, size: 18)
-                }
-                .help(String(localized: "Color (1–8)"))
-                .accessibilityLabel(String(localized: "Color: \(CapturePalette.name(state.colorIndex))"))
-            } else {
-                ForEach(CapturePalette.colors.indices, id: \.self) { index in
-                    Button { run(.color(index)) } label: {
-                        swatch(index, size: 16)
-                            .overlay {
-                                if index == state.colorIndex {
-                                    Image(systemName: "checkmark").font(.system(size: 8, weight: .bold))
-                                        .foregroundStyle(CapturePalette.isLight(index) ? Color.black : Color.white)
-                                }
-                            }
-                    }
-                    .help("\(CapturePalette.name(index)) (\(index + 1))")
-                    .accessibilityLabel(CapturePalette.name(index))
-                    .accessibilityAddTraits(index == state.colorIndex ? .isSelected : [])
-                }
-            }
-            if state.expanded != .sizes {
-                Button { run(.toggle(.sizes)) } label: {
-                    weight(state.sizeIndex)
-                }
-                .help(String(localized: "Size (- and +, or scroll)"))
-                .accessibilityLabel(String(localized: "Size: \(CaptureSize.name(state.sizeIndex))"))
-            } else {
-                ForEach(0..<CaptureSize.count, id: \.self) { index in
-                    let selected = index == state.sizeIndex
-                    Button { run(.size(index)) } label: {
-                        weight(index)
-                            .foregroundStyle(selected ? Color.white : Color.primary)
-                            .background(selected ? Color.accentColor : .clear, in: Circle())
-                    }
-                    .help(CaptureSize.name(index))
-                    .accessibilityLabel(CaptureSize.name(index))
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                }
-            }
+            MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded,
+                             toggle: { run(.toggle($0)) }, color: { run(.color($0)) }, size: { run(.size($0)) })
             separator
             Button { run(.undo) } label: { symbol("arrow.uturn.backward") }
                 .disabled(!state.canUndo)
@@ -101,18 +77,11 @@ struct CaptureToolbar: View {
             Button { run(.save) } label: { symbol("square.and.arrow.down") }
                 .help(String(localized: "Save (⌘S)"))
                 .accessibilityLabel(String(localized: "Save"))
+            separator
+            Button { run(.record) } label: { symbol("record.circle") }
+                .help(String(localized: "Record Video (⇧⌘R)"))
+                .accessibilityLabel(String(localized: "Record video"))
         }
-        .buttonStyle(.plain)
-        .padding(8)
-        .background {
-            // Opaque, with a border when contrast is increased (R-19).
-            if opaque {
-                Capsule().fill(Color(nsColor: .windowBackgroundColor))
-                    .overlay(Capsule().strokeBorder(Color.primary.opacity(contrast == .increased ? 1 : 0.15)))
-            }
-        }
-        .glassEffect(opaque ? .identity : .regular, in: .capsule)
-        .fixedSize()
     }
 
     private var opaque: Bool { reduceTransparency || contrast == .increased }
@@ -122,6 +91,115 @@ struct CaptureToolbar: View {
             .font(.system(size: 14, weight: .medium))
             .frame(width: 28, height: 28)
             .contentShape(Circle())
+    }
+
+    private var separator: some View {
+        Divider().frame(height: 18).padding(.horizontal, 2)
+    }
+}
+
+/// Which choice row is open in a capsule.
+enum StyleRow { case colors, sizes }
+
+// The tools, color and size are THE SAME views in the screenshot editor and while recording
+// (user, 2026-11-17: "las herramientas y el orden NO DEBEN CAMBIAR ENTRE VIDEO Y CAPTURA").
+
+/// A capsule's symbol button face: white on the accent color when chosen.
+struct CapsuleSymbol: View {
+    let name: String
+    var selected = false
+
+    var body: some View {
+        Image(systemName: name)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(selected ? Color.white : Color.primary)
+            .frame(width: 28, height: 28)
+            .background(selected ? Color.accentColor : .clear, in: Circle())
+            .contentShape(Circle())
+    }
+}
+
+/// Pointer first, then every tool in `CaptureTool` order. `selected` nil = the Pointer.
+struct MarkToolButtons: View {
+    let selected: CaptureTool?
+    let pointerHelp: String
+    let pointerHint: String
+    let choose: (CaptureTool?) -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button { choose(nil) } label: { CapsuleSymbol(name: "cursorarrow", selected: selected == nil) }
+                .help(pointerHelp)
+                .accessibilityLabel(String(localized: "Pointer"))
+                .accessibilityHint(pointerHint)
+                .accessibilityAddTraits(selected == nil ? .isSelected : [])
+            ForEach(CaptureTool.allCases) { tool in
+                Button { choose(tool) } label: { CapsuleSymbol(name: tool.symbol, selected: selected == tool) }
+                    .help("\(tool.title) (\(tool.key))")
+                    .accessibilityLabel(tool.title)
+                    .accessibilityAddTraits(selected == tool ? .isSelected : [])
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(String(localized: "Tools"))
+    }
+}
+
+/// Color and size: one button each; its choices open inside the capsule, in its place.
+struct MarkStyleButtons: View {
+    let colorIndex: Int
+    let sizeIndex: Int
+    let expanded: StyleRow?
+    let toggle: (StyleRow) -> Void
+    let color: (Int) -> Void
+    let size: (Int) -> Void
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        HStack(spacing: 4) {
+            // The trigger gives way to the choices while they are open (no repeated option).
+            if expanded != .colors {
+                Button { toggle(.colors) } label: {
+                    swatch(colorIndex, size: 18)
+                }
+                .help(String(localized: "Color (1–8)"))
+                .accessibilityLabel(String(localized: "Color: \(CapturePalette.name(colorIndex))"))
+            } else {
+                ForEach(CapturePalette.colors.indices, id: \.self) { index in
+                    Button { color(index) } label: {
+                        swatch(index, size: 16)
+                            .overlay {
+                                if index == colorIndex {
+                                    Image(systemName: "checkmark").font(.system(size: 8, weight: .bold))
+                                        .foregroundStyle(CapturePalette.isLight(index) ? Color.black : Color.white)
+                                }
+                            }
+                    }
+                    .help("\(CapturePalette.name(index)) (\(index + 1))")
+                    .accessibilityLabel(CapturePalette.name(index))
+                    .accessibilityAddTraits(index == colorIndex ? .isSelected : [])
+                }
+            }
+            if expanded != .sizes {
+                Button { toggle(.sizes) } label: {
+                    weight(sizeIndex)
+                }
+                .help(String(localized: "Size (- and +, or scroll)"))
+                .accessibilityLabel(String(localized: "Size: \(CaptureSize.name(sizeIndex))"))
+            } else {
+                ForEach(0..<CaptureSize.count, id: \.self) { index in
+                    let selected = index == sizeIndex
+                    Button { size(index) } label: {
+                        weight(index)
+                            .foregroundStyle(selected ? Color.white : Color.primary)
+                            .background(selected ? Color.accentColor : .clear, in: Circle())
+                    }
+                    .help(CaptureSize.name(index))
+                    .accessibilityLabel(CaptureSize.name(index))
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
     }
 
     private func swatch(_ index: Int, size: CGFloat) -> some View {
@@ -140,8 +218,77 @@ struct CaptureToolbar: View {
             .frame(width: 28, height: 28)
             .contentShape(Circle())
     }
+}
 
-    private var separator: some View {
-        Divider().frame(height: 18).padding(.horizontal, 2)
+/// The hint at the top of the overlay (R-33, variant A of the live demo): how to choose what to
+/// capture or record. It shows after 0.3 s (quick hands never see it) and goes at the first click.
+@Observable
+final class CaptureHintModel {
+    var visible = false
+    var windowMode = false
+    var recording = false
+}
+
+struct CaptureHint: View {
+    let model: CaptureHintModel
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        ZStack {
+            if model.visible {
+                HStack(spacing: 14) { items }
+                    .font(.system(size: 13))
+                    .padding(.horizontal, 14)
+                    .frame(height: 36)
+                    .background {
+                        if opaque {
+                            Capsule().fill(Color(nsColor: .windowBackgroundColor))
+                                .overlay(Capsule().strokeBorder(Color.primary.opacity(contrast == .increased ? 1 : 0.15)))
+                        }
+                    }
+                    .glassEffect(opaque ? .identity : .regular, in: .capsule)
+                    .fixedSize()
+                    .transition(.opacity)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .animation(.easeOut(duration: model.visible ? 0.25 : 0.2), value: model.visible)
+        .animation(.easeInOut(duration: 0.15), value: model.windowMode)
+        // VoiceOver hears the same in the overlay's announcement.
+        .accessibilityHidden(true)
     }
+
+    private var opaque: Bool { reduceTransparency || contrast == .increased }
+
+    @ViewBuilder private var items: some View {
+        if model.windowMode {
+            item(nil, String(localized: "Click a window"))
+            item("space", String(localized: "Area"))
+            item("escape", String(localized: "Cancel"))
+        } else {
+            item(nil, model.recording ? String(localized: "Drag to record an area") : String(localized: "Drag to capture an area"))
+            item("space", String(localized: "Window"))
+            item("return", String(localized: "Full screen"))
+            item("escape", String(localized: "Cancel"))
+        }
+    }
+
+    private func item(_ key: String?, _ text: String) -> some View {
+        HStack(spacing: 6) {
+            if let key {
+                Image(systemName: key)
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(minWidth: 28, minHeight: 20)
+                    .padding(.horizontal, 4)
+                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
+            }
+            Text(text).foregroundStyle(key == nil ? Color.primary : Color.secondary)
+        }
+    }
+}
+
+/// A SwiftUI view that never takes the pointer (the canvas under it does).
+final class PassThroughHostingView<Content: View>: NSHostingView<Content> {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }

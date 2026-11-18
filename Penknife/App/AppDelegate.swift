@@ -61,6 +61,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         KeyboardShortcuts.onKeyUp(for: .openMenu) { [weak self] in self?.statusMenu.open() }
 
         LaunchAtLogin.apply()
+        DispatchQueue.global(qos: .utility).async { RecordingSession.removeLeftovers() }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        RecordingSession.removeLeftovers()
     }
 
     /// Opening the app again (Finder, Spotlight) shows Settings, since there is no Dock icon.

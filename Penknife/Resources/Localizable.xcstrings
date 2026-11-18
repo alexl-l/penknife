@@ -111,6 +111,16 @@
         }
       }
     },
+    "%lld s": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld s"
+          }
+        }
+      }
+    },
     "%lld seconds": {
       "localizations": {
         "es": {
@@ -191,6 +201,16 @@
         }
       }
     },
+    "Allow Penknife in System Settings › Privacy & Security › Microphone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite Penknife en Ajustes del Sistema › Privacidad y seguridad › Micrófono"
+          }
+        }
+      }
+    },
     "Allow Penknife, then reopen it": {
       "localizations": {
         "es": {
@@ -227,6 +247,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cualquier app (teclas multimedia)"
+          }
+        }
+      }
+    },
+    "Area": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Área"
           }
         }
       }
@@ -397,6 +427,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Control"
+          }
+        }
+      }
+    },
+    "Couldn't make the GIF": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo crear el GIF"
+          }
+        }
+      }
+    },
+    "Couldn't prepare the video": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo preparar el vídeo"
+          }
+        }
+      }
+    },
+    "Couldn't record the screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo grabar la pantalla"
+          }
+        }
+      }
+    },
+    "Couldn't save the video in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar el vídeo en %@"
           }
         }
       }
@@ -611,12 +681,632 @@
         }
       }
     },
+    "Discard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar"
+          }
+        }
+      }
+    },
+    "Discard the recording?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Descartar la grabación?"
+          }
+        }
+      }
+    },
     "Download %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Descarga: %@"
+          }
+        }
+      }
+    },
+    "Draw While Recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dibujar mientras grabas"
+          }
+        }
+      }
+    },
+    "Drawing off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dibujo desactivado"
+          }
+        }
+      }
+    },
+    "Keep the microphone muted": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener el micrófono silenciado"
+          }
+        }
+      }
+    },
+    "Mutes again if another app unmutes the Mac's microphone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vuelve a silenciar si otra app quita el silencio del micrófono del Mac."
+          }
+        }
+      }
+    },
+    "“Hey Siri” is on: it opens the microphone when the Mac plays a sound, and Penknife mutes it again. When you call Siri, it still hears you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«Oye Siri» está activado: abre el micrófono cuando el Mac reproduce un sonido, y Penknife lo vuelve a silenciar. Cuando llamas a Siri, te sigue oyendo."
+          }
+        }
+      }
+    },
+    "Open Siri Settings…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir ajustes de Siri…"
+          }
+        }
+      }
+    },
+    "If another app unmutes the Mac's microphone while you are muted, Penknife mutes it again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si otra app quita el silencio del micrófono del Mac mientras estás en silencio, Penknife lo vuelve a silenciar."
+          }
+        }
+      }
+    },
+    "Line": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Línea"
+          }
+        }
+      }
+    },
+    "Straighten": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enderezar"
+          }
+        }
+      }
+    },
+    "Play": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reproducir"
+          }
+        }
+      }
+    },
+    "Trim start": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio del recorte"
+          }
+        }
+      }
+    },
+    "Trim end": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Final del recorte"
+          }
+        }
+      }
+    },
+    "Trim. Drag the yellow handles, then press Return; Esc cancels.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar. Arrastra las asas amarillas y pulsa Intro; Esc cancela."
+          }
+        }
+      }
+    },
+    "Recording in %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando en %lld"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continuar"
+          }
+        }
+      }
+    },
+    "Copying…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiando…"
+          }
+        }
+      }
+    },
+    "GIF cancelled": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "GIF cancelado"
+          }
+        }
+      }
+    },
+    "Making the GIF… %lld %%": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haciendo el GIF… %lld %%"
+          }
+        }
+      }
+    },
+    "Saving…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardando…"
+          }
+        }
+      }
+    },
+    "Stop and Close": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parar y cerrar"
+          }
+        }
+      }
+    },
+    "Stop making the GIF?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Dejar de hacer el GIF?"
+          }
+        }
+      }
+    },
+    "The recording hasn't been saved.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación no se ha guardado."
+          }
+        }
+      }
+    },
+    "Click a window": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz clic en una ventana"
+          }
+        }
+      }
+    },
+    "Full screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla completa"
+          }
+        }
+      }
+    },
+    "Drag to record an area": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastra para grabar un área"
+          }
+        }
+      }
+    },
+    "Drag to capture an area": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastra para capturar un área"
+          }
+        }
+      }
+    },
+    "(trimmed from %@) · %@ → %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(recortado de %1$@) · %2$@ → %3$@"
+          }
+        }
+      }
+    },
+    "Trimmed to %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortado a %@"
+          }
+        }
+      }
+    },
+    "Trim undone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorte deshecho"
+          }
+        }
+      }
+    },
+    "Undo Trim (⌘Z)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshacer recorte (⌘Z)"
+          }
+        }
+      }
+    },
+    "Undo Trim": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshacer recorte"
+          }
+        }
+      }
+    },
+    "Restores the full recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupera la grabación completa"
+          }
+        }
+      }
+    },
+    "Trim": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recortar"
+          }
+        }
+      }
+    },
+    "Trim the start and the end": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recorta el principio y el final"
+          }
+        }
+      }
+    },
+    "Pointer: move the selection or a drawing": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puntero: mover la selección o un dibujo"
+          }
+        }
+      }
+    },
+    "Drag to move the selection; click a drawing to change it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrastra para mover la selección; haz clic en un dibujo para cambiarlo"
+          }
+        }
+      }
+    },
+    "Eraser": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrador"
+          }
+        }
+      }
+    },
+    "Selected: %@. Delete removes it, arrows move it, Tab selects the next one.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seleccionado: %@. Suprimir lo quita, las flechas lo mueven y Tab pasa al siguiente."
+          }
+        }
+      }
+    },
+    "Removed: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitado: %@"
+          }
+        }
+      }
+    },
+    "Move": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mover"
+          }
+        }
+      }
+    },
+    "Resize": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar tamaño"
+          }
+        }
+      }
+    },
+    "Size": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño"
+          }
+        }
+      }
+    },
+    "Moved": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Movido"
+          }
+        }
+      }
+    },
+    "Resized": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tamaño cambiado"
+          }
+        }
+      }
+    },
+    "Pointer": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puntero"
+          }
+        }
+      }
+    },
+    "Pointer: use your apps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puntero: usar tus apps"
+          }
+        }
+      }
+    },
+    "Esc or %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esc o %@"
+          }
+        }
+      }
+    },
+    "Clicks go to the app being recorded": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los clics van a la app que grabas"
+          }
+        }
+      }
+    },
+    "Tools": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Herramientas"
+          }
+        }
+      }
+    },
+    "Drawing on the recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dibujo sobre la grabación"
+          }
+        }
+      }
+    },
+    "Drawing on. Esc stops drawing.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dibujo activado. Esc para dejar de dibujar."
+          }
+        }
+      }
+    },
+    "Drawings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trazos"
+          }
+        }
+      }
+    },
+    "Drawings erased": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trazos borrados"
+          }
+        }
+      }
+    },
+    "Drawings: fade after %lld s": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trazos: se borran a los %lld s"
+          }
+        }
+      }
+    },
+    "Drawings: fixed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trazos: fijos"
+          }
+        }
+      }
+    },
+    "Erase all drawings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar todos los trazos"
+          }
+        }
+      }
+    },
+    "Fade after %lld s": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se borran a los %lld s"
+          }
+        }
+      }
+    },
+    "Fixed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijo"
+          }
+        }
+      }
+    },
+    "Fixed (until erased)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fijos (hasta que los borres)"
+          }
+        }
+      }
+    },
+    "It hasn't been saved.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se ha guardado."
           }
         }
       }
@@ -1151,6 +1841,56 @@
         }
       }
     },
+    "Mac sound": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido del Mac"
+          }
+        }
+      }
+    },
+    "Mac sound off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido del Mac desactivado"
+          }
+        }
+      }
+    },
+    "Mac sound on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido del Mac activado"
+          }
+        }
+      }
+    },
+    "Mac sound: off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido del Mac: desactivado"
+          }
+        }
+      }
+    },
+    "Mac sound: on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sonido del Mac: activado"
+          }
+        }
+      }
+    },
     "Measures download, upload, latency and responsiveness with macOS networkQuality, from the menu, the Touch Bar or a shortcut. Keeps only the last result.": {
       "localizations": {
         "es": {
@@ -1211,6 +1951,16 @@
         }
       }
     },
+    "Microphone off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono desactivado"
+          }
+        }
+      }
+    },
     "Microphone on": {
       "localizations": {
         "es": {
@@ -1237,6 +1987,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Micrófono activado"
+          }
+        }
+      }
+    },
+    "Microphone: off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono: desactivado"
+          }
+        }
+      }
+    },
+    "Microphone: on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono: activado"
           }
         }
       }
@@ -1361,6 +2131,16 @@
         }
       }
     },
+    "No microphone could be opened": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo abrir ningún micrófono"
+          }
+        }
+      }
+    },
     "Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.": {
       "localizations": {
         "es": {
@@ -1377,6 +2157,306 @@
           "stringUnit": {
             "state": "translated",
             "value": "Opción"
+          }
+        }
+      }
+    },
+    "Pause": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar"
+          }
+        }
+      }
+    },
+    "Pause recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pausar la grabación"
+          }
+        }
+      }
+    },
+    "Paused at %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En pausa en %@"
+          }
+        }
+      }
+    },
+    "Preparing the video…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparando el vídeo…"
+          }
+        }
+      }
+    },
+    "Preview, %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista previa, %@"
+          }
+        }
+      }
+    },
+    "Record": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar"
+          }
+        }
+      }
+    },
+    "Record Screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar pantalla"
+          }
+        }
+      }
+    },
+    "Record the screen. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar la pantalla. Arrastra para seleccionar un área, Espacio para elegir una ventana, Intro para toda la pantalla, Esc para cancelar."
+          }
+        }
+      }
+    },
+    "Record video": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar vídeo"
+          }
+        }
+      }
+    },
+    "Record Video (⇧⌘R)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar vídeo (⇧⌘R)"
+          }
+        }
+      }
+    },
+    "Recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando"
+          }
+        }
+      }
+    },
+    "Recording controls": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controles de la grabación"
+          }
+        }
+      }
+    },
+    "Recording in 3 seconds. Esc cancels.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La grabación empieza en 3 segundos. Esc para cancelar."
+          }
+        }
+      }
+    },
+    "Recording paused": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación en pausa"
+          }
+        }
+      }
+    },
+    "Recording paused at %@. Click to stop.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación en pausa en %@. Haz clic para parar."
+          }
+        }
+      }
+    },
+    "Recording ready. Save as video, save as GIF, or copy.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación lista. Guárdala como vídeo o como GIF, o cópiala."
+          }
+        }
+      }
+    },
+    "Recording resumed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación reanudada"
+          }
+        }
+      }
+    },
+    "Recording time %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiempo de grabación %@"
+          }
+        }
+      }
+    },
+    "Recording without the microphone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando sin el micrófono"
+          }
+        }
+      }
+    },
+    "Recording, %@. Click to stop.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando, %@. Haz clic para parar."
+          }
+        }
+      }
+    },
+    "Resume": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar"
+          }
+        }
+      }
+    },
+    "Resume recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reanudar la grabación"
+          }
+        }
+      }
+    },
+    "Save as GIF": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar como GIF"
+          }
+        }
+      }
+    },
+    "Save as Video": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar como vídeo"
+          }
+        }
+      }
+    },
+    "Saved as GIF in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado como GIF en %@"
+          }
+        }
+      }
+    },
+    "Saved as video in %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardado como vídeo en %@"
+          }
+        }
+      }
+    },
+    "Screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pantalla"
+          }
+        }
+      }
+    },
+    "Screen Recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación de pantalla"
+          }
+        }
+      }
+    },
+    "Screen Recording %@ at %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación de pantalla %1$@ a las %2$@"
+          }
+        }
+      }
+    },
+    "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Or record it as a video or GIF, drawing while you record. Nothing is uploaded.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona un área o, con Espacio, una ventana. Márcala con flechas, texto, marcador, rectángulos, círculos, lápiz o desenfoque y luego cópiala o guárdala. O grábala como vídeo o GIF, dibujando mientras grabas. No se sube nada a internet."
           }
         }
       }
@@ -1731,6 +2811,36 @@
         }
       }
     },
+    "Stop": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parar"
+          }
+        }
+      }
+    },
+    "Stop recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parar la grabación"
+          }
+        }
+      }
+    },
+    "The GIF has no sound.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El GIF no lleva sonido."
+          }
+        }
+      }
+    },
     "The meeting in front, or the last one you used.": {
       "localizations": {
         "es": {
@@ -1741,12 +2851,42 @@
         }
       }
     },
+    "Too big to copy. Save it instead.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demasiado grande para copiarlo. Guárdalo."
+          }
+        }
+      }
+    },
+    "Undone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deshecho"
+          }
+        }
+      }
+    },
     "Upload %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Subida: %@"
+          }
+        }
+      }
+    },
+    "Video copied. Paste it in a message or a Finder folder.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vídeo copiado. Pégalo en un mensaje o en una carpeta del Finder."
           }
         }
       }
@@ -2111,22 +3251,12 @@
         }
       }
     },
-    "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Nothing is uploaded.": {
+    "Selected %lld by %lld pixels. Tools: V, L, R, O, P, H, T, B, E. Copy with Command C, save with Command S.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Selecciona un área o, con Espacio, una ventana. Márcala con flechas, texto, marcador, rectángulos, círculos, lápiz o desenfoque y luego cópiala o guárdala. No se sube nada a internet."
-          }
-        }
-      }
-    },
-    "Selected %lld by %lld pixels. Tools: V, R, O, P, H, T, B. Copy with Command C, save with Command S.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seleccionados %1$lld por %2$lld píxeles. Herramientas: V, R, O, P, H, T, B. Copia con Comando C, guarda con Comando S."
+            "value": "Seleccionados %1$lld por %2$lld píxeles. Herramientas: V, L, R, O, P, H, T, B, E. Copia con Comando C, guarda con Comando S."
           }
         }
       }

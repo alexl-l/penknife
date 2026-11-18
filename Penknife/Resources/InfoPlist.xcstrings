@@ -43,6 +43,17 @@
           }
         }
       }
+    },
+    "NSMicrophoneUsageDescription": {
+      "comment": "Privacy - Microphone Usage Description",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife graba tu voz en las grabaciones de pantalla, solo cuando activas el micrófono."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

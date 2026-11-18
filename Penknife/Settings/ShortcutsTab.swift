@@ -16,6 +16,10 @@ struct ShortcutsPage: View {
                         KeyboardShortcuts.Recorder(action.title, name: action.shortcut)
                             .disabled(!manager.isEnabled(module.id))
                     }
+                    if module.id == .screenshot {
+                        KeyboardShortcuts.Recorder(String(localized: "Draw While Recording"), name: .recordingDraw)
+                            .disabled(!manager.isEnabled(module.id))
+                    }
                 }
             } footer: {
                 Text("Shortcuts of modules that are off are disabled. On a Mac without Touch Bar, F keys need Fn or “Use F1, F2, etc. keys as standard function keys”.")

@@ -200,6 +200,9 @@ private struct ModuleDetail: View {
                     ForEach(actions, id: \.shortcut) { action in
                         KeyboardShortcuts.Recorder(action.title, name: action.shortcut)
                     }
+                    if id == .screenshot {
+                        KeyboardShortcuts.Recorder(String(localized: "Draw While Recording"), name: .recordingDraw)
+                    }
                 }
                 .disabled(!on)
             }
@@ -507,6 +510,7 @@ private struct MeetingOptions: View {
     @State private var enabled = Dictionary(uniqueKeysWithValues: MeetingPlatform.allCases.map { ($0, $0.isEnabled) })
     @AppStorage(MicrophoneModule.alsoMuteMacKey) private var alsoMuteMac = true
     @AppStorage(TeamsConsent.enabledKey) private var teamsConsent = false
+    @AppStorage(MicrophoneModule.keepMutedKey) private var keepMuted = true
     @State private var confirmTeamsConsent = false
 
     var body: some View {
@@ -539,6 +543,28 @@ private struct MeetingOptions: View {
             Toggle("Also mute the Mac's microphone", isOn: $alsoMuteMac)
         } footer: {
             Text("Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.")
+        }
+        // R-34 (designer + growth review, 2026-11-17): on by default; the Siri note only when
+        // "Hey Siri" is on, stating the fact, with a way to change it.
+        Section {
+            Toggle("Keep the microphone muted", isOn: $keepMuted)
+                .accessibilityHint(Text("Mutes again if another app unmutes the Mac's microphone."))
+            if keepMuted && MicrophoneModule.heySiriOn {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("“Hey Siri” is on: it opens the microphone when the Mac plays a sound, and Penknife mutes it again. When you call Siri, it still hears you.")
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer()
+                    Button("Open Siri Settings…") {
+                        if let url = URL(string: "x-apple.systempreferences:com.apple.Siri-Settings.extension") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    }
+                    .buttonStyle(.link)
+                }
+            }
+        } footer: {
+            Text("If another app unmutes the Mac's microphone while you are muted, Penknife mutes it again.")
         }
         // R-31: opt-in, confirmed once quoting Teams' own text (legal-advisor, 2026-11-17).
         Section {

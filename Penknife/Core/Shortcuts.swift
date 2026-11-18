@@ -11,6 +11,12 @@ extension KeyboardShortcuts.Name {
     static let clipboardHistory = Self("clipboardHistory", default: .init(.v, modifiers: [.control, .option]))
 }
 
+/// Screen recording (R-29): start and stop; drawing on/off is registered only while recording.
+extension KeyboardShortcuts.Name {
+    static let recordScreen = Self("recordScreen", default: .init(.r, modifiers: [.control, .option]))
+    static let recordingDraw = Self("recordingDraw", default: .init(.d, modifiers: [.control, .option]))
+}
+
 /// Music (R-5): no default keys, the user records them in Settings → Shortcuts.
 extension KeyboardShortcuts.Name {
     static let playPause = Self("playPause")

@@ -9,14 +9,19 @@ final class CaptureSession {
     let state = CaptureEditorState()
     private var windows: [CaptureWindow] = []
     private let previousApp: NSRunningApplication?
+    private let onRecord: (RecordingRequest) -> Void
     private let onFinish: () -> Void
     private var finished = false
 
-    init(mode: ScreenshotMode, images: [CGDirectDisplayID: CGImage], previousApp: NSRunningApplication?,
-         onFinish: @escaping () -> Void) {
+    /// `recordOnly`: opened with the record shortcut (R-29), straight in record mode.
+    init(mode: ScreenshotMode, images: [CGDirectDisplayID: CGImage], previousApp: NSRunningApplication?, recordOnly: Bool = false,
+         onRecord: @escaping (RecordingRequest) -> Void, onFinish: @escaping () -> Void) {
         self.mode = mode
         self.previousApp = previousApp
+        self.onRecord = onRecord
         self.onFinish = onFinish
+        state.recordMode = recordOnly
+        state.recordOnly = recordOnly
         let windowRects = Self.onScreenWindows()
         for screen in NSScreen.screens {
             let window = CaptureWindow(screen: screen, image: images[screen.displayID], windowRects: windowRects, session: self)
@@ -28,10 +33,47 @@ final class CaptureSession {
         // Penknife is not activated: the app in front keeps its active look, so a captured window
         // shows its colored title bar buttons, as macOS's own screenshot does.
         let mouse = NSEvent.mouseLocation
-        for window in windows { window.orderFrontRegardless() }
+        for window in windows {
+            window.orderFrontRegardless()
+            window.canvas.showHint()
+        }
         let first = windows.first { $0.frame.contains(mouse) } ?? windows.first
         first?.makeKey()
-        first?.canvas.announce(String(localized: "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel."))
+        first?.canvas.announce(state.recordOnly
+            ? String(localized: "Record the screen. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel.")
+            : String(localized: "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel."))
+    }
+
+    /// Record (button, ⇧⌘R, or the record shortcut while the overlay is open): with a selection
+    /// the recording starts at once (R-33); without one, choosing a region will start it.
+    func enterRecordMode() {
+        guard !state.recordMode else { return }
+        state.recordMode = true
+        if let canvas = windows.first(where: { $0.canvas.selection != nil })?.canvas {
+            canvas.recordModeChanged()
+            return
+        }
+        for window in windows { window.canvas.recordModeChanged() }
+    }
+
+    /// The first click or choice: the hints go, on every screen.
+    func hideHints() {
+        for window in windows { window.canvas.hideHint() }
+    }
+
+    /// Record was pressed: the overlay closes and the recording takes over.
+    func record(screen: NSScreen, rect: CGRect, fullScreen: Bool, window: (id: CGWindowID, frame: CGRect)?, marks: [Annotation]) {
+        guard !finished else { return }
+        finished = true
+        for overlay in windows {
+            overlay.canvas.tearDown()
+            overlay.orderOut(nil)
+            overlay.close()
+        }
+        windows.removeAll()
+        onRecord(RecordingRequest(screen: screen, rect: rect, fullScreen: fullScreen, window: window, marks: marks,
+                                  microphone: state.microphone, macSound: state.macSound, previousApp: previousApp))
+        onFinish()
     }
 
     /// A selection started on `canvas`: the other screens drop theirs, unless they have marks.
@@ -156,10 +198,33 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// The selection's background blurred once, so the blur tool shows real pixels while dragging.
     private var blurred: (selection: CGRect, image: CGImage, scale: CGFloat)?
     private var annotations: [Annotation] = []
-    private var redoStack: [Annotation] = []
+    /// Undo and redo keep the marks as they were before each change, with what the change was.
+    private var undoStack: [(marks: [Annotation], label: String)] = []
+    private var redoStack: [(marks: [Annotation], label: String)] = []
+    /// R-32: the mark selected for changes, the one under the pointer, the marks before a drag
+    /// changed them, and the eraser drags made so far.
+    private var selectedMark: Int?
+    private var hoveredMark: Int?
+    private var marksBefore: [Annotation]?
+    private var eraserStrokes = 0
+    private var lastNudge = Date.distantPast
+    /// The newest undo step was made by arrow keys (another change or an undo closes it).
+    private var nudgeStepOpen = false
+    /// A text being typed again (double-click): the marks before, for one undo step.
+    private var textEditBefore: [Annotation]?
+    /// The text being typed again, and where it was (it goes back there, at the same depth).
+    private var textEditOriginal: (mark: Annotation, index: Int)?
     private var current: Annotation?
     private var drag: Drag = .none
     private var capturing = false
+    /// Record mode (R-29): the window to record.
+    private var recordWindow: CGWindowID?
+    private var selectedTarget: CaptureTarget?
+    /// R-33: how to choose a region, at the top of the screen until the first click.
+    private let hintModel = CaptureHintModel()
+    private var hintView: NSView?
+    private var hintWork: DispatchWorkItem?
+    private var hintDone = false
 
     private var toolbar: NSHostingView<CaptureToolbar>?
     private var textView: NSTextView?
@@ -172,6 +237,9 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case moving(offset: CGPoint)
         case resizing(handle: Int, original: CGRect)
         case drawing
+        case movingMark(last: CGPoint)
+        case resizingMark(handle: Int, original: Annotation)
+        case erasing(last: CGPoint, stroke: Int)
     }
 
     /// Handle positions as fractions of the selection: corners and edge midpoints.
@@ -216,20 +284,30 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         endText()
         selection = nil
         annotations.removeAll()
+        undoStack.removeAll()
         redoStack.removeAll()
+        selectedMark = nil
+        hoveredMark = nil
         hovered = nil
         windowMode = false
         targetImage = nil
         targetNSImage = nil
         blurred = nil
+        recordWindow = nil
+        selectedTarget = nil
         toolbar?.removeFromSuperview()
         toolbar = nil
         needsDisplay = true
     }
 
     func tearDown() {
+        hintWork?.cancel()
+        hintDone = true
         annotations.removeAll()
+        undoStack.removeAll()
         redoStack.removeAll()
+        selectedMark = nil
+        hoveredMark = nil
         current = nil
         textView?.removeFromSuperview()
         textView = nil
@@ -279,27 +357,32 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         current?.draw()
         NSGraphicsContext.restoreGraphicsState()
 
-        if fixedSelection {
-            drawSizeLabel(selection)
-            return
-        }
-        NSColor.white.setStroke()
-        let border = NSBezierPath(rect: selection.insetBy(dx: -0.5, dy: -0.5))
-        border.lineWidth = 1
-        border.stroke()
+        if !fixedSelection {
+            NSColor.white.setStroke()
+            let border = NSBezierPath(rect: selection.insetBy(dx: -0.5, dy: -0.5))
+            border.lineWidth = 1
+            border.stroke()
 
-        let shadow = NSShadow()
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.4)
-        shadow.shadowBlurRadius = 2
-        NSGraphicsContext.saveGraphicsState()
-        shadow.set()
-        NSColor.white.setFill()
-        for point in handlePoints(selection) {
-            NSBezierPath(ovalIn: CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)).fill()
+            let shadow = NSShadow()
+            shadow.shadowColor = NSColor.black.withAlphaComponent(0.4)
+            shadow.shadowBlurRadius = 2
+            NSGraphicsContext.saveGraphicsState()
+            shadow.set()
+            NSColor.white.setFill()
+            for point in handlePoints(selection) {
+                NSBezierPath(ovalIn: CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)).fill()
+            }
+            NSGraphicsContext.restoreGraphicsState()
         }
-        NSGraphicsContext.restoreGraphicsState()
-
         drawSizeLabel(selection)
+
+        // R-32: the mark under the pointer and the selected one, above everything else.
+        if let index = hoveredMark, index != selectedMark, annotations.indices.contains(index) {
+            MarkEditing.drawHover(annotations[index])
+        }
+        if let index = selectedMark, annotations.indices.contains(index) {
+            MarkEditing.drawSelection(annotations[index], within: bounds)
+        }
     }
 
     private func drawSizeLabel(_ selection: CGRect) {
@@ -340,7 +423,27 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 needsDisplay = true
             }
         }
+        updateHoveredMark(point)
         updateCursor(point)
+    }
+
+    /// The mark a click would select (R-32): outlined faintly.
+    private func updateHoveredMark(_ point: CGPoint) {
+        var mark: Int?
+        if let selection, selection.contains(point), textView == nil, state.tool != .eraser, !state.recordMode,
+           toolbar.map({ !$0.frame.contains(point) }) ?? true {
+            mark = MarkEditing.topmost(at: point, in: annotations)
+        }
+        guard mark != hoveredMark else { return }
+        redrawMark(hoveredMark)
+        hoveredMark = mark
+        redrawMark(mark)
+    }
+
+    /// Redraws only around one mark and its selection.
+    private func redrawMark(_ index: Int?) {
+        guard let index, annotations.indices.contains(index) else { return }
+        setNeedsDisplay(MarkEditing.area(annotations[index]))
     }
 
     private func updateCursor(_ point: CGPoint) {
@@ -349,6 +452,19 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             (windowMode ? NSCursor.pointingHand : NSCursor.crosshair).set()
             return
         }
+        if let index = selectedMark, annotations.indices.contains(index) {
+            let mark = annotations[index]
+            if MarkEditing.isOnClose(point, of: mark, within: bounds) { NSCursor.pointingHand.set(); return }
+            if let handle = MarkEditing.handle(at: point, of: mark) {
+                MarkEditing.cursor(forHandle: handle, of: mark).set()
+                return
+            }
+        }
+        if state.tool == .eraser, selection.contains(point) {
+            MarkEditing.eraserCursor(size: state.sizeIndex).set()
+            return
+        }
+        if hoveredMark != nil { NSCursor.openHand.set(); return }
         if fixedSelection, !selection.contains(point) || state.tool == nil { NSCursor.arrow.set(); return }
         if let index = handle(at: point) {
             let cursor: NSCursor = switch index {
@@ -375,6 +491,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeKey()
+        session.hideHints()
         closeChoices()
         let point = convert(event.locationInWindow, from: nil)
         if textView != nil {
@@ -390,6 +507,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             drag = .selecting(start: point)
             return
         }
+        if !state.recordMode, markMouseDown(at: point, in: selection, clicks: event.clickCount) { return }
         if let index = handle(at: point) {
             drag = .resizing(handle: index, original: selection)
             hideToolbar()
@@ -412,6 +530,185 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             drag = .selecting(start: point)
             hideToolbar()
             needsDisplay = true
+        }
+    }
+
+    // MARK: Changing marks (R-32)
+
+    /// A click on the selected mark's ✕ or handles, with the eraser, or on a mark. True when handled.
+    private func markMouseDown(at point: CGPoint, in selection: CGRect, clicks: Int) -> Bool {
+        if let index = selectedMark, annotations.indices.contains(index) {
+            let mark = annotations[index]
+            if MarkEditing.isOnClose(point, of: mark, within: bounds) {
+                removeMark(index)
+                return true
+            }
+            if let handle = MarkEditing.handle(at: point, of: mark) {
+                if clicks == 2, mark.bends, handle == 2, mark.bend != nil {
+                    // Double-click the bend handle: straight again.
+                    let before = annotations
+                    redrawMark(index)
+                    annotations[index].bend = nil
+                    redrawMark(index)
+                    commit(before, label: String(localized: "Straighten"))
+                    return true
+                }
+                marksBefore = annotations
+                if mark.tool == .blur { prepareBlur() }
+                drag = .resizingMark(handle: handle, original: mark)
+                return true
+            }
+        }
+        guard selection.contains(point) else {
+            selectMark(nil)
+            return false
+        }
+        if state.tool == .eraser {
+            selectMark(nil)
+            marksBefore = annotations
+            eraserStrokes += 1
+            drag = .erasing(last: point, stroke: eraserStrokes)
+            erase(from: nil, to: point, stroke: eraserStrokes)
+            return true
+        }
+        guard let index = MarkEditing.topmost(at: point, in: annotations) else {
+            selectMark(nil)
+            return false
+        }
+        if clicks == 2, annotations[index].tool == .text {
+            editText(index)
+            return true
+        }
+        selectMark(index)
+        marksBefore = annotations
+        if annotations[index].tool == .blur { prepareBlur() }
+        drag = .movingMark(last: point)
+        NSCursor.closedHand.set()
+        return true
+    }
+
+    /// Selects a mark (nil: none). The toolbar then shows its color and size, and changing them
+    /// changes it.
+    private func selectMark(_ index: Int?) {
+        guard index != selectedMark else { return }
+        redrawMark(selectedMark)
+        selectedMark = index
+        guard let index, annotations.indices.contains(index) else { return }
+        redrawMark(index)
+        let mark = annotations[index]
+        if mark.tool.usesColor, let color = MarkEditing.colorIndex(of: mark) { state.colorIndex = color }
+        if mark.tool != .blur { state.sizeIndex = mark.size }
+        announce(String(localized: "Selected: \(mark.tool.title). Delete removes it, arrows move it, Tab selects the next one."))
+    }
+
+    private func removeMark(_ index: Int) {
+        guard annotations.indices.contains(index) else { return }
+        let before = annotations
+        redrawMark(index)
+        let mark = annotations.remove(at: index)
+        selectedMark = nil
+        hoveredMark = nil
+        commit(before, label: String(localized: "Delete"))
+        announce(String(localized: "Removed: \(mark.tool.title)"))
+    }
+
+    /// One step of the eraser: only the marks it goes over lose what it covers.
+    private func erase(from: CGPoint?, to: CGPoint, stroke: Int) {
+        let width = MarkEditing.eraserSizes[state.sizeIndex]
+        var touched = false
+        for index in annotations.indices where annotations[index].erase(from: from, to: to, width: width, stroke: stroke) {
+            touched = true
+        }
+        guard touched else { return }
+        let start = from ?? to
+        setNeedsDisplay(CGRect(x: min(start.x, to.x), y: min(start.y, to.y), width: abs(to.x - start.x), height: abs(to.y - start.y))
+            .insetBy(dx: -width / 2 - 2, dy: -width / 2 - 2))
+    }
+
+    /// The drag ended: marks erased completely go away; the whole drag is one undo step.
+    private func finishErasing() {
+        guard let before = marksBefore else { return }
+        marksBefore = nil
+        for index in annotations.indices where annotations[index].isFullyErased { redrawMark(index) }
+        annotations.removeAll { $0.isFullyErased }
+        let changed = annotations.count != before.count || zip(annotations, before).contains { $0.erasures.count != $1.erasures.count }
+        if changed { commit(before, label: CaptureTool.eraser.title) }
+    }
+
+    /// The selected mark moved or resized: one undo step.
+    private func finishEditing(moved: Bool) {
+        guard let before = marksBefore else { return }
+        marksBefore = nil
+        guard let index = selectedMark, before.indices.contains(index), annotations.indices.contains(index),
+              before[index].points != annotations[index].points || before[index].scale != annotations[index].scale
+                || before[index].bend != annotations[index].bend else { return }
+        commit(before, label: moved ? String(localized: "Move") : String(localized: "Resize"))
+    }
+
+    /// Color and size changes go to the selected mark too.
+    private func restyleSelectedMark(label: String, applies: (Annotation) -> Bool, _ change: (inout Annotation) -> Void) {
+        guard let index = selectedMark, annotations.indices.contains(index), applies(annotations[index]) else { return }
+        let before = annotations
+        redrawMark(index)
+        change(&annotations[index])
+        redrawMark(index)
+        commit(before, label: label)
+    }
+
+    /// Double-click on a text: it is typed again in place.
+    private func editText(_ index: Int) {
+        let mark = annotations[index]
+        textEditBefore = annotations
+        textEditOriginal = (mark, index)
+        redrawMark(index)
+        annotations.remove(at: index)
+        selectedMark = nil
+        hoveredMark = nil
+        if let color = MarkEditing.colorIndex(of: mark) { state.colorIndex = color }
+        state.sizeIndex = mark.size
+        beginText(at: mark.points.first ?? .zero, text: mark.text, scale: mark.scale)
+    }
+
+    /// Keys for marks: Tab selects the next one (⇧ the previous); with one selected, Esc lets it
+    /// go, Delete removes it, arrows move it (⇧ by 10, ⌥ make it bigger or smaller). Nil: not ours.
+    private func handleMarkKey(_ event: NSEvent, flags: NSEvent.ModifierFlags) -> Bool? {
+        if event.keyCode == 48, !annotations.isEmpty, flags.isDisjoint(with: [.control, .option, .command]) {
+            let count = annotations.count
+            let backward = flags.contains(.shift)
+            selectMark(selectedMark.map { ($0 + (backward ? -1 : 1) + count) % count } ?? (backward ? count - 1 : 0))
+            return true
+        }
+        guard let index = selectedMark, annotations.indices.contains(index), !flags.contains(.command) else { return nil }
+        switch Int(event.keyCode) {
+        case 53:
+            selectMark(nil)
+            return true
+        case 51, 117:
+            removeMark(index)
+            return true
+        case 123, 124, 125, 126:
+            let step: CGFloat = flags.contains(.shift) ? 10 : 1
+            let delta = CGVector(dx: event.keyCode == 123 ? -step : event.keyCode == 124 ? step : 0,
+                                 dy: event.keyCode == 126 ? -step : event.keyCode == 125 ? step : 0)
+            let grow = flags.contains(.option)
+            let label = grow ? String(localized: "Resize") : String(localized: "Move")
+            // Held or repeated arrows make one undo step.
+            if !(nudgeStepOpen && undoStack.last?.label == label && Date().timeIntervalSince(lastNudge) < 1) {
+                commit(annotations, label: label)
+                nudgeStepOpen = true
+            }
+            lastNudge = Date()
+            redrawMark(index)
+            if grow { annotations[index] = MarkEditing.grown(annotations[index], by: delta) } else { annotations[index].move(by: delta) }
+            if annotations[index].tool == .blur {
+                prepareBlur()
+                annotations[index].image = blurredPart(annotations[index].rect)
+            }
+            redrawMark(index)
+            announceSoon(grow ? String(localized: "Resized") : String(localized: "Moved"))
+            return true
+        default:
+            return nil
         }
     }
 
@@ -454,9 +751,27 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             case .pen, .highlighter:
                 if hypot(point.x - last.x, point.y - last.y) >= 1.5 { current?.points.append(point) }
             default:
-                current?.points[1] = point
+                let snap = (tool == .arrow || tool == .line) && event.modifierFlags.contains(.shift)
+                let origin = current?.points.first ?? point
+                current?.points[1] = snap ? MarkEditing.snapped(point, from: origin) : point
                 if tool == .blur, let rect = current?.rect { current?.image = blurredPart(rect) }
             }
+        case .movingMark(let last):
+            guard let index = selectedMark, annotations.indices.contains(index) else { return }
+            redrawMark(index)
+            annotations[index].move(by: CGVector(dx: point.x - last.x, dy: point.y - last.y))
+            if annotations[index].tool == .blur { annotations[index].image = blurredPart(annotations[index].rect) }
+            redrawMark(index)
+            drag = .movingMark(last: point)
+        case .resizingMark(let handle, let original):
+            guard let index = selectedMark, annotations.indices.contains(index) else { return }
+            redrawMark(index)
+            annotations[index] = MarkEditing.resized(original, handle: handle, to: point, keepRatio: event.modifierFlags.contains(.shift))
+            if annotations[index].tool == .blur { annotations[index].image = blurredPart(annotations[index].rect) }
+            redrawMark(index)
+        case .erasing(let last, let stroke):
+            erase(from: last, to: point, stroke: stroke)
+            drag = .erasing(last: point, stroke: stroke)
         }
     }
 
@@ -482,8 +797,16 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             }
             if annotation.isMeaningful { add(annotation) }
             needsDisplay = true
+        case .movingMark:
+            finishEditing(moved: true)
+        case .resizingMark:
+            finishEditing(moved: false)
+        case .erasing:
+            finishErasing()
         }
-        updateCursor(convert(event.locationInWindow, from: nil))
+        let point = convert(event.locationInWindow, from: nil)
+        updateHoveredMark(point)
+        updateCursor(point)
     }
 
     private func clamp(_ point: CGPoint) -> CGPoint {
@@ -511,6 +834,24 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// desktop without windows).
     private func select(_ target: CaptureTarget) {
         guard !capturing else { return }
+        session.hideHints()
+        if state.recordMode {
+            // Nothing to capture now: the window is recorded live.
+            hovered = nil
+            windowMode = false
+            switch target {
+            case .window(let id, let rect):
+                recordWindow = id
+                selectedTarget = target
+                selection = rect.intersection(bounds)
+            case .desktop:
+                recordWindow = nil
+                selection = bounds
+            }
+            needsDisplay = true
+            startRecording()
+            return
+        }
         capturing = true
         hovered = nil
         windowMode = false
@@ -537,6 +878,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             }
             self.targetImage = image
             self.targetNSImage = NSImage(cgImage: image, size: target.rect.size)
+            self.selectedTarget = target
             self.selection = target.rect
             self.needsDisplay = true
             self.announceSelection()
@@ -546,15 +888,27 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     private func announceSelection() {
         guard let selection else { return }
-        announce(String(localized: "Selected \(Int(selection.width * outputScale)) by \(Int(selection.height * outputScale)) pixels. Tools: V, R, O, P, H, T, B. Copy with Command C, save with Command S."))
+        announce(String(localized: "Selected \(Int(selection.width * outputScale)) by \(Int(selection.height * outputScale)) pixels. Tools: V, L, R, O, P, H, T, B, E. Copy with Command C, save with Command S."))
     }
 
     /// The selection is made. In live mode the screen is taken now, without Penknife's windows.
     private func select(_ rect: CGRect) {
+        session.hideHints()
         selection = rect.integral.intersection(bounds)
         hovered = nil
         windowMode = false
+        recordWindow = nil
+        selectedTarget = nil
         needsDisplay = true
+        if state.recordMode {
+            // The region IS the choice (R-33): the countdown starts now. Too small: choose again.
+            if let selection, selection.width >= 8, selection.height >= 8 {
+                startRecording()
+            } else {
+                selection = nil
+            }
+            return
+        }
         announceSelection()
         guard base == nil, !capturing else { showToolbar(); return }
         capturing = true
@@ -639,13 +993,21 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             state.colorIndex = index
             state.expanded = nil
             styleText()
+            restyleSelectedMark(label: String(localized: "Color"), applies: { $0.tool.usesColor && $0.color != CapturePalette.colors[index] }) {
+                $0.color = CapturePalette.colors[index]
+            }
             announce(CapturePalette.name(index))
             relayoutToolbar()
             return
         case .size(let index):
             state.sizeIndex = index
             state.expanded = nil
+            textScale = 1
             styleText()
+            restyleSelectedMark(label: String(localized: "Size"), applies: { $0.tool != .blur && ($0.size != index || $0.scale != 1) }) {
+                $0.size = index
+                $0.scale = 1
+            }
             announce(CaptureSize.name(index))
             relayoutToolbar()
             return
@@ -653,6 +1015,9 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             state.expanded = state.expanded == row ? nil : row
             relayoutToolbar()
             if let textView { window?.makeFirstResponder(textView) }
+            return
+        case .record:
+            session.enterRecordMode()
             return
         default: break
         }
@@ -663,8 +1028,15 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .redo: redo()
         case .copy: copyImage()
         case .save: saveImage()
+        case .pointer:
+            state.tool = nil
+            selectMark(nil)
+            updateHoveredMark(mouseLocation)
+            announce(String(localized: "No tool: drag to move the selection"))
         case .tool(let tool):
             state.tool = state.tool == tool ? nil : tool
+            selectMark(nil)
+            updateHoveredMark(mouseLocation)
             announce(state.tool.map { $0.title } ?? String(localized: "No tool: drag to move the selection"))
         default: break
         }
@@ -711,11 +1083,15 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         if event.type == .keyDown, event.isARepeat, [49, 36, 76, 53].contains(Int(event.keyCode)) {
             return true                                         // held Space/Return/Esc: once only
         }
+        if !state.recordMode, selection != nil, let handled = handleMarkKey(event, flags: flags) { return handled }
         switch Int(event.keyCode) {
-        case 53: session.cancel(); return true                  // Esc
+        case 53:                                                // Esc
+            session.cancel()
+            return true
         case 49 where selection == nil:                         // Space: window ⇄ area
             guard !capturing else { return true }
             windowMode.toggle()
+            hintModel.windowMode = windowMode
             hovered = windowMode ? target(at: mouseLocation) : nil
             needsDisplay = true
             updateCursor(mouseLocation)
@@ -724,6 +1100,14 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 : String(localized: "Area: drag to select, or Return for the whole screen"))
             return true
         case 36, 76:                                            // Return
+            if state.recordMode {
+                if selection == nil {
+                    if let hovered { select(hovered) } else { select(bounds) }
+                } else {
+                    startRecording()
+                }
+                return true
+            }
             if selection == nil {
                 if let hovered { select(hovered) } else { select(bounds) }
             } else if state.tool == .text, textView == nil, let selection {
@@ -767,8 +1151,13 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             return true
         default: break
         }
+        if state.recordMode {
+            // Record mode has no tools, copy or save.
+            return command && key != "q"
+        }
         if command {
             switch key {
+            case "r" where flags.contains(.shift): run(.record); return true
             case "z": flags.contains(.shift) ? redo() : undo(); return true
             case "c": copyImage(); return true
             case "s": saveImage(); return true
@@ -810,10 +1199,82 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         return convert(window.mouseLocationOutsideOfEventStream, from: nil)
     }
 
+    // MARK: Record mode (R-29)
+
+    /// The session switched to record mode: with a selection the recording starts now (its
+    /// marks go with it); without one, the hint says how to choose what to record.
+    func recordModeChanged() {
+        endText()
+        closeChoices()
+        selectMark(nil)
+        redrawMark(hoveredMark)
+        hoveredMark = nil
+        guard selection != nil else {
+            hintModel.recording = true
+            announce(String(localized: "Record the screen. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel."))
+            return
+        }
+        if targetImage != nil, case .window(let id, _)? = selectedTarget { recordWindow = id }
+        startRecording()
+    }
+
+    // MARK: Hint (R-33)
+
+    /// Shown after 0.3 s, so quick hands never see it.
+    func showHint() {
+        guard hintView == nil, !hintDone else { return }
+        hintModel.recording = state.recordMode
+        // Under the menu bar (and the camera housing).
+        let top = max(screen.frame.maxY - screen.visibleFrame.maxY, screen.safeAreaInsets.top) + 12
+        let view = PassThroughHostingView(rootView: CaptureHint(model: hintModel))
+        view.frame = CGRect(x: 0, y: top, width: bounds.width, height: 44)
+        view.autoresizingMask = [.width]
+        addSubview(view)
+        hintView = view
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !hintDone, selection == nil else { return }
+            hintModel.visible = true
+        }
+        hintWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+    }
+
+    /// Gone for good (it fades out) at the first click or choice.
+    func hideHint() {
+        guard !hintDone else { return }
+        hintDone = true
+        hintWork?.cancel()
+        hintWork = nil
+        hintModel.visible = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.hintView?.removeFromSuperview()
+            self?.hintView = nil
+        }
+    }
+
+    private func startRecording() {
+        guard state.recordMode, let selection, !capturing, selection.width >= 8, selection.height >= 8 else { return }
+        var window: (id: CGWindowID, frame: CGRect)?
+        if let recordWindow, case .window(let id, let rect)? = selectedTarget, id == recordWindow {
+            window = (id, Self.globalFrame(rect, on: screen))
+        }
+        session.record(screen: screen, rect: selection, fullScreen: selection == bounds, window: window,
+                       marks: annotations.map { mark in
+                           // A blur is blurred live in the recording, not from this screenshot.
+                           var mark = mark
+                           mark.image = nil
+                           mark.liveBlur = mark.tool == .blur
+                           return mark
+                       })
+    }
+
     // MARK: Text
 
-    private func beginText(at point: CGPoint) {
-        let view = NSTextView(frame: CGRect(origin: point, size: CGSize(width: 40, height: CaptureSize.font(state.sizeIndex).boundingRectForFont.height)))
+    /// `text` and `scale`: a text typed again (double-click), with its size.
+    private func beginText(at point: CGPoint, text: String = "", scale: CGFloat = 1) {
+        textScale = scale
+        let font = textFont
+        let view = NSTextView(frame: CGRect(origin: point, size: CGSize(width: 40, height: font.boundingRectForFont.height)))
         view.isRichText = false
         view.drawsBackground = false
         view.textContainerInset = .zero
@@ -824,13 +1285,18 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         view.isVerticallyResizable = true
         view.minSize = view.frame.size
         view.maxSize = CGSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
-        view.typingAttributes = Annotation.textAttributes(state.color, size: state.sizeIndex)
+        view.typingAttributes = Annotation.textAttributes(state.color, font: font)
         textSize = state.sizeIndex
         view.insertionPointColor = state.color
         view.isAutomaticQuoteSubstitutionEnabled = false
         view.allowsUndo = true
         view.delegate = self
         view.setAccessibilityLabel(String(localized: "Text"))
+        if !text.isEmpty {
+            view.string = text
+            view.textStorage?.setAttributes(view.typingAttributes, range: NSRange(location: 0, length: view.textStorage?.length ?? 0))
+            view.sizeToFit()
+        }
         addSubview(view)
         textView = view
         textOrigin = point
@@ -838,16 +1304,20 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     private var textSize = CaptureSize.defaultIndex
+    /// A text made bigger or smaller with its handles keeps that while typed again.
+    private var textScale: CGFloat = 1
+    private var textFont: NSFont { .systemFont(ofSize: CaptureSize.fontSizes[state.sizeIndex] * textScale, weight: .semibold) }
 
     /// Color and size apply to the text being typed, all of it.
     private func styleText() {
         guard let view = textView else { return }
-        let attributes = Annotation.textAttributes(state.color, size: state.sizeIndex)
+        let font = textFont
+        let attributes = Annotation.textAttributes(state.color, font: font)
         textSize = state.sizeIndex
         view.typingAttributes = attributes
         view.insertionPointColor = state.color
         view.textStorage?.setAttributes(attributes, range: NSRange(location: 0, length: view.textStorage?.length ?? 0))
-        view.minSize = CGSize(width: 40, height: CaptureSize.font(state.sizeIndex).boundingRectForFont.height)
+        view.minSize = CGSize(width: 40, height: font.boundingRectForFont.height)
         view.sizeToFit()
         window?.makeFirstResponder(view)
     }
@@ -869,39 +1339,72 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         guard let view = textView else { return }
         textView = nil
         let color = (view.typingAttributes[.foregroundColor] as? NSColor) ?? state.color
-        let annotation = Annotation(tool: .text, color: color, size: textSize, points: [textOrigin], text: view.string)
+        let annotation = Annotation(tool: .text, color: color, size: textSize, points: [textOrigin], text: view.string, scale: textScale)
         view.removeFromSuperview()
         window?.makeFirstResponder(self)
-        if annotation.isMeaningful { add(annotation) }
+        if let before = textEditBefore {
+            // A text typed again goes back to its place and depth; one undo step brings back the
+            // old one, and nothing changes when it wasn't changed (QA, 2026-11-17).
+            let original = textEditOriginal
+            textEditBefore = nil
+            textEditOriginal = nil
+            let index = min(original?.index ?? annotations.count, annotations.count)
+            if let old = original?.mark, annotation.text == old.text, annotation.color == old.color,
+               annotation.size == old.size, annotation.scale == old.scale {
+                annotations.insert(old, at: index)
+            } else {
+                if annotation.isMeaningful { annotations.insert(annotation, at: index) }
+                commit(before, label: CaptureTool.text.title)
+            }
+        } else if annotation.isMeaningful {
+            add(annotation)
+        }
+        textScale = 1
         needsDisplay = true
     }
 
     // MARK: Undo
 
     private func add(_ annotation: Annotation) {
+        let before = annotations
         annotations.append(annotation)
+        commit(before, label: annotation.tool.title)
+    }
+
+    /// A change was made: `before` is what undo brings back.
+    private func commit(_ before: [Annotation], label: String) {
+        nudgeStepOpen = false
+        undoStack.append((before, label))
         redoStack.removeAll()
         updateUndoState()
     }
 
     private func undo() {
-        guard let last = annotations.popLast() else { return }
-        redoStack.append(last)
+        guard let last = undoStack.popLast() else { return }
+        nudgeStepOpen = false
+        redoStack.append((annotations, last.label))
+        annotations = last.marks
+        selectedMark = nil
+        hoveredMark = nil
         updateUndoState()
         needsDisplay = true
-        announce(String(localized: "Undone: \(last.tool.title)"))
+        announce(String(localized: "Undone: \(last.label)"))
     }
 
     private func redo() {
-        guard let last = redoStack.popLast() else { return }
-        annotations.append(last)
+        guard let next = redoStack.popLast() else { return }
+        nudgeStepOpen = false
+        undoStack.append((annotations, next.label))
+        annotations = next.marks
+        selectedMark = nil
+        hoveredMark = nil
         updateUndoState()
         needsDisplay = true
-        announce(String(localized: "Redone: \(last.tool.title)"))
+        announce(String(localized: "Redone: \(next.label)"))
     }
 
     private func updateUndoState() {
-        state.canUndo = !annotations.isEmpty
+        state.canUndo = !undoStack.isEmpty
         state.canRedo = !redoStack.isEmpty
     }
 

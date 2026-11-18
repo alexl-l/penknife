@@ -36,10 +36,16 @@ final class ScreenshotModule: Module {
 
     private var session: CaptureSession?
     private var starting = false
+    /// A recording from its countdown until it stops (R-29); its end window lives on its own.
+    private var recording: RecordingSession?
 
     var actions: [ModuleAction] {
-        [ModuleAction(shortcut: .screenshot, title: String(localized: "Screenshot"), symbol: id.symbol,
-                      perform: { [weak self] in self?.begin() })]
+        [
+            ModuleAction(shortcut: .screenshot, title: String(localized: "Screenshot"), symbol: id.symbol,
+                         perform: { [weak self] in self?.begin() }),
+            ModuleAction(shortcut: .recordScreen, title: String(localized: "Record Screen"), symbol: "record.circle",
+                         perform: { [weak self] in self?.toggleRecording() }),
+        ]
     }
 
     func start() {}
@@ -47,6 +53,26 @@ final class ScreenshotModule: Module {
     func stop() {
         session?.cancel()
         session = nil
+        recording?.cancel()
+        recording = nil
+    }
+
+    /// The record shortcut: stops a recording; with the overlay open, switches it to record mode;
+    /// otherwise opens it in record mode.
+    private func toggleRecording() {
+        if let recording {
+            recording.stop()
+        } else if let session {
+            session.enterRecordMode()
+        } else {
+            begin(record: true)
+        }
+    }
+
+    private func startRecording(_ request: RecordingRequest) {
+        let recording = RecordingSession(request: request) { [weak self] in self?.recording = nil }
+        self.recording = recording
+        recording.start()
     }
 
     /// Where Save puts screenshots: the folder chosen in Settings, else the system's screenshot
@@ -65,14 +91,15 @@ final class ScreenshotModule: Module {
         return FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
     }
 
-    private func begin() {
-        guard session == nil, !starting else { return }
+    /// `record`: straight in record mode, over the live screen.
+    private func begin(record: Bool = false) {
+        guard session == nil, !starting, recording == nil else { return }
         guard CGPreflightScreenCaptureAccess() else {
             requestPermission()
             return
         }
         starting = true
-        let mode = ScreenshotMode.current
+        let mode = record ? .live : ScreenshotMode.current
         let previous = NSWorkspace.shared.frontmostApplication
         Task { [weak self] in
             defer { self?.starting = false }
@@ -87,9 +114,9 @@ final class ScreenshotModule: Module {
                 }
             }
             guard let self else { return }
-            let session = CaptureSession(mode: mode, images: images, previousApp: previous) { [weak self] in
-                self?.session = nil
-            }
+            let session = CaptureSession(mode: mode, images: images, previousApp: previous, recordOnly: record,
+                                         onRecord: { [weak self] in self?.startRecording($0) },
+                                         onFinish: { [weak self] in self?.session = nil })
             self.session = session
             session.show()
         }

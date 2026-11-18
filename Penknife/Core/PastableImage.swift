@@ -38,6 +38,30 @@ enum PastableImage {
         pasteboard.writeObjects([item])
     }
 
+    /// Clears the clipboard and puts a copy of the file at `source` on it, as a file named `name`
+    /// (its extension is kept): a screen recording pastes into messages and Finder folders. False
+    /// when it doesn't fit in the space the user gives these files.
+    static func copyFile(_ source: URL, named name: String) -> Bool {
+        let manager = FileManager.default
+        let size = Int64((try? source.resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0)
+        let limit = Int64(limitMB) * 1_000_000
+        guard size <= limit else { return false }
+        do {
+            try manager.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+            makeRoom(size, limit: limit)
+            let directory = folder.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try manager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
+            let url = directory.appendingPathComponent(name).appendingPathExtension(source.pathExtension)
+            try manager.copyItem(at: source, to: url)
+            try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            return pasteboard.writeObjects([url as NSURL])
+        } catch {
+            return false
+        }
+    }
+
     /// "Image 2026-11-13 at 16.30.05" style name for the current time.
     static func timestampName(_ prefix: (String, String) -> String) -> String {
         let formatter = DateFormatter()
