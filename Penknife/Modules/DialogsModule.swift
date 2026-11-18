@@ -2,9 +2,10 @@ import AppKit
 import ApplicationServices
 import os
 
-/// Native dialogs (R-4, groundwork): knows when a sheet, modal window or system prompt is in
-/// front, so the Touch Bar (phase 2) can step aside. Event-driven: it only checks when the
-/// front app, its focused window or focused element changes, or a window or sheet appears.
+/// Native dialogs (R-4): knows when a sheet, modal window or system prompt is in front, so the
+/// Touch Bar can step aside. Event-driven: it only checks when the front app, its focused window
+/// or focused element changes, or a window or sheet appears. It watches only while the module is
+/// on AND the Touch Bar listens (`onChange` set), so it costs nothing without a Touch Bar (B-5).
 @Observable
 final class DialogsModule: Module {
     let id = ModuleID.dialogs
@@ -12,10 +13,13 @@ final class DialogsModule: Module {
     let actions: [ModuleAction] = []
 
     private(set) var isDialogOpen = false
-    /// Called when `isDialogOpen` changes.
-    @ObservationIgnored var onChange: ((Bool) -> Void)?
+    /// Called when `isDialogOpen` changes. Only the running Touch Bar sets it.
+    @ObservationIgnored var onChange: ((Bool) -> Void)? {
+        didSet { updateWatching() }
+    }
 
-    @ObservationIgnored private var running = false
+    @ObservationIgnored private var enabled = false // the module's switch
+    @ObservationIgnored private var running = false // watching
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var observer: AXObserver?
     @ObservationIgnored private var observedApp: AXUIElement?
@@ -46,7 +50,27 @@ final class DialogsModule: Module {
     }
 
     func start() {
-        guard !running else { return }
+        enabled = true
+        updateWatching()
+    }
+
+    func stop() {
+        enabled = false
+        updateWatching()
+    }
+
+    /// B-5: watch only while the module is on and someone listens.
+    static func shouldWatch(enabled: Bool, hasListener: Bool) -> Bool { enabled && hasListener }
+
+    /// True while any observer exists (for tests: nothing is held while not watching).
+    var isWatching: Bool { activationObserver != nil || observer != nil }
+
+    private func updateWatching() {
+        let watch = Self.shouldWatch(enabled: enabled, hasListener: onChange != nil)
+        if watch, !running { beginWatching() } else if !watch, running { endWatching() }
+    }
+
+    private func beginWatching() {
         running = true
         activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
             forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
@@ -57,7 +81,9 @@ final class DialogsModule: Module {
         observe(NSWorkspace.shared.frontmostApplication)
     }
 
-    func stop() {
+    /// Turning the module off while a dialog shows brings the bar back at once (the listener is
+    /// still set); losing the listener just resets the state.
+    private func endWatching() {
         running = false
         if let activationObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
@@ -65,6 +91,7 @@ final class DialogsModule: Module {
         activationObserver = nil
         removeObserver()
         pendingCheck?.cancel()
+        pendingCheck = nil
         setOpen(false)
     }
 

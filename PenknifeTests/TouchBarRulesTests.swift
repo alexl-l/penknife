@@ -213,6 +213,35 @@ struct TouchBarRulesTests {
         }
     }
 
+    // MARK: Fixes
+
+    // B-5 / TB-46: Native Dialogs watches only while it is on AND the Touch Bar listens, so with
+    // no Touch Bar (or the Touch Bar module off) it holds no observer. Safe here: watching only
+    // adds an app-activation observer (the test host has no Accessibility) and never shows anything.
+    @Test("B-5 TB-46 when Native Dialogs watches", arguments: [(true, true, true), (true, false, false), (false, true, false), (false, false, false)])
+    func dialogsWatchRule(enabled: Bool, hasListener: Bool, watches: Bool) {
+        #expect(DialogsModule.shouldWatch(enabled: enabled, hasListener: hasListener) == watches)
+    }
+
+    @Test("B-5 TB-46 Native Dialogs holds nothing without the Touch Bar")
+    func dialogsWithoutListener() {
+        let dialogs = DialogsModule()
+        dialogs.start() // module on, no Touch Bar listening (a Mac without one)
+        #expect(!dialogs.isWatching)
+        dialogs.onChange = { _ in } // the Touch Bar starts
+        #expect(dialogs.isWatching)
+        dialogs.onChange = nil // the Touch Bar stops
+        #expect(!dialogs.isWatching)
+        dialogs.onChange = { _ in }
+        #expect(dialogs.isWatching)
+        dialogs.stop() // module off
+        #expect(!dialogs.isWatching)
+        dialogs.onChange = nil
+        dialogs.onChange = { _ in } // the Touch Bar starts again with the module still off
+        #expect(!dialogs.isWatching)
+        dialogs.onChange = nil
+    }
+
     /// A new empty suite (never written, so no plist is created); fails if any key is already there.
     static func emptySuite(keys: [String]) throws -> UserDefaults {
         let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))
