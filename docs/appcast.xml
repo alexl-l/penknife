@@ -3,6 +3,18 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.9</title>
+            <pubDate>Wed, 18 Nov 2026 10:06:39 -0500</pubDate>
+            <sparkle:version>96</sparkle:version>
+            <sparkle:shortVersionString>1.9</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Alerts at the top center.** Penknife's alerts now appear centered under the menu bar (or the notch) instead of the top right. A Teams message or another Apple banner no longer covers them, and they no longer cover it or the volume indicator. With the pointer on a second screen, the alert shows on that screen.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.9/Penknife-1.9.zip" length="5153095" type="application/octet-stream" sparkle:edSignature="WwVQf34qeQAzT9/el+7eWVT0Q2967Ximxyt20QkmfwczLxoF5CMwmtGvfZ2oHcjO5Nx6rEB3wS8e+YP0B4bGCQ=="/>
+        </item>
+        <item>
             <title>1.8</title>
             <pubDate>Wed, 18 Nov 2026 09:23:22 -0500</pubDate>
             <sparkle:version>93</sparkle:version>
@@ -30,18 +42,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.7/Penknife-1.7.zip" length="5135468" type="application/octet-stream" sparkle:edSignature="3FbbXesIT9A5P3OQoPtEDdZ+jp6TD8M/tw0d4OWhlasP5ATUIzbxAtAauUDX9UKv0+Sg1UWe4GN4CCfzgcJGAw=="/>
-        </item>
-        <item>
-            <title>1.6</title>
-            <pubDate>Tue, 17 Nov 2026 14:08:03 -0500</pubDate>
-            <sparkle:version>81</sparkle:version>
-            <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Teams unmute works when consent is required.** With "Remember my choice for Teams' unmute dialog" on, Teams used to ignore its own mute shortcut until you consented, so nothing happened. Penknife still sends the shortcut first; if Teams ignores it, Penknife presses Teams' mic button for you, bringing Teams forward for a moment if it was behind and then returning to your app, so the consent dialog appears and gets answered. Normal meetings are unchanged: Teams isn't brought forward and your typing focus isn't touched. You remain responsible for consent.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.6/Penknife-1.6.zip" length="4379397" type="application/octet-stream" sparkle:edSignature="fBPubndymhcnHsXRGL3Z9KAZNUj7Gra8+UdOA6PmY83HHD9WBs7v60SBH4yAEW2gkCgN7XSI26HCBbDkbfG6Bg=="/>
         </item>
     </channel>
 </rss>
