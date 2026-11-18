@@ -3,6 +3,20 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.10</title>
+            <pubDate>Wed, 18 Nov 2026 14:13:52 -0500</pubDate>
+            <sparkle:version>109</sparkle:version>
+            <sparkle:shortVersionString>1.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Teams unmute works when recording starts mid-meeting.** With "Remember my choice for Teams' unmute dialog" on, unmuting with Penknife's shortcut now works even if someone starts recording after the meeting began. Before, Teams' "recording started" notice stayed open and you stayed muted. Meetings that start already recording are unchanged, and Penknife still only answers the consent dialog that its own unmute opens.</li>
+<li>**Accurate mic icon with Siri.** The Touch Bar button and the menu bar dot now show the microphone as open while Siri is listening to you, also while music plays. Before, they could say muted while Siri heard you.</li>
+<li>**Microphone off means off.** Turning the Microphone module off now stops all of its background listening.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.10/Penknife-1.10.zip" length="6011886" type="application/octet-stream" sparkle:edSignature="anqnSHwzJuGcAY69HtJ/MOobEit/w/z8eU5OKoNwQYXs1hKf3Cn4fT3eGEdjdA1oicuvz+PO4jBFYcy4U4o9Cw=="/>
+        </item>
+        <item>
             <title>1.9</title>
             <pubDate>Wed, 18 Nov 2026 10:06:39 -0500</pubDate>
             <sparkle:version>96</sparkle:version>
@@ -26,22 +40,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.8/Penknife-1.8.zip" length="5152336" type="application/octet-stream" sparkle:edSignature="uVbNJNOEQ3QkGgU2Q/JouX86T6EsY+QxlFdG6Z4DgjNmzYJ/o57qytIYPvsd5tZxIHNioceWZEK6cYtpc/bGAw=="/>
-        </item>
-        <item>
-            <title>1.7</title>
-            <pubDate>Tue, 17 Nov 2026 22:53:07 -0500</pubDate>
-            <sparkle:version>88</sparkle:version>
-            <sparkle:shortVersionString>1.7</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Screen recording.** Record the full screen, an area or a window (⌃⌥R) as an MP4 video or a GIF. Switch the Mac's sound and your microphone on or off, and pause when you need to. A timer in the menu bar shows the time; click it to stop.</li>
-<li>**Draw while you record.** Marks appear in the recording as you make them (⌃⌥D switches between drawing and using your apps). Blur hides what's behind it in the file itself.</li>
-<li>**Edit your marks.** Select, move, resize and erase any mark, in the screenshot editor and in the recording, with the same tools in both. The new Line can be bent into a curve.</li>
-<li>**Fewer clicks.** Drag an area, press Space for a window or Return for the full screen, and a quiet countdown starts. When you finish, Trim cuts the start and end before you save as video, save as GIF or copy.</li>
-<li>**"Keep the microphone muted"** (Settings → Microphone, on by default). When "Hey Siri" opens the Mac's microphone because the Mac played a sound, Penknife mutes it again within a moment. Calling Siri yourself still works.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.7/Penknife-1.7.zip" length="5135468" type="application/octet-stream" sparkle:edSignature="3FbbXesIT9A5P3OQoPtEDdZ+jp6TD8M/tw0d4OWhlasP5ATUIzbxAtAauUDX9UKv0+Sg1UWe4GN4CCfzgcJGAw=="/>
         </item>
     </channel>
 </rss>
