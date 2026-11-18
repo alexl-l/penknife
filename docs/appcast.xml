@@ -3,6 +3,19 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.8</title>
+            <pubDate>Wed, 18 Nov 2026 09:23:22 -0500</pubDate>
+            <sparkle:version>93</sparkle:version>
+            <sparkle:shortVersionString>1.8</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Cleaner GIFs.** Dark backgrounds no longer turn into black patches at the start of a GIF.</li>
+<li>**Smaller GIFs.** Each frame now stores only what changed, so a GIF is often 5 to 7 times smaller (a 6-second clip went from 1.4 MB to 207 KB).</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.8/Penknife-1.8.zip" length="5152336" type="application/octet-stream" sparkle:edSignature="uVbNJNOEQ3QkGgU2Q/JouX86T6EsY+QxlFdG6Z4DgjNmzYJ/o57qytIYPvsd5tZxIHNioceWZEK6cYtpc/bGAw=="/>
+        </item>
+        <item>
             <title>1.7</title>
             <pubDate>Tue, 17 Nov 2026 22:53:07 -0500</pubDate>
             <sparkle:version>88</sparkle:version>
@@ -29,19 +42,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.6/Penknife-1.6.zip" length="4379397" type="application/octet-stream" sparkle:edSignature="fBPubndymhcnHsXRGL3Z9KAZNUj7Gra8+UdOA6PmY83HHD9WBs7v60SBH4yAEW2gkCgN7XSI26HCBbDkbfG6Bg=="/>
-        </item>
-        <item>
-            <title>1.5</title>
-            <pubDate>Tue, 17 Nov 2026 12:48:05 -0500</pubDate>
-            <sparkle:version>77</sparkle:version>
-            <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Mic shortcut follows the call.** When the meeting's mic button can be read, each press does the opposite of the call's state, and the Mac's microphone follows. Before, if Teams muted everyone (for example when a recording starts), the first press muted your Mac instead of unmuting you in the call.</li>
-<li>**"Remember my choice for Teams' unmute dialog"** (Settings → Microphone, off by default) no longer depends on the dialog's wording. It works in any language and with messages customized by your organization, and only when you unmute with Penknife's shortcut. You remain responsible for consent, so check your employer's policy first.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.5/Penknife-1.5.zip" length="4362254" type="application/octet-stream" sparkle:edSignature="/J5dFqS9grtGtaIhZvU6ZI/nz3LAUO1julyx2qKm9lh0pQ+pvqSnwWGJ+8N3awGn9L/jKb7H3VZYJirQV/uMBA=="/>
         </item>
     </channel>
 </rss>
