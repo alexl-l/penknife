@@ -506,7 +506,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
 
     /// Tap on the battery: percentage ↔ icon, remembered (R-25).
     private func toggleBatteryIcon() {
-        if batteryLongPressing || Date().timeIntervalSince(batteryLongPressEnded) < 0.5 { return }
+        guard Self.tapAllowed(holding: batteryLongPressing, holdEnded: batteryLongPressEnded, now: Date()) else { return }
         UserDefaults.standard.set(!Self.showsBatteryIcon(in: .standard), forKey: Self.batteryIconKey)
         updateBattery()
     }
@@ -556,9 +556,14 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }
     }
 
+    /// The pending levels, or all three when none is pending (after wake, TB-33).
+    static func levelsToRead(pending: Set<BarItem>) -> Set<BarItem> {
+        pending.isEmpty ? [.brightness, .keyboardLight, .volume] : pending
+    }
+
     /// Reads the pending levels, or all of them when none is pending (after wake).
     private func refreshLevels() {
-        let items: Set<Item> = pendingLevels.isEmpty ? [.brightness, .keyboardLight, .volume] : pendingLevels
+        let items = Self.levelsToRead(pending: pendingLevels)
         pendingLevels = []
         if items.contains(.brightness) { updateBrightness() }
         if items.contains(.keyboardLight) { updateKeyboardLight() }
@@ -635,20 +640,28 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         return formatter
     }()
 
+    /// TB-28: 12-hour "h:mm" with no AM/PM, whatever the Mac's region.
+    static func timeText(_ date: Date) -> String { timeFormat.string(from: date) }
+    /// TB-28: the date as DD/MM/YY.
+    static func dateText(_ date: Date) -> String { dateFormat.string(from: date) }
+    /// TB-28 / TB-31: the date hides after 4 s with auto-close on, else at the next tap.
+    static func dateHideDelay(autoClose: Bool) -> TimeInterval? { autoClose ? 4 : nil }
+    /// When the clock next redraws: the start of the next minute (one wake-up per minute).
+    static func nextMinute(after now: Date) -> Date {
+        Calendar.current.nextDate(after: now, matching: DateComponents(second: 0), matchingPolicy: .nextTime) ?? now.addingTimeInterval(60)
+    }
+
     /// Shows the time and sleeps until the next minute starts (one wakeup per minute).
     private func updateClock() {
         clockTimer?.invalidate()
         guard running, let button = barView?.button(Item.time.rawValue) else { return }
         let now = Date()
         if showingDate {
-            let date = Self.dateFormat.string(from: now)
-            button.show(symbol: nil, text: date, label: now.formatted(date: .complete, time: .omitted))
+            button.show(symbol: nil, text: Self.dateText(now), label: now.formatted(date: .complete, time: .omitted))
         } else {
-            button.show(symbol: nil, text: Self.timeFormat.string(from: now),
-                        label: now.formatted(date: .omitted, time: .shortened))
+            button.show(symbol: nil, text: Self.timeText(now), label: now.formatted(date: .omitted, time: .shortened))
         }
-        let next = Calendar.current.nextDate(after: now, matching: DateComponents(second: 0), matchingPolicy: .nextTime) ?? now.addingTimeInterval(60)
-        let timer = Timer(fire: next, interval: 0, repeats: false) { [weak self] _ in
+        let timer = Timer(fire: Self.nextMinute(after: now), interval: 0, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.updateClock() }
         }
         timer.tolerance = 1
@@ -678,7 +691,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private var lockObserver: NSObjectProtocol?
 
     private func jigglerTapped() {
-        if jigglerLongPressing || Date().timeIntervalSince(jigglerLongPressEnded) < 0.5 { return }
+        guard Self.tapAllowed(holding: jigglerLongPressing, holdEnded: jigglerLongPressEnded, now: Date()) else { return }
         run(.jiggler)
     }
 
@@ -721,14 +734,20 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }
     }
 
+    /// A hold on the battery, the jiggler or the time ends with a release that must not also count
+    /// as a tap: taps are ignored while held and for 0.5 s after (TB-12, TB-28, TB-47).
+    static func tapAllowed(holding: Bool, holdEnded: Date, now: Date) -> Bool {
+        !holding && now.timeIntervalSince(holdEnded) >= 0.5
+    }
+
     /// Tap shows the date (DD/MM/YY) for 4 s; tapping again hides it.
     private func toggleDate() {
-        if longPressing || Date().timeIntervalSince(longPressEnded) < 0.5 { return }
+        guard Self.tapAllowed(holding: longPressing, holdEnded: longPressEnded, now: Date()) else { return }
         dateTimer?.invalidate()
         dateTimer = nil
         showingDate.toggle()
-        if showingDate, Self.autoClose {
-            dateTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in
+        if showingDate, let delay = Self.dateHideDelay(autoClose: Self.autoClose) {
+            dateTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
                 MainActor.assumeIsolated {
                     self?.showingDate = false
                     self?.updateClock()

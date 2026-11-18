@@ -8,6 +8,11 @@ protocol LevelControl {
     func setLevel(_ value: Float)
 }
 
+extension LevelControl {
+    /// What a slider sets is kept within 0…1 (TB-32).
+    static func clamped(_ value: Float) -> Float { min(max(value, 0), 1) }
+}
+
 /// Built-in display brightness via private DisplayServices: on Apple silicon there is no public
 /// call that sets the panel's brightness (only simulated brightness keys, in steps).
 struct DisplayBrightness: LevelControl {
@@ -39,7 +44,7 @@ struct DisplayBrightness: LevelControl {
     }
 
     func setLevel(_ value: Float) {
-        _ = Self.calls?.set(Self.display, min(max(value, 0), 1))
+        _ = Self.calls?.set(Self.display, Self.clamped(value))
     }
 }
 
@@ -99,7 +104,7 @@ struct KeyboardBrightness: LevelControl {
             _ = client.setAuto?(client.object, Self.autoSelector, false, client.keyboard)
             Self.autoTurnedOff = true
         }
-        _ = client.set(client.object, Self.setSelector, min(max(value, 0), 1), client.keyboard)
+        _ = client.set(client.object, Self.setSelector, Self.clamped(value), client.keyboard)
     }
 }
 
@@ -142,13 +147,15 @@ struct OutputVolume: LevelControl {
         return AudioObjectGetPropertyData(device, &address, 0, nil, &size, &mute) == noErr && mute != 0
     }
 
+    /// Like the volume keys: sliding to zero mutes, sliding up unmutes (TB-32).
+    static func mute(for volume: Float) -> UInt32 { volume == 0 ? 1 : 0 }
+
     func setLevel(_ value: Float) {
         guard let device = Self.device else { return }
-        var volume = Float32(min(max(value, 0), 1))
+        var volume = Float32(Self.clamped(value))
         var address = Self.volumeAddress
         AudioObjectSetPropertyData(device, &address, 0, nil, UInt32(MemoryLayout<Float32>.size), &volume)
-        // Like the volume keys: sliding to zero mutes, sliding up unmutes.
-        var mute = UInt32(volume == 0 ? 1 : 0)
+        var mute = Self.mute(for: volume)
         var muteAddress = Self.muteAddress
         if AudioObjectHasProperty(device, &muteAddress) {
             AudioObjectSetPropertyData(device, &muteAddress, 0, nil, UInt32(MemoryLayout<UInt32>.size), &mute)

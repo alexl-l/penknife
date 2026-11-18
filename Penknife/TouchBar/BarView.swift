@@ -279,17 +279,17 @@ final class BarView: NSView {
     func openSlider(from button: BarButton, control: LevelControl, label: String, autoClose: Bool) {
         closeSlider()
         KeyboardBrightness.autoTurnedOff = false
-        let opensRight = button.frame.midX < bounds.midX
+        let placement = Self.sliderPlacement(buttonFrame: button.frame, barWidth: bounds.width)
+        let opensRight = placement.opensRight
         let panel = SliderPanel(control: control, tint: button.tint, label: label,
                                 closeOnRight: !opensRight, autoClose: autoClose)
         panel.onClose = { [weak self] in self?.closeSlider() }
         panel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(panel)
-        let width = min(button.frame.width + 300, bounds.width)
         NSLayoutConstraint.activate([
             panel.topAnchor.constraint(equalTo: topAnchor),
             panel.bottomAnchor.constraint(equalTo: bottomAnchor),
-            panel.widthAnchor.constraint(equalToConstant: width),
+            panel.widthAnchor.constraint(equalToConstant: placement.width),
             opensRight ? panel.leadingAnchor.constraint(equalTo: button.leadingAnchor)
                        : panel.trailingAnchor.constraint(equalTo: button.trailingAnchor),
         ])
@@ -297,6 +297,12 @@ final class BarView: NSView {
         // Only the slider stays on the bar while it is open.
         setButtonsHidden(true)
         NSAccessibility.post(element: panel.slider, notification: .layoutChanged)
+    }
+
+    /// TB-29: rightwards when the button's center is in the bar's left half, else leftwards; as
+    /// wide as the button plus 300 pt, at most the bar.
+    static func sliderPlacement(buttonFrame: CGRect, barWidth: CGFloat) -> (opensRight: Bool, width: CGFloat) {
+        (buttonFrame.midX < barWidth / 2, min(buttonFrame.width + 300, barWidth))
     }
 
     func closeSlider() {
@@ -751,7 +757,7 @@ final class SliderPanel: NSView {
 
         let cell = TintedSliderCell()
         cell.tint = tint
-        cell.onTrackingEnded = { [weak self] in self?.scheduleClose(after: 0.4) }
+        cell.onTrackingEnded = { [weak self] in self?.scheduleClose(after: .release) }
         slider.cell = cell
         slider.minValue = 0
         slider.maxValue = 1
@@ -790,7 +796,7 @@ final class SliderPanel: NSView {
                 slider.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
             ])
         }
-        scheduleClose(after: 4)
+        scheduleClose(after: .open)
     }
 
     @available(*, unavailable)
@@ -800,15 +806,27 @@ final class SliderPanel: NSView {
         control.setLevel(Float(slider.doubleValue))
         // Touches don't always report the end of tracking, so after the last change it closes
         // soon anyway; untouched, it waits the full idle time.
-        scheduleClose(after: 1)
+        scheduleClose(after: .change)
     }
 
     @objc private func closePressed() { onClose?() }
 
-    /// Without auto-close (R-19 setting) only the ✕ closes the slider.
-    private func scheduleClose(after seconds: TimeInterval) {
+    enum CloseReason { case open, change, release }
+
+    /// TB-31: 4 s after opening if untouched, 1 s after the last change, 0.4 s after the finger
+    /// lifts. Without auto-close (R-19 setting) only the ✕ closes the slider.
+    static func closeDelay(after reason: CloseReason, autoClose: Bool) -> TimeInterval? {
+        guard autoClose else { return nil }
+        return switch reason {
+        case .open: 4
+        case .change: 1
+        case .release: 0.4
+        }
+    }
+
+    private func scheduleClose(after reason: CloseReason) {
         closeTimer?.invalidate()
-        guard autoClose else { return }
+        guard let seconds = Self.closeDelay(after: reason, autoClose: autoClose) else { return }
         closeTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.onClose?() }
         }

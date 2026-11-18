@@ -388,6 +388,95 @@ struct TouchBarRulesTests {
         }
     }
 
+    // MARK: S3 timing and gestures
+
+    // TB-31: 4 s after opening if untouched, 1 s after the last change, 0.4 s after the finger lifts;
+    // with auto-close off only the ✕ closes it.
+    @Test("TB-31 when a slider closes by itself")
+    func sliderCloseDelay() {
+        #expect(SliderPanel.closeDelay(after: .open, autoClose: true) == 4)
+        #expect(SliderPanel.closeDelay(after: .change, autoClose: true) == 1)
+        #expect(SliderPanel.closeDelay(after: .release, autoClose: true) == 0.4)
+        for reason in [SliderPanel.CloseReason.open, .change, .release] {
+            #expect(SliderPanel.closeDelay(after: reason, autoClose: false) == nil)
+        }
+    }
+
+    // TB-29: rightwards from the bar's left half, leftwards from the right half; as wide as the
+    // button plus 300 pt, at most the bar.
+    @Test("TB-29 where a slider opens", arguments: [
+        (CGRect(x: 72, y: 0, width: 70, height: 30), true, 370.0),    // brightness, 2nd of 13
+        (CGRect(x: 0, y: 0, width: 70, height: 30), true, 370.0),
+        (CGRect(x: 787, y: 0, width: 70, height: 30), false, 370.0),  // volume, 11th of 13
+        (CGRect(x: 467, y: 0, width: 70, height: 30), false, 370.0),  // center exactly at the half → leftwards
+        (CGRect(x: 466, y: 0, width: 70, height: 30), true, 370.0),   // 1 pt left of the half → rightwards
+        (CGRect(x: 0, y: 0, width: 800, height: 30), true, 1004.0),   // few buttons: never wider than the bar
+    ] as [(CGRect, Bool, CGFloat)])
+    func sliderPlacement(frame: CGRect, opensRight: Bool, width: CGFloat) {
+        let placement = BarView.sliderPlacement(buttonFrame: frame, barWidth: 1004)
+        #expect(placement.opensRight == opensRight)
+        #expect(placement.width == width)
+    }
+
+    // TB-32: a slider sets 0…1 only; the volume slider at 0 mutes, anything above unmutes.
+    @Test("TB-32 what a slider sets")
+    func sliderValues() {
+        #expect(OutputVolume.clamped(-0.2) == 0)
+        #expect(OutputVolume.clamped(1.4) == 1)
+        #expect(DisplayBrightness.clamped(0.45) == 0.45)
+        #expect(KeyboardBrightness.clamped(2) == 1)
+        #expect(OutputVolume.mute(for: 0) == 1)
+        #expect(OutputVolume.mute(for: 0.01) == 0)
+        #expect(OutputVolume.mute(for: 1) == 0)
+    }
+
+    // TB-12 / TB-20 / TB-28 / TB-47: a hold's release isn't also a tap: taps are ignored while held
+    // and for 0.5 s after.
+    @Test("TB-12 TB-20 TB-28 TB-47 the release after a hold is not a tap")
+    func tapGuard() {
+        let ended = Date(timeIntervalSinceReferenceDate: 1000)
+        #expect(!TouchBarModule.tapAllowed(holding: true, holdEnded: .distantPast, now: ended))
+        #expect(!TouchBarModule.tapAllowed(holding: false, holdEnded: ended, now: ended))
+        #expect(!TouchBarModule.tapAllowed(holding: false, holdEnded: ended, now: ended + 0.49))
+        #expect(TouchBarModule.tapAllowed(holding: false, holdEnded: ended, now: ended + 0.5))
+        #expect(TouchBarModule.tapAllowed(holding: false, holdEnded: .distantPast, now: ended))
+    }
+
+    static func local(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int, _ second: Int = 0) throws -> Date {
+        try #require(Calendar.current.date(from: DateComponents(year: year, month: month, day: day,
+                                                                hour: hour, minute: minute, second: second)))
+    }
+
+    // TB-28: 12-hour "h:mm" with no AM/PM and DD/MM/YY, whatever the Mac's region.
+    @Test("TB-28 time and date texts")
+    func clockTexts() throws {
+        #expect(TouchBarModule.timeText(try Self.local(2026, 11, 18, 15, 7)) == "3:07")
+        #expect(TouchBarModule.timeText(try Self.local(2026, 11, 18, 0, 5)) == "12:05")
+        #expect(TouchBarModule.timeText(try Self.local(2026, 11, 18, 12, 0)) == "12:00")
+        #expect(TouchBarModule.timeText(try Self.local(2026, 11, 18, 9, 41)) == "9:41")
+        #expect(TouchBarModule.dateText(try Self.local(2026, 11, 18, 15, 7)) == "18/11/26")
+        #expect(TouchBarModule.dateText(try Self.local(2027, 2, 3, 8, 0)) == "03/02/27")
+    }
+
+    // TB-28 / TB-31: the date shows 4 s with auto-close on, until the next tap with it off; the clock
+    // wakes once a minute, at the start of the next one.
+    @Test("TB-28 date timeout and the clock's minute")
+    func clockTiming() throws {
+        #expect(TouchBarModule.dateHideDelay(autoClose: true) == 4)
+        #expect(TouchBarModule.dateHideDelay(autoClose: false) == nil)
+        #expect(TouchBarModule.nextMinute(after: try Self.local(2026, 11, 18, 15, 7, 30)) == (try Self.local(2026, 11, 18, 15, 8)))
+        #expect(TouchBarModule.nextMinute(after: try Self.local(2026, 11, 18, 15, 7)) == (try Self.local(2026, 11, 18, 15, 8)))
+        #expect(TouchBarModule.nextMinute(after: try Self.local(2026, 12, 31, 23, 59, 59)) == (try Self.local(2027, 1, 1, 0, 0)))
+    }
+
+    // TB-33: after wake (nothing pending) all three levels are read; otherwise only the changed ones.
+    @Test("TB-33 which levels are read")
+    func levelsToRead() {
+        #expect(TouchBarModule.levelsToRead(pending: []) == [.brightness, .keyboardLight, .volume])
+        #expect(TouchBarModule.levelsToRead(pending: [.volume]) == [.volume])
+        #expect(TouchBarModule.levelsToRead(pending: [.brightness, .keyboardLight]) == [.brightness, .keyboardLight])
+    }
+
     // MARK: S6 module lifecycle
 
     /// Records what the module asks of the system; never touches the real Touch Bar.
