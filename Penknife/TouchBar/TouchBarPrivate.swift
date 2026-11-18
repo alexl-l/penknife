@@ -1,6 +1,26 @@
 import AppKit
 import IOKit
 
+/// What the Touch Bar module needs from the system: the private calls below in the app, a fake
+/// in tests, so a test can start and stop the module without covering this Mac's Touch Bar (S6).
+protocol BarPresenter {
+    var hasTouchBar: Bool { get }
+    var isAvailable: Bool { get }
+    func present(_ bar: NSTouchBar, trayIdentifier: NSTouchBarItem.Identifier)
+    func minimize(_ bar: NSTouchBar)
+    func addTrayItem(_ item: NSTouchBarItem)
+    func removeTrayItem(_ identifier: NSTouchBarItem.Identifier)
+}
+
+struct SystemBarPresenter: BarPresenter {
+    var hasTouchBar: Bool { TouchBarPrivate.hasTouchBar }
+    var isAvailable: Bool { TouchBarPrivate.isAvailable }
+    func present(_ bar: NSTouchBar, trayIdentifier: NSTouchBarItem.Identifier) { TouchBarPrivate.present(bar, trayIdentifier: trayIdentifier) }
+    func minimize(_ bar: NSTouchBar) { TouchBarPrivate.minimize(bar) }
+    func addTrayItem(_ item: NSTouchBarItem) { TouchBarPrivate.addTrayItem(item) }
+    func removeTrayItem(_ identifier: NSTouchBarItem.Identifier) { TouchBarPrivate.removeTrayItem(identifier) }
+}
+
 /// Apple's private Touch Bar calls (DFRFoundation and private NSTouchBar class methods).
 /// A menu bar app is never frontmost, so only a "system modal" bar can stay on screen.
 /// Everything is looked up at runtime: if a macOS update removes a call, the Touch Bar

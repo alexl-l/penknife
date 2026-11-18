@@ -213,6 +213,59 @@ struct TouchBarRulesTests {
         }
     }
 
+    // MARK: S6 module lifecycle
+
+    /// Records what the module asks of the system; never touches the real Touch Bar.
+    final class FakePresenter: BarPresenter {
+        var hasTouchBar = true
+        var isAvailable = true
+        var presented = 0, minimized = 0, traysAdded = 0, traysRemoved = 0
+        func present(_ bar: NSTouchBar, trayIdentifier: NSTouchBarItem.Identifier) { presented += 1 }
+        func minimize(_ bar: NSTouchBar) { minimized += 1 }
+        func addTrayItem(_ item: NSTouchBarItem) { traysAdded += 1 }
+        func removeTrayItem(_ identifier: NSTouchBarItem.Identifier) { traysRemoved += 1 }
+    }
+
+    /// A Touch Bar module with a fake presenter and no manager (so only the bar's own buttons
+    /// show: battery, brightness, keyboard light, volume, time, as the user's layout allows).
+    /// Starting it only adds listeners and reads levels; nothing is shown or changed.
+    static func makeBar(_ presenter: FakePresenter) -> (bar: TouchBarModule, dialogs: DialogsModule) {
+        let dialogs = DialogsModule()
+        let bar = TouchBarModule(jiggler: JigglerModule(), microphone: MicrophoneModule(), dialogs: dialogs,
+                                 music: MusicModule(), cpu: CPUTemperatureModule(), weather: WeatherModule(),
+                                 speedTest: SpeedTestModule(), presenter: presenter)
+        return (bar, dialogs)
+    }
+
+    // TB-60: turning the module off releases everything it started, every time.
+    @Test("TB-60 module off holds nothing")
+    func moduleOffHoldsNothing() {
+        let presenter = FakePresenter()
+        let (bar, _) = Self.makeBar(presenter)
+        for round in 1...2 {
+            bar.start()
+            #expect(bar.holdsObservers, "round \(round): started")
+            #expect(presenter.presented >= round)
+            bar.stop()
+            #expect(!bar.holdsObservers, "round \(round): stopped")
+            #expect(presenter.traysRemoved == round)
+        }
+        #expect(presenter.traysAdded == 2)
+    }
+
+    // TB-01 / TB-02: without a Touch Bar, or without the private calls, start does nothing.
+    @Test("TB-01 TB-02 no Touch Bar or no private calls: nothing starts", arguments: [(false, true), (true, false)])
+    func nothingStarts(hasTouchBar: Bool, isAvailable: Bool) {
+        let presenter = FakePresenter()
+        presenter.hasTouchBar = hasTouchBar
+        presenter.isAvailable = isAvailable
+        let (bar, _) = Self.makeBar(presenter)
+        bar.start()
+        #expect(!bar.holdsObservers)
+        #expect(presenter.presented == 0 && presenter.traysAdded == 0)
+        bar.stop()
+    }
+
     // MARK: Fixes
 
     // B-5 / TB-46: Native Dialogs watches only while it is on AND the Touch Bar listens, so with

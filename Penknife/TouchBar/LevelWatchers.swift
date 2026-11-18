@@ -34,6 +34,8 @@ final class BrightnessWatcher {
         if status == 0 { self.display = display }
     }
 
+    var isWatching: Bool { display != nil }
+
     func stop() {
         guard let display, let calls = Self.calls else { return }
         _ = calls.unregister(display, Unmanaged.passUnretained(self).toOpaque())
@@ -66,6 +68,8 @@ final class KeyboardLightWatcher {
         }
         client = object
     }
+
+    var isWatching: Bool { client != nil }
 
     func stop() {
         guard let client else { return }
@@ -100,6 +104,8 @@ final class VolumeWatcher {
         defaultListener = listener
         watchDevice()
     }
+
+    var isWatching: Bool { defaultListener != nil }
 
     func stop() {
         unwatchDevice()
@@ -180,6 +186,8 @@ final class PlaybackWatcher {
             }
         })
     }
+
+    var isWatching: Bool { !observers.isEmpty }
 
     func stop() {
         for observer in observers {

@@ -22,6 +22,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     private let cpu: CPUTemperatureModule
     private let weather: WeatherModule
     private let speedTest: SpeedTestModule
+    private let presenter: any BarPresenter
     /// Needle sweep while testing, then the download → upload → normal sequence.
     private var speedTimer: Timer?
     private let log = Logger(subsystem: "Penknife", category: "TouchBar")
@@ -78,7 +79,8 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     static func showsBatteryIcon(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: batteryIconKey) }
 
     init(jiggler: JigglerModule, microphone: MicrophoneModule, dialogs: DialogsModule,
-         music: MusicModule, cpu: CPUTemperatureModule, weather: WeatherModule, speedTest: SpeedTestModule) {
+         music: MusicModule, cpu: CPUTemperatureModule, weather: WeatherModule, speedTest: SpeedTestModule,
+         presenter: any BarPresenter = SystemBarPresenter()) {
         self.jiggler = jiggler
         self.microphone = microphone
         self.dialogs = dialogs
@@ -86,14 +88,26 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         self.cpu = cpu
         self.weather = weather
         self.speedTest = speedTest
+        self.presenter = presenter
         super.init()
+    }
+
+    /// True while anything the module started still exists (TB-60): observers, sources, timers,
+    /// watchers, callbacks set on other modules, the bar itself.
+    var holdsObservers: Bool {
+        !observers.isEmpty || lockObserver != nil || batterySource != nil
+            || [clockTimer, dateTimer, cpuTimer, speedTimer, batteryRepeatTimer].contains { $0?.isValid == true }
+            || micWatcher.isWatching || brightnessWatcher.isWatching || keyboardWatcher.isWatching
+            || volumeWatcher.isWatching || playbackWatcher.isWatching
+            || dialogs.onChange != nil || weather.onChange != nil || speedTest.onChange != nil
+            || bar != nil || barView != nil
     }
 
     // MARK: Module
 
     func start() {
-        guard !running, TouchBarPrivate.hasTouchBar else { return }
-        guard TouchBarPrivate.isAvailable else {
+        guard !running, presenter.hasTouchBar else { return }
+        guard presenter.isAvailable else {
             log.error("Private Touch Bar calls not found")
             return
         }
@@ -119,7 +133,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         tray.view = NSButton(image: NSImage(named: "MenuBarIcon") ?? NSImage(),
                              target: self, action: #selector(present))
         tray.view.setAccessibilityLabel("Penknife")
-        TouchBarPrivate.addTrayItem(tray)
+        presenter.addTrayItem(tray)
 
         GameSound.prepare()
         rebuildButtons()
@@ -193,22 +207,22 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         barView?.closeGame()
         stopSources()
         barView?.closeSlider()
-        if let bar { TouchBarPrivate.minimize(bar) }
-        TouchBarPrivate.removeTrayItem(Self.trayItemID)
+        if let bar { presenter.minimize(bar) }
+        presenter.removeTrayItem(Self.trayItemID)
         bar = nil
         barView = nil
     }
 
     @objc private func present() {
         guard running, !stepAside, let bar else { return }
-        TouchBarPrivate.present(bar, trayIdentifier: Self.trayItemID)
+        presenter.present(bar, trayIdentifier: Self.trayItemID)
     }
 
     private func minimize() {
         guard let bar else { return }
         barView?.closeSlider()
         barView?.closeGame()
-        TouchBarPrivate.minimize(bar)
+        presenter.minimize(bar)
     }
 
     func touchBar(_ touchBar: NSTouchBar, makeItemForIdentifier identifier: NSTouchBarItem.Identifier) -> NSTouchBarItem? {
