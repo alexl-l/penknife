@@ -11,13 +11,13 @@ import os
 /// window (the mic button too) is hidden from Accessibility. One Accessibility session:
 /// 1. find the call's window (the one with the mic button) and its state; not muted, or not
 ///    found → just send the shortcut (this press doesn't unmute, or can't be told);
-/// 2. no alert open in that window, and the window fully read → send the shortcut, which Teams
-///    ignores while it waits for consent: then, after 0.6 s, Teams comes forward and its mic
-///    button is pressed (see `press`);
+/// 2. the window fully read, the dialogs already open in it noted (they are left alone: B-3) →
+///    send the shortcut, which Teams ignores while it waits for consent: then, after 0.6 s,
+///    Teams comes forward and its mic button is pressed (see `press`);
 /// 3. for up to 1.5 s: if the mic shows open, the unmute went through without consent → stop;
-///    if exactly one new alert shows in that window, with a two-button action row, before the
-///    mic ever showed open → press its last button (focus + Space; AXPress does nothing in
-///    Teams). Anything else = nothing pressed.
+///    if the mic button is hidden (a modal alert) and exactly one new alert shows in that
+///    window, with a two-button action row → press its last button (focus + Space; AXPress
+///    does nothing in Teams). Anything else = nothing pressed.
 /// Never camera or screen sharing. Only the outcome is logged, never text.
 nonisolated enum TeamsConsent {
     static let enabledKey = "microphone.teamsConsent"
@@ -49,6 +49,7 @@ nonisolated enum TeamsConsent {
             var appMuted: Bool?
             var via = "shortcut"
             var broughtForward = false
+            var openBefore = 0
             var previousWindow: AXUIElement?
             var restoreFocus: AXUIElement?
             let outcome = MeetingTracker.withWebTree(pid: pid, chromium: chromium) { ax, freshTree -> String? in
@@ -80,22 +81,33 @@ nonisolated enum TeamsConsent {
                 appMuted = call?.muted
                 guard let call else { sendNow(); return "mic unreadable: not watched" }
                 guard call.muted else { sendNow(); return "muting: not watched" }
-                // 2. Nothing open before the press.
+                // 2. What was open before the press is left alone: when a recording starts during
+                // the meeting, Teams keeps a notice (a web dialog that doesn't hide the mic button)
+                // open in the call's window for minutes (B-3, work Mac log, 2026-11-18).
                 let before = dialogs(in: [call.window], budget: 0.3)
                 sendNow()
                 guard before.complete else { return "window too large to check: not watched" }
-                guard before.found.isEmpty else { return "an alert was already open: not touched" }
+                let origin = rect(call.window)?.origin
+                let earlier = before.found.map { (element: $0.0, frame: relativeFrame($0.0, origin)) }
+                openBefore = earlier.count
                 // 3. Watch what the press opens; a shortcut Teams ignored gets the button.
                 var why = ""
                 var buttonAt: Date? = Date().addingTimeInterval(0.6)
                 var deadline = Date().addingTimeInterval(1.5)
                 while Date() < deadline {
                     Thread.sleep(forTimeInterval: 0.1)
-                    let now = dialogs(in: [call.window], budget: 0.3)
-                    if now.found.isEmpty {
-                        let state = MeetingTracker.micState(in: call.window)
-                        if state == false { return "unmuted without an alert" }
-                        guard let at = buttonAt, Date() >= at, state == true else { continue }
+                    let state = MeetingTracker.micState(in: call.window)
+                    // Dialogs are looked for only while the mic button is hidden (a modal alert).
+                    let new = state != nil ? [] : newDialogs(in: call.window, earlier: earlier)
+                    switch watch(micState: state, newDialogs: new.count) {
+                    case .unmuted:
+                        return "unmuted without an alert"
+                    case .wait:
+                        continue
+                    case .tooMany:
+                        return "\(new.count) new alerts: not touched"
+                    case .stillMuted:
+                        guard let at = buttonAt, Date() >= at else { continue }
                         buttonAt = nil
                         if !isFrontmost(pid) {
                             guard bringForward(pid) else { return "shortcut ignored; Teams didn't come forward" }
@@ -115,17 +127,16 @@ nonisolated enum TeamsConsent {
                         }
                         via = "shortcut ignored, then mic button"
                         deadline = Date().addingTimeInterval(1.5)
-                        continue
+                    case .answer:
+                        let (dialog, kind) = new[0]
+                        guard let main = mainButton(in: dialog) else { continue }  // still rendering
+                        if !isFrontmost(pid) {
+                            guard bringForward(pid) else { return "alert (\(kind)) shown; Teams didn't come forward: not touched" }
+                            broughtForward = true
+                        }
+                        return activate(main, app: ax, pid: pid, why: &why)
+                            ? "pressed the main button (\(kind))" : "couldn't focus the main button (\(kind), \(why)): not touched"
                     }
-                    guard now.found.count == 1 else { return "\(now.found.count) alerts: not touched" }
-                    let (dialog, kind) = now.found[0]
-                    guard let main = mainButton(in: dialog) else { continue }  // still rendering
-                    if !isFrontmost(pid) {
-                        guard bringForward(pid) else { return "alert (\(kind)) shown; Teams didn't come forward: not touched" }
-                        broughtForward = true
-                    }
-                    return activate(main, app: ax, pid: pid, why: &why)
-                        ? "pressed the main button (\(kind))" : "couldn't focus the main button (\(kind), \(why)): not touched"
                 }
                 return nil
             }
@@ -146,8 +157,78 @@ nonisolated enum TeamsConsent {
                 }
             }
             let ms = Int(Date().timeIntervalSince(start) * 1000)
-            log.notice("Teams dialog: \(outcome ?? "no alert shown", privacy: .public) via \(via, privacy: .public)\(broughtForward ? ", Teams brought forward" : "", privacy: .public) (\(ms) ms)")
+            log.notice("Teams dialog: \(outcome ?? "no alert shown", privacy: .public) via \(via, privacy: .public)\(broughtForward ? ", Teams brought forward" : "", privacy: .public)\(openBefore > 0 ? ", \(openBefore) open before ignored" : "", privacy: .public) (\(ms) ms)")
         }
+    }
+
+    /// One look of the watch after the press (MIC-56, MIC-57, B-3). `micState`: the call's mic
+    /// (nil = its button is hidden); `newDialogs`: dialogs in the call's window that weren't open
+    /// before the press. A modal alert, like the consent one, hides the rest of the window, the
+    /// mic button too (measured 2026-11-17); so while the button shows, no dialog is answered.
+    enum Watch: Equatable {
+        /// The mic shows open: the unmute went through without an alert.
+        case unmuted
+        /// Nothing modal open: 0.6 s after the shortcut, Teams ignored it (MIC-57).
+        case stillMuted
+        /// Button hidden, no new dialog yet (still rendering).
+        case wait
+        /// Exactly one new dialog while the button is hidden: its main button is pressed.
+        case answer
+        /// Two or more new dialogs: nothing is touched.
+        case tooMany
+    }
+
+    static func watch(micState: Bool?, newDialogs: Int) -> Watch {
+        if let micState { return micState ? .stillMuted : .unmuted }
+        switch newDialogs {
+        case 0: return .wait
+        case 1: return .answer
+        default: return .tooMany
+        }
+    }
+
+    /// B-3: a dialog open before the press stays "the same" when Teams re-renders it as a new
+    /// element: same place and size in the call's window (± 2 pt). The consent alert sits
+    /// elsewhere (centered over the call), so it still counts as new. No frame = not the same.
+    static func isSameDialog(sameElement: Bool, frame: CGRect?, before: CGRect?) -> Bool {
+        if sameElement { return true }
+        guard let frame, let before else { return false }
+        return abs(frame.minX - before.minX) <= 2 && abs(frame.minY - before.minY) <= 2
+            && abs(frame.width - before.width) <= 2 && abs(frame.height - before.height) <= 2
+    }
+
+    /// The dialogs in the call's window that weren't open before the press (B-3).
+    private static func newDialogs(in window: AXUIElement, earlier: [(element: AXUIElement, frame: CGRect?)])
+        -> [(AXUIElement, String)] {
+        let found = dialogs(in: [window], budget: 0.3).found
+        guard !earlier.isEmpty else { return found }
+        let origin = rect(window)?.origin
+        return found.filter { dialog in
+            let frame = relativeFrame(dialog.0, origin)
+            return !earlier.contains {
+                isSameDialog(sameElement: CFEqual($0.element, dialog.0), frame: frame, before: $0.frame)
+            }
+        }
+    }
+
+    private static func rect(_ element: AXUIElement) -> CGRect? {
+        var position: CFTypeRef?
+        var size: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size) == .success,
+              let position, let size,
+              CFGetTypeID(position) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
+        var point = CGPoint.zero
+        var extent = CGSize.zero
+        guard AXValueGetValue(position as! AXValue, .cgPoint, &point),
+              AXValueGetValue(size as! AXValue, .cgSize, &extent) else { return nil }
+        return CGRect(origin: point, size: extent)
+    }
+
+    /// The element's frame relative to its window, so moving the window changes nothing.
+    private static func relativeFrame(_ element: AXUIElement, _ origin: CGPoint?) -> CGRect? {
+        guard let origin, let frame = rect(element) else { return nil }
+        return frame.offsetBy(dx: -origin.x, dy: -origin.y)
     }
 
     private static func isFrontmost(_ pid: pid_t) -> Bool {

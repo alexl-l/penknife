@@ -184,6 +184,39 @@ struct MicrophoneRulesTests {
         #expect(Mic.afterSend(alsoMac: false, appMuted: appMuted, macMuted: macMuted) == .showToggled)
     }
 
+    // MIC-56 / MIC-57 / B-3: after an unmute press, a dialog is answered only while it hides the
+    // mic button (modal, as the consent alert) and it is the only new one. While the button shows,
+    // dialogs are notices (Teams' "recording started" one stays open for minutes) and are ignored.
+    @Test("MIC-56 MIC-57 B-3 what the consent watch does", arguments: [
+        (false as Bool?, 0, TeamsConsent.Watch.unmuted),
+        (false, 1, .unmuted),
+        (true, 0, .stillMuted),
+        (true, 1, .stillMuted),          // B-3: a notice while the mic shows muted is never answered
+        (true, 2, .stillMuted),
+        (nil, 0, .wait),                 // button hidden, the alert still rendering
+        (nil, 1, .answer),
+        (nil, 2, .tooMany),
+        (nil, 3, .tooMany),
+    ])
+    func consentWatch(micState: Bool?, newDialogs: Int, step: TeamsConsent.Watch) {
+        #expect(TeamsConsent.watch(micState: micState, newDialogs: newDialogs) == step)
+    }
+
+    // MIC-55 / B-3: a dialog open before the press stays "the same" even as a new element when it
+    // keeps its place and size (Teams re-renders); the consent alert elsewhere counts as new.
+    @Test("MIC-55 B-3 a dialog open before the press is told apart")
+    func sameDialogBeforeThePress() {
+        let notice = CGRect(x: 300, y: 80, width: 420, height: 56)
+        let alert = CGRect(x: 380, y: 260, width: 440, height: 220)
+        #expect(TeamsConsent.isSameDialog(sameElement: true, frame: nil, before: nil))
+        #expect(TeamsConsent.isSameDialog(sameElement: false, frame: notice, before: notice))
+        #expect(TeamsConsent.isSameDialog(sameElement: false, frame: notice.offsetBy(dx: 1.5, dy: -1), before: notice))
+        #expect(!TeamsConsent.isSameDialog(sameElement: false, frame: alert, before: notice))
+        #expect(!TeamsConsent.isSameDialog(sameElement: false, frame: notice.insetBy(dx: 0, dy: -10), before: notice))
+        #expect(!TeamsConsent.isSameDialog(sameElement: false, frame: nil, before: notice))
+        #expect(!TeamsConsent.isSameDialog(sameElement: false, frame: notice, before: nil))
+    }
+
     // MIC-39 / MIC-06: Siri listening → ignored (checked first); no input device → "No microphone found".
     @Test("MIC-39 MIC-06 when the Mac's microphone can be written")
     func macGate() {
