@@ -3,6 +3,14 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.10 — 2026-11-18
+
+Teams unmute now works when recording starts mid-meeting, and the microphone icon stays accurate while Siri listens.
+
+- **Teams unmute works when recording starts mid-meeting.** With "Remember my choice for Teams' unmute dialog" on, unmuting with Penknife's shortcut now works even if someone starts recording after the meeting began. Before, Teams' "recording started" notice stayed open and you stayed muted. Meetings that start already recording are unchanged, and Penknife still only answers the consent dialog that its own unmute opens.
+- **Accurate mic icon with Siri.** The Touch Bar button and the menu bar dot now show the microphone as open while Siri is listening to you, also while music plays. Before, they could say muted while Siri heard you.
+- **Microphone off means off.** Turning the Microphone module off now stops all of its background listening.
+
 ## 1.9 — 2026-11-18
 
 Alerts no longer collide with Apple's notification banners.
