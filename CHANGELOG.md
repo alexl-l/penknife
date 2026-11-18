@@ -3,6 +3,17 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.11 — 2026-11-18
+
+Unmute works on microphones the Mac can only mute by volume, and the Touch Bar uses less power when buttons are hidden.
+
+- **Unmute works on volume-only microphones.** On inputs the Mac can only mute by volume, a press during a call could leave the mic muted after the next unmute. Now unmute works, and an input already in the state you asked for is left alone, with its volume kept.
+- **Touch Bar customizing in real time.** The Touch Bar now stays visible while Customize Touch Bar is open and follows each change as you make it. The preview matches the bar exactly, including the time when the bar falls back to it. Other apps' dialogs still make the bar step aside.
+- **Lighter Touch Bar.** Buttons you removed from the bar now cost nothing. The speed test, battery, microphone, brightness, keyboard, volume and playback buttons only run while they are on the bar, which saves CPU and battery.
+- **Native Dialogs stays quiet.** On a Mac without a Touch Bar, or with the Touch Bar module off, it no longer watches apps in the background.
+- **Clean restart of the Touch Bar.** Turning the Touch Bar module off and on again no longer leaves the bar hidden or the speed test showing a frozen needle or an old result.
+- **Clear settings without a Touch Bar.** On a Mac without a Touch Bar, the Touch Bar and Native Dialogs modules now show as Unavailable, with a short note. Your saved settings are kept and come back on a Mac with a Touch Bar.
+
 ## 1.10 — 2026-11-18
 
 Teams unmute now works when recording starts mid-meeting, and the microphone icon stays accurate while Siri listens.
