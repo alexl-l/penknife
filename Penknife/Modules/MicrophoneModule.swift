@@ -124,59 +124,67 @@ final class MicrophoneModule: Module {
 
     /// Mutes the current meeting (the one in front, or the last one used) with its own shortcut;
     /// with no meeting, or when the setting asks for it, also the Mac's microphone (R-28).
+    /// What a press does is decided by `route`, `afterSend` and `macGate` (tested).
     func toggle() {
         meetings.findCurrent { [weak self] target in
             guard let self else { return }
-            guard let target else { return self.toggleMac() }
-            guard Permissions.shared.ensureAccessibility() else { return }
-            self.log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
-            // Self-healing (R-28): every press leaves the call and the Mac equal. The CALL decides
-            // when its mic button can be read (user, 2026-11-17: Teams mutes everyone when a
-            // recording starts while the Mac stays open; deciding by the Mac made that press mute
-            // the Mac instead of unmuting the call). Unreadable button → the opposite of the
-            // Mac's microphone. So the meeting's shortcut is always sent.
-            let macMuted = self.isMuted
             let alsoMac = Self.alsoMuteMac
-            let send: @MainActor () -> Void = { [weak self] in self?.meetings.send(to: target) }
-            let after: @MainActor (Bool?) -> Void = { [weak self] appMuted in
-                guard let self else { return }
-                if alsoMac {
-                    self.setMac(muted: appMuted.map { !$0 } ?? !macMuted)
-                } else {
-                    HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
-                                    symbol: "mic.badge.xmark", kind: .on, category: .microphone)
-                }
+            let route = Self.route(meeting: target.map { ($0.platform, $0.isBrowser) },
+                                   axGranted: Permissions.shared.ensureAccessibility(),
+                                   alsoMac: alsoMac, teamsConsent: TeamsConsent.isEnabled)
+            switch route {
+            case .mac: self.toggleMac()
+            case .nothing: break
+            case .meeting(let how): if let target { self.press(target, how, alsoMac: alsoMac) }
             }
-            if TeamsConsent.isEnabled, target.platform == .teams, !target.isBrowser {
-                // R-31: one Accessibility session reads the call, sends the shortcut and answers
-                // the consent alert that an unmute opens.
-                TeamsConsent.press(target.app, send: send, sent: after)
-            } else if alsoMac {
-                self.meetings.readMuted(target) { appMuted in
-                    send()
-                    after(appMuted)
-                }
-            } else {
+        }
+    }
+
+    private func press(_ target: MeetingTracker.Target, _ how: MeetingPress, alsoMac: Bool) {
+        log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
+        let macMuted = isMuted
+        let send: @MainActor () -> Void = { [weak self] in self?.meetings.send(to: target) }
+        let after: @MainActor (Bool?) -> Void = { [weak self] appMuted in
+            guard let self else { return }
+            switch Self.afterSend(alsoMac: alsoMac, appMuted: appMuted, macMuted: macMuted) {
+            case .setMac(let muted):
+                self.setMac(muted: muted)
+            case .showToggled:
+                HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
+                                symbol: "mic.badge.xmark", kind: .on, category: .microphone)
+            }
+        }
+        switch how {
+        case .teamsConsent:
+            // R-31: one Accessibility session reads the call, sends the shortcut and answers
+            // the consent alert that an unmute opens.
+            TeamsConsent.press(target.app, send: send, sent: after)
+        case .readAndSend:
+            meetings.readMuted(target) { appMuted in
                 send()
-                after(nil)
+                after(appMuted)
             }
+        case .sendOnly:
+            send()
+            after(nil)
         }
     }
 
     private func toggleMac() {
-        setMac(muted: !isMuted)
+        setMac(muted: Self.newMacMuted(appMuted: nil, macMuted: isMuted))
     }
 
     private func setMac(muted mute: Bool) {
-        // While Siri listens the mic is open whatever the mute says, and Siri puts back the state
-        // it found when it ends: a press then does nothing (user, 2026-11-16).
-        guard !Self.isSiriListening else {
+        let device: AudioObjectID
+        switch Self.macGate(siriListening: Self.isSiriListening, device: Self.defaultInputDevice()) {
+        case .siriListening:
             log.notice("Toggle ignored: Siri is listening")
             return
-        }
-        guard let device = Self.defaultInputDevice() else {
+        case .noDevice:
             HUD.shared.show(String(localized: "No microphone found"), symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
             return
+        case .write(let input):
+            device = input
         }
         log.notice("Toggle: \(mute ? "mute" : "unmute", privacy: .public), mute settable: \(Self.isSettable(device, kAudioDevicePropertyMute)), volume settable: \(Self.isSettable(device, kAudioDevicePropertyVolumeScalar))")
         // Our own change: "Keep the microphone muted" never undoes it.
@@ -198,6 +206,69 @@ final class MicrophoneModule: Module {
         } else {
             HUD.shared.show(String(localized: "Microphone unmuted"), symbol: "mic.fill", kind: .on, category: .microphone)
         }
+    }
+
+    // MARK: Press rules (S1: plain values in, decision out; PenknifeTests checks them)
+
+    /// What a press does once the meeting search is done.
+    enum PressRoute: Equatable {
+        /// No call: the Mac's microphone toggles (MIC-03), without asking for Accessibility (MIC-07).
+        case mac
+        /// A call, but no Accessibility: only the system prompt, once per launch (MIC-36).
+        case nothing
+        case meeting(MeetingPress)
+    }
+
+    enum MeetingPress: Equatable {
+        /// Teams desktop with "Remember my choice for Teams' unmute dialog" on (MIC-53).
+        case teamsConsent
+        /// Read the call's mic button, send the shortcut, the Mac follows the call (MIC-28).
+        case readAndSend
+        /// "Also mute the Mac's microphone" off: the shortcut alone (MIC-35).
+        case sendOnly
+    }
+
+    /// `axGranted` is evaluated only when there is a call: the no-call press never prompts.
+    static func route(meeting: (platform: MeetingPlatform, isBrowser: Bool)?, axGranted: @autoclosure () -> Bool,
+                      alsoMac: Bool, teamsConsent: Bool) -> PressRoute {
+        guard let meeting else { return .mac }
+        guard axGranted() else { return .nothing }
+        if teamsConsent, meeting.platform == .teams, !meeting.isBrowser { return .meeting(.teamsConsent) }
+        return .meeting(alsoMac ? .readAndSend : .sendOnly)
+    }
+
+    /// What follows the meeting's shortcut: the Mac's microphone, or only the "toggled" alert (MIC-35).
+    enum AfterSend: Equatable {
+        case setMac(muted: Bool)
+        case showToggled
+    }
+
+    static func afterSend(alsoMac: Bool, appMuted: Bool?, macMuted: Bool) -> AfterSend {
+        alsoMac ? .setMac(muted: newMacMuted(appMuted: appMuted, macMuted: macMuted)) : .showToggled
+    }
+
+    /// Self-healing (R-28, MIC-29): every press leaves the call and the Mac equal. The CALL decides
+    /// when its mic button can be read (user, 2026-11-17: Teams mutes everyone when a recording
+    /// starts while the Mac stays open; deciding by the Mac made that press mute the Mac instead
+    /// of unmuting the call). Unreadable button, or no call → the opposite of the Mac's microphone.
+    static func newMacMuted(appMuted: Bool?, macMuted: Bool) -> Bool {
+        appMuted.map { !$0 } ?? !macMuted
+    }
+
+    /// Whether a press may write the Mac's microphone, checked in this order.
+    enum MacGate: Equatable {
+        /// While Siri listens the mic is open whatever the mute says, and Siri puts back the state
+        /// it found when it ends: a press then does nothing (user, 2026-11-16; MIC-39).
+        case siriListening
+        /// "No microphone found" (MIC-06).
+        case noDevice
+        case write(AudioObjectID)
+    }
+
+    static func macGate(siriListening: Bool, device: AudioObjectID?) -> MacGate {
+        if siriListening { return .siriListening }
+        guard let device else { return .noDevice }
+        return .write(device)
     }
 
     // MARK: CoreAudio

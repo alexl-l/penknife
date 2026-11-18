@@ -6,7 +6,7 @@ Source of truth for what the microphone module must do TODAY (Penknife 1.9). The
 
 Code paths are relative to `Penknife/`: `MM` = Modules/MicrophoneModule.swift, `MS` = Modules/MeetingSync.swift (MeetingPlatform, MeetingTracker), `TC` = Modules/TeamsConsent.swift. "R-28 (11-17)" = the REQUIREMENTS.md R-28 line dated 2026-11-17; "D: <title>" = the DECISIONS.md bullet with that bold title.
 Verify kinds: **auto** (unit test as the code is today) · **auto after refactor** (seam named; see §4) · **manual** (the user's normal action only) · **log** (`/usr/bin/log show --last 1h --predicate 'subsystem == "Penknife" AND category == "Microphone"' --style compact`).
-Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 20 log · 34 manual.
+Count (2026-11-18, after S1): 85 rules = 12 auto (all tested) · 18 auto after refactor · 20 log · 35 manual.
 **Tests:** `scripts/test.sh` (unit tests in `PenknifeTests/`, ~3 s once built; safe on this Mac: the test host starts no module and nothing writes the user's settings). Each test is named after its rule ("MIC-24 …").
 
 ## 1. Rules
@@ -18,15 +18,15 @@ Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 
 - **MIC-02** One press = one action: the shortcut runs on key release (once even when held); a bare F key's Fn twin arriving < 0.1 s after the same press is dropped; Touch Bar and menu presses always run; no de-dup window between real presses.
   Source: D: One press = one action (11-16) · Code: ModuleManager:runHotKey, run · Verify: auto after refactor — `shouldRun(last:(fn,at)?, fn:Bool, now) -> Bool`: same twin 0.05 s later → true; other twin 0.05 s → false; other twin 0.2 s → true.
 - **MIC-03** With no call found (MIC-09), a press sets the Mac's default input to the opposite of its current real state (MIC-63).
-  Source: R-28 (11-16) "No call → the Mac's microphone toggles" · Code: MM:toggle → toggleMac → setMac · Verify: auto after refactor — routing seam (§4, S1): target nil → `.setMac(!macMuted)`.
+  Source: R-28 (11-16) "No call → the Mac's microphone toggles" · Code: MM:toggle → toggleMac → setMac · Verify: **auto, tested** (S1) — `route(meeting: nil)` → `.mac` whatever the settings; `newMacMuted(appMuted: nil, macMuted:)` = the opposite.
 - **MIC-04** Write policy: settable mute → the mute property is set; else settable input volume → mute = volume 0 (previous volume remembered in memory), unmute = remembered volume, or 1.0 if none (e.g. after relaunch); neither settable → nothing is written (open decision O-2).
   Source: D: Mic state bug (11-16); the 1.0 fallback is code only · Code: MM:setMac(muted:) · Verify: auto after refactor — `writePlan(muteSettable, volumeSettable, mute, currentVolume, savedVolume) -> (write, newSaved)`.
 - **MIC-05** Every press that changes the Mac's mic (with or without a call) shows the HUD "Microphone muted" (`mic.slash.fill`, grey) or "Microphone unmuted" (`mic.fill`, blue), Microphone alert type.
   Source: R-20 (11-13) look; texts code only · Code: MM:setMac · Verify: manual — press F5 with no call; the capsule appears at the top center.
 - **MIC-06** No default input device → nothing changes and the HUD shows the error "No microphone found" (yellow triangle).
-  Source: code only · Code: MM:setMac · Verify: auto after refactor — S1 with `hasDevice=false` → `.noDevice`.
+  Source: code only · Code: MM:setMac · Verify: **auto, tested** (S1) — `macGate(siriListening: false, device: nil)` → `.noDevice`.
 - **MIC-07** The no-call path needs no Accessibility permission (only a meeting press asks for it).
-  Source: code only · Code: MM:toggle (ensureAccessibility only after a target is found) · Verify: auto after refactor — S1 with target nil ignores `axGranted`.
+  Source: code only · Code: MM:toggle (ensureAccessibility only after a target is found) · Verify: **auto, tested** (S1) — `route(meeting: nil)` never evaluates `axGranted` (so no prompt).
 - **MIC-08** Microphone module off (Settings › Modules): its shortcut is unregistered (F5 reaches the front app), the menu item and the Touch Bar button disappear, the mic dot is hidden, and the module holds no observers or listeners (B-1 fixed 2026-11-18).
   Source: R-15 (Core/Module.swift header); R-20 · Code: ModuleManager:setEnabled/setShortcuts, TouchBar/BarLayout.swift (items filter), StatusMenu:updateIcon, MM:stop · Verify: manual — turn the module off, press F5: nothing in Penknife.
 
@@ -63,7 +63,7 @@ Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 
 - **MIC-20** A desktop app gets key down + up posted to its process in the background, with the recorded modifiers (⌘ ⇧ ⌥ ⌃); focus never moves.
   Source: R-28; D: Meeting = in a call · Code: MS:send, flags; Core/EventPoster.swift:key · Verify: auto after refactor — make `flags(_:)` internal: `[.command,.shift]` → `[.maskCommand,.maskShift]`; focus part manual (press F5 in a Teams call from the editor → editor stays in front).
 - **MIC-21** A platform with no shortcut recorded gets nothing; the Mac part (MIC-29) still runs.
-  Source: code only · Code: MS:send (guard) · Verify: auto after refactor — S1 plan with `shortcut=nil` → no key, Mac step kept.
+  Source: code only · Code: MS:send (guard) · Verify: manual — clear Zoom's shortcut in Settings, press F5 in a Zoom call → only the Mac changes (`route` doesn't depend on the shortcut; `send` returns before posting).
 
 ### E. Browsers
 
@@ -83,9 +83,9 @@ Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 
 ### F. Reading the call's mic state and self-healing
 
 - **MIC-28** With "Also mute the Mac's microphone" on, each meeting press reads the call's mic button once through Accessibility, off the main thread, then ALWAYS sends the platform's shortcut.
-  Source: R-28 CHANGED (11-17) "Manda la llamada" · Code: MM:toggle, MS:readMuted · Verify: log — `Meeting: teams` then `App mic: muted|open|unreadable (<ms> ms, <n> windows, <n> elements; roles: …)`.
+  Source: R-28 CHANGED (11-17) "Manda la llamada" · Code: MM:toggle, MS:readMuted · Verify: **auto, tested** (S1) — `route(…, alsoMac: true)` → `.meeting(.readAndSend)`; log — `Meeting: teams` then `App mic: muted|open|unreadable (<ms> ms, <n> windows, <n> elements; roles: …)`.
 - **MIC-29** New Mac state = the opposite of the CALL's state read before the press (call muted → Mac unmuted); only when the button can't be read, the opposite of the Mac's state. So a readable press always leaves call and Mac equal (self-healing), even after a click inside the app inverted them.
-  Source: R-28 CHANGED (11-17); PROBLEM (11-16) · Code: MM:toggle (`after`) · Verify: auto after refactor — `newMacMuted(appMuted: Bool?, macMuted: Bool) -> Bool`: (true,false)→false, (false,true)→true, (nil,true)→false, (nil,false)→true.
+  Source: R-28 CHANGED (11-17); PROBLEM (11-16) · Code: MM:toggle (`after`) · Verify: **auto, tested** (S1) — `newMacMuted(appMuted:macMuted:)` and `afterSend(alsoMac: true, …)`: (true,false)→false, (false,true)→true, (nil,true)→false, (nil,false)→true.
 - **MIC-30** The call's button is recognized by its label (title, else description), case-insensitive prefix, English and Spanish: muted = "unmute mic", "unmute microphone", "turn on microphone", "activar (el) micrófono", "reactivar (el) micrófono"; open = "mute mic", "mute microphone", "turn off microphone", "desactivar (el) micrófono", "silenciar (el) micrófono"; other labels → unknown.
   Source: R-28 option A (measured labels); D: Reading a meeting app's mute state · Code: MS:state(fromLabel:) · Verify: **auto, tested** — "Unmute mic"→true, "Mute mic"→false, "Desactivar micrófono"→false, "Activar micrófono"→true, "Mic settings"→nil.
 - **MIC-31** Only buttons/checkboxes inside the page's web content (AXWebArea) count, so a browser's own "microphone in use" toolbar button is never read as the call's.
@@ -97,9 +97,9 @@ Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 
 - **MIC-34** The call's state is never watched between presses: clicking mute inside the app doesn't update Penknife at that moment; the next Penknife press re-aligns both (accepted limit).
   Source: R-28 (11-16) "Not covered (user accepted)" · Code: MS:readMuted (press only) · Verify: manual — click mute in Teams, press F5 → Teams and the Touch Bar/dot end equal.
 - **MIC-35** "Also mute the Mac's microphone" off: no read, the shortcut is sent blind, the Mac's mic is untouched, and the HUD shows the platform name with "Microphone toggled" (`mic.badge.xmark`, blue).
-  Source: R-28 (11-16) setting; HUD text code only · Code: MM:toggle · Verify: manual — setting off, press F5 in a Zoom call → "Zoom · Microphone toggled", Touch Bar unchanged.
+  Source: R-28 (11-16) setting; HUD text code only · Code: MM:toggle · Verify: auto (S1) — `route(…, alsoMac: false)` → `.meeting(.sendOnly)`; `afterSend(alsoMac: false, …)` → `.showToggled`, also in the Teams consent flow; manual — setting off, press F5 in a Zoom call → "Zoom · Microphone toggled", Touch Bar unchanged.
 - **MIC-36** A desktop-app meeting press without Accessibility does nothing except the system Accessibility prompt, at most once per launch; no HUD (open decision O-3).
-  Source: D: Accessibility prompt once per launch; silent result code only · Code: MM:toggle, Core/Permissions.swift:ensureAccessibility · Verify: auto after refactor — S1 with `axGranted=false` and a target → `.nothing`.
+  Source: D: Accessibility prompt once per launch; silent result code only · Code: MM:toggle, Core/Permissions.swift:ensureAccessibility · Verify: **auto, tested** (S1) — `route(meeting: <any>, axGranted: false)` → `.nothing`.
 
 ### G. Mac mic follows the call
 
@@ -111,7 +111,7 @@ Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 
 - **MIC-38** Siri (`com.apple.CoreSpeech`) counts as listening only when it is the ONLY process recording; Siri recording alongside a call app doesn't count.
   Source: D: Meeting detection fix (a) (11-16) · Code: MM:isSiriListening · Verify: auto after refactor — `isSiriListening(recorders:[String])`: [CoreSpeech]→true; [CoreSpeech, teams2]→false; []→false.
 - **MIC-39** While Siri listens, a press that would change the Mac's mic does nothing (no change, no HUD); checked once at the press.
-  Source: R-28 TRUTHFUL MIC STATE (11-16) · Code: MM:setMac · Verify: log — `Toggle ignored: Siri is listening`.
+  Source: R-28 TRUTHFUL MIC STATE (11-16) · Code: MM:setMac · Verify: auto (S1) — `macGate(siriListening: true, …)` → `.siriListening`, checked before the device; log — `Toggle ignored: Siri is listening`.
 - **MIC-40** No Siri badge: during a Siri session the Touch Bar icon and the dot show the mic open (Siri clears the mute itself), and the previous state when Siri restores it.
   Source: R-28 (11-16); D: Siri and the mic icon · Code: TouchBarModule:updateMicrophone; StatusMenu:updateIcon · Verify: manual — muted, say "Hey Siri" → icon open while it listens, muted after.
 - **MIC-41** Touch Bar taps make no sound (only the slicing game clicks), so a tap never triggers Siri's mute clear that undid the tap.
@@ -145,7 +145,7 @@ Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 
 - **MIC-52** Setting "Remember my choice for Teams' unmute dialog", OFF by default (`microphone.teamsConsent`); turning it on first asks "Answer Teams' unmute dialog for you?" (Turn On / Cancel); off needs no confirmation; disabled with "Requires Microsoft Teams in the list above." while Teams is off; footer with the responsibility note and "Not affiliated with Microsoft."
   Source: R-31 Built (11-17); legal-advisor (11-17) · Code: TC:isEnabled; MeetingOptions · Verify: manual — turn it on in Settings, Cancel, then Turn On.
 - **MIC-53** Scope: only with the option on, a Penknife press (shortcut, Touch Bar or menu item) whose target is the Teams DESKTOP app (Teams in a browser: not covered), and the call's mic read muted just before (= the press unmutes). Muting or unreadable → the shortcut only.
-  Source: R-31 Fix built (11-17); D: Teams consent dialog (R-31) · Code: MM:toggle, TC:press · Verify: log — `Teams dialog: muting: not watched via shortcut` / `mic unreadable: not watched`.
+  Source: R-31 Fix built (11-17); D: Teams consent dialog (R-31) · Code: MM:toggle, TC:press · Verify: auto (S1) — `route` → `.meeting(.teamsConsent)` only for Teams desktop with the option on, whatever "Also mute the Mac" says; log — `Teams dialog: muting: not watched via shortcut` / `mic unreadable: not watched`.
 - **MIC-54** Always the shortcut first (focus untouched); the Mac follows right after it (MIC-29), not after the watch.
   Source: R-31 "Atajo primero" (11-17) · Code: TC:press (`sendNow`) · Verify: log — `Teams dialog: … (<ms> ms)` ≥ the HUD time; manual — Touch Bar flips at once.
 - **MIC-55** Not touched when the call window couldn't be read whole within 0.3 s / 4000 elements, or an alert was already open before the press.
@@ -262,12 +262,12 @@ Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked supersede
 
 ## 4. Test plan (step B in progress)
 
-Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80. Next: S1–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
+Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1 (14 tests / 75 cases pass). Next: S2–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
 
 Warning: with Penknife.app as the test host, `UserDefaults.standard` is the user's real settings. Readers must take an injected suite before any defaults test.
 
 - **Testable as-is:** `MeetingPlatform.matches(title:)` (MIC-24), `MeetingTracker.state(fromLabel:)` (MIC-30), `MeetingPlatform.forApp(_:)`/`bundleIDs` (MIC-11), `MeetingTracker.browsers` (MIC-22), `KeyboardShortcuts.Name.meeting*` defaults (MIC-17). Small tweaks: `isChromium` should take a bundle ID; `flags(_:)` should be internal (MIC-20).
-- **S1 Press routing** — `planPress(target: (platform, isBrowser)?, axGranted, alsoMac, teamsConsent, shortcutSet, appMuted: Bool?, macMuted, siriOnly, hasDevice) -> Plan` (`.setMac(Bool)`, `.send(+setMac | +HUD toggled)`, `.teamsFlow`, `.nothing`, `.noDevice`, `.ignoredSiri`), with `newMacMuted(appMuted:macMuted:)` inside. Covers MIC-03, 06, 07, 21, 28, 29, 35, 36, 39, 53.
+- **S1 Press routing** — DONE 2026-11-18 (MM, "Press rules"). Three steps, as the press happens (the call's state is known only after the read): `route(meeting: (platform, isBrowser)?, axGranted: @autoclosure, alsoMac, teamsConsent) -> PressRoute` (`.mac`, `.nothing`, `.meeting(.teamsConsent | .readAndSend | .sendOnly)`); `afterSend(alsoMac, appMuted, macMuted) -> .setMac(muted:) | .showToggled` with `newMacMuted(appMuted:macMuted:)`; `macGate(siriListening, device) -> .siriListening | .noDevice | .write(device)`. Covers MIC-03, 06, 07, 28, 29, 35, 36, 39, 53. MIC-21 stays manual (`route` has no shortcut input by design).
 - **S2 Keep-muted decision** — `shouldRemute(wasMuted, isMuted, now, ownChangeUntil, outputStartedAt, recorders: [String]) -> Bool`, plus `isSiriListening(recorders:)`. Covers MIC-38, 42, 44, 46, 47, 49, 85.
 - **S3 Meeting picker** — `orderCandidates(front, recent, running, micPIDs)` + `pickTarget(candidates: [(bundleID, title?)], enabled: Set<MeetingPlatform>)` + `remember(recent, app)`. Covers MIC-09, 13, 14, 15, 16, 25.
 - **S4 Device control policy** — `readMuted(muteSettable, mute, volume) -> Bool` and `writePlan(muteSettable, volumeSettable, mute, currentVolume, savedVolume)`. Covers MIC-04, 48, 64, O-1, O-2.

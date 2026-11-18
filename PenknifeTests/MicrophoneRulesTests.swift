@@ -120,6 +120,77 @@ struct MicrophoneRulesTests {
         #expect(missing.isEmpty, "No Spanish: \(missing.sorted().prefix(10))")
     }
 
+    // MARK: S1 press routing
+
+    typealias Mic = MicrophoneModule
+    nonisolated static let meetings: [(platform: MeetingPlatform, isBrowser: Bool)] =
+        MeetingPlatform.allCases.flatMap { [($0, false), ($0, true)] }
+
+    // MIC-03 / MIC-07: no call → the Mac toggles, whatever the settings, and Accessibility is
+    // never asked for (the system prompt would show on a plain F5).
+    @Test("MIC-03 MIC-07 no call toggles the Mac without asking for Accessibility",
+          arguments: [false, true], [false, true])
+    func noCallTogglesTheMac(alsoMac: Bool, teamsConsent: Bool) {
+        var asked = false
+        func ask() -> Bool { asked = true; return true }
+        #expect(Mic.route(meeting: nil, axGranted: ask(), alsoMac: alsoMac, teamsConsent: teamsConsent) == .mac)
+        #expect(!asked)
+        #expect(Mic.newMacMuted(appMuted: nil, macMuted: true) == false)
+        #expect(Mic.newMacMuted(appMuted: nil, macMuted: false) == true)
+    }
+
+    // MIC-36: a call but no Accessibility → nothing (only the system prompt).
+    @Test("MIC-36 a call without Accessibility does nothing", arguments: meetings)
+    func callWithoutAccessibility(meeting: (platform: MeetingPlatform, isBrowser: Bool)) {
+        for alsoMac in [false, true] {
+            for consent in [false, true] {
+                #expect(Mic.route(meeting: meeting, axGranted: false, alsoMac: alsoMac, teamsConsent: consent) == .nothing)
+            }
+        }
+    }
+
+    // MIC-28 / MIC-35: "Also mute the Mac" on → read the call, then send; off → send only.
+    // MIC-53: the consent flow only for Teams DESKTOP with its option on.
+    @Test("MIC-28 MIC-35 MIC-53 how a meeting is pressed", arguments: meetings)
+    func howAMeetingIsPressed(meeting: (platform: MeetingPlatform, isBrowser: Bool)) {
+        let teamsDesktop = meeting.platform == .teams && !meeting.isBrowser
+        for alsoMac in [false, true] {
+            let plain: Mic.MeetingPress = alsoMac ? .readAndSend : .sendOnly
+            #expect(Mic.route(meeting: meeting, axGranted: true, alsoMac: alsoMac, teamsConsent: false) == .meeting(plain))
+            #expect(Mic.route(meeting: meeting, axGranted: true, alsoMac: alsoMac, teamsConsent: true)
+                    == .meeting(teamsDesktop ? .teamsConsent : plain))
+        }
+    }
+
+    // MIC-29: the Mac follows the CALL read before the press; unreadable → opposite of the Mac.
+    @Test("MIC-29 the Mac follows the call", arguments: [
+        (true as Bool?, false, false),   // call muted, Mac open → Mac unmuted (stays open)
+        (true, true, false),             // call muted, Mac muted → Mac unmuted
+        (false, true, true),             // call open, Mac muted → Mac muted (stays muted)
+        (false, false, true),            // call open, Mac open → Mac muted
+        (nil, true, false),              // unreadable → opposite of the Mac
+        (nil, false, true),
+    ])
+    func macFollowsTheCall(appMuted: Bool?, macMuted: Bool, newMuted: Bool) {
+        #expect(Mic.newMacMuted(appMuted: appMuted, macMuted: macMuted) == newMuted)
+        #expect(Mic.afterSend(alsoMac: true, appMuted: appMuted, macMuted: macMuted) == .setMac(muted: newMuted))
+    }
+
+    // MIC-35: "Also mute the Mac" off → the Mac is never written, also in the Teams consent flow.
+    @Test("MIC-35 setting off leaves the Mac alone", arguments: [true as Bool?, false, nil], [false, true])
+    func settingOffLeavesTheMac(appMuted: Bool?, macMuted: Bool) {
+        #expect(Mic.afterSend(alsoMac: false, appMuted: appMuted, macMuted: macMuted) == .showToggled)
+    }
+
+    // MIC-39 / MIC-06: Siri listening → ignored (checked first); no input device → "No microphone found".
+    @Test("MIC-39 MIC-06 when the Mac's microphone can be written")
+    func macGate() {
+        #expect(Mic.macGate(siriListening: true, device: 42) == .siriListening)
+        #expect(Mic.macGate(siriListening: true, device: nil) == .siriListening)
+        #expect(Mic.macGate(siriListening: false, device: nil) == .noDevice)
+        #expect(Mic.macGate(siriListening: false, device: 42) == .write(42))
+    }
+
     // MIC-08 / MIC-80 (R-15): a module that is off holds no observers or listeners, also after
     // turning it off and on again (B-1: the Mac-sound listener used to stay behind). Starting the
     // module only adds listeners for a moment; it changes nothing. Depends on the user's "Keep the
