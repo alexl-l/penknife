@@ -6,7 +6,7 @@ Source of truth for what the microphone module must do TODAY (Penknife 1.9). The
 
 Code paths are relative to `Penknife/`: `MM` = Modules/MicrophoneModule.swift, `MS` = Modules/MeetingSync.swift (MeetingPlatform, MeetingTracker), `TC` = Modules/TeamsConsent.swift. "R-28 (11-17)" = the REQUIREMENTS.md R-28 line dated 2026-11-17; "D: <title>" = the DECISIONS.md bullet with that bold title.
 Verify kinds: **auto** (unit test as the code is today) · **auto after refactor** (seam named; see §4) · **manual** (the user's normal action only) · **log** (`/usr/bin/log show --last 1h --predicate 'subsystem == "Penknife" AND category == "Microphone"' --style compact`).
-Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto after refactor · 20 log · 33 manual.
+Count (2026-11-18, after S3): 85 rules = 24 auto (all tested) · 10 auto after refactor · 19 log · 32 manual.
 **Tests:** `scripts/test.sh` (unit tests in `PenknifeTests/`, ~3 s once built; safe on this Mac: the test host starts no module and nothing writes the user's settings). Each test is named after its rule ("MIC-24 …").
 
 ## 1. Rules
@@ -33,7 +33,7 @@ Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto
 ### B. Detecting a call
 
 - **MIC-09** A meeting exists ONLY while a meeting app or known browser is recording from a microphone right now (CoreAudio process list, the signal behind macOS's orange dot); an open Teams/Slack/Zoom or a Meet page without a call is not a meeting, so the press toggles the Mac.
-  Source: R-28 (11-16) IMPERATIVE "IN A CALL" · Code: MS:findCurrent, appsUsingMicrophone · Verify: manual — Teams open, no call, press F5 → HUD "Microphone muted/unmuted".
+  Source: R-28 (11-16) IMPERATIVE "IN A CALL" · Code: MS:findCurrent, appsUsingMicrophone, orderCandidates · Verify: **auto, tested** (S3) — `orderCandidates(…, micPIDs: [])` → empty; a recording app that is not a candidate (Finder) → empty; manual — Teams open, no call, press F5 → HUD "Microphone muted/unmuted".
 - **MIC-10** A recording helper counts for its app: each CoreAudio process is mapped to its responsible app's pid (Chrome Dev → `com.google.Chrome.helper`, Safari → `com.apple.WebKit.GPU`); if that lookup is unavailable the process stands for itself.
   Source: R-28 BUG (11-16); D: Meeting detection fix (b) · Code: MS:appsUsingMicrophone, responsiblePID · Verify: log — `Recording: com.google.Chrome.helper, com.apple.CoreSpeech; in a call: com.google.Chrome.dev`.
 - **MIC-11** Desktop apps by bundle ID: Teams `com.microsoft.teams2`/`com.microsoft.teams`, Zoom `us.zoom.xos`, Slack `com.tinyspeck.slackmacgap`, Webex `Cisco-Systems.Spark`/`com.webex.meetingmanager`; Meet has none.
@@ -44,13 +44,13 @@ Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto
 ### C. Choosing which meeting
 
 - **MIC-13** Candidate order: the frontmost app (if it is a meeting app or known browser), then recently activated candidates (most recent first, at most 6 remembered, quit apps dropped), then any other running candidate; the first one in a call that resolves to an enabled platform is the target.
-  Source: R-28 (11-16) "CURRENT meeting … focus … last meeting app that had focus"; "never-in-front apps still count" is code only · Code: MS:findCurrent, remember · Verify: auto after refactor — S3 `orderCandidates(front:recent:running:micPIDs:) -> [pid]`.
+  Source: R-28 (11-16) "CURRENT meeting … focus … last meeting app that had focus"; "never-in-front apps still count" is code only · Code: MS:findCurrent, orderCandidates · Verify: **auto, tested** (S3) — `orderCandidates(front:recent:running:micPIDs:)`: candidate in front first, then recent (quit dropped), then other running candidates, each once.
 - **MIC-14** Only that one meeting changes: with two calls (e.g. Teams + Meet in Chrome), the one in front, or else the last one used, gets the shortcut; the other is untouched.
-  Source: R-28 (11-16) · Code: MS:findCurrent (stops at the first match) · Verify: manual — two calls, Chrome in front, press F5 → only Meet changes.
+  Source: R-28 (11-16) · Code: MS:findCurrent, pickTarget (stops at the first match) · Verify: auto (S3) — the order part, in "MIC-13 MIC-14 candidate order"; manual — two calls, Chrome in front, press F5 → only Meet changes.
 - **MIC-15** A meeting app whose platform is off in Settings is skipped and the next candidate is tried; if none qualifies, the Mac toggles.
-  Source: R-28 "Each platform can be turned off"; skip-to-next is code only · Code: MS:findCurrent · Verify: auto after refactor — S3 `pickTarget(candidates:[(bundleID, title?)], enabled:) -> (platform, index, isBrowser)?`.
+  Source: R-28 "Each platform can be turned off"; skip-to-next is code only · Code: MS:findCurrent, pickTarget · Verify: **auto, tested** (S3) — `pickTarget(bundleIDs:enabled:title:)`: Teams off → Zoom (index 1); nothing enabled → nil; a Meet tab with Meet off → nil.
 - **MIC-16** Recent apps are learned only from NSWorkspace "did activate application" (no polling), kept in memory, cleared when the module stops.
-  Source: D: Meeting = in a call (no polling) · Code: MS:start/stop/remember · Verify: auto after refactor — pure `remember(recent, app) -> recent` (dedupe by pid, insert first, cap 6).
+  Source: D: Meeting = in a call (no polling) · Code: MS:start/stop/remember · Verify: **auto, tested** (S3) — `remember(_:_:)`: dedupe by pid, insert first, cap 6, non-candidates ignored.
 
 ### D. Per-platform shortcuts
 
@@ -74,7 +74,7 @@ Count (2026-11-18, after S2 and B-2): 85 rules = 19 auto (all tested) · 13 auto
 - **MIC-24** Title rule: the lower-cased title is split at `- – — | ·`; a trimmed part must equal a brand — "microsoft teams"; "meet", "google meet"; "zoom", "zoom meeting", "zoom workplace"; "slack"; "webex", "cisco webex" — or the title contains a Meet code `abc-defg-hij` (→ Meet). "Slack tips" does not count. First enabled platform in the order Teams, Meet, Zoom, Slack, Webex wins.
   Source: R-28 (11-16); code · Code: MS:MeetingPlatform.matches(title:) · Verify: **auto, tested** — "Meet - abc-defg-hij" → meet; "Chat | Microsoft Teams" → teams; "abc-defg-hij" → meet; "Slack tips" → none; "Zoom Workplace" → zoom.
 - **MIC-25** A browser in a call whose title can't be read is not a meeting; the next candidate is tried.
-  Source: code only · Code: MS:windowTitle · Verify: log — `No window title for browser pid <pid>`.
+  Source: code only · Code: MS:windowTitle, pickTarget · Verify: **auto, tested** (S3) — unreadable or non-meeting title → next candidate; titles read only for browsers and only until a match; log — `No window title for browser pid <pid>`.
 - **MIC-26** Sending to a browser that is not frontmost: it is brought forward and the shortcut is posted only once it is frontmost (checked every 50 ms, up to 20 times ≈ 1 s); never in front → nothing typed anywhere; 0.1 s after posting, the previous app comes back only if the browser is still frontmost. Already frontmost → posted at once.
   Source: R-28; D: Meeting = in a call (≤ 1 s) · Code: MS:send, whenFrontmost · Verify: manual — Meet call in Chrome, editor in front, press F5 → Meet toggles and the editor is back.
 - **MIC-27** Chromium browsers expose the call's button only with Chrome's accessibility allowed (`chrome://accessibility`, "Suppress automatic accessibility enablement" unchecked; README FAQ); otherwise the read is "unreadable" and MIC-29's fallback applies. Safari needs nothing; Firefox and Opera reads not measured.
@@ -265,13 +265,13 @@ Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked supersede
 
 ## 4. Test plan (step B in progress)
 
-Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1, S2 and B-2 (22 tests pass). Next: S3–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
+Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1, S2 and B-2 (22 tests pass). S3 done the same day (29 tests pass). Next: S4, S5, one at a time, each refactor verified by its tests AND the affected manual rules.
 
 Warning: with Penknife.app as the test host, `UserDefaults.standard` is the user's real settings. Readers must take an injected suite before any defaults test.
 
 - **Testable as-is:** `MeetingPlatform.matches(title:)` (MIC-24), `MeetingTracker.state(fromLabel:)` (MIC-30), `MeetingPlatform.forApp(_:)`/`bundleIDs` (MIC-11), `MeetingTracker.browsers` (MIC-22), `KeyboardShortcuts.Name.meeting*` defaults (MIC-17). Small tweaks: `isChromium` should take a bundle ID; `flags(_:)` should be internal (MIC-20).
 - **S1 Press routing** — DONE 2026-11-18 (MM, "Press rules"). Three steps, as the press happens (the call's state is known only after the read): `route(meeting: (platform, isBrowser)?, axGranted: @autoclosure, alsoMac, teamsConsent) -> PressRoute` (`.mac`, `.nothing`, `.meeting(.teamsConsent | .readAndSend | .sendOnly)`); `afterSend(alsoMac, appMuted, macMuted) -> .setMac(muted:) | .showToggled` with `newMacMuted(appMuted:macMuted:)`; `macGate(siriListening, device) -> .siriListening | .noDevice | .write(device)`. Covers MIC-03, 06, 07, 28, 29, 35, 36, 39, 53. MIC-21 stays manual (`route` has no shortcut input by design).
 - **S2 Keep-muted decision** — DONE 2026-11-18 (MM, next to `isSiriListening`). `shouldRemute(wasMuted, isMuted, now, ownChangeUntil, outputStarted, recorders: @autoclosure) -> Bool` (the CoreAudio recorder query runs only when everything else holds) and `isSiriListening(recorders:)`. Covers MIC-38, 42, 44, 46, 47, 49, 85. Test lesson: `#expect(f(x()))` evaluates `x()` itself, so a laziness check computes the result outside `#expect`.
-- **S3 Meeting picker** — `orderCandidates(front, recent, running, micPIDs)` + `pickTarget(candidates: [(bundleID, title?)], enabled: Set<MeetingPlatform>)` + `remember(recent, app)`. Covers MIC-09, 13, 14, 15, 16, 25.
+- **S3 Meeting picker** — DONE 2026-11-18 (MS, "Picker rules"). `orderCandidates(front:recent:running:micPIDs:)` and `remember(_:_:)` are generic over `PickerApp` (NSRunningApplication in the app, a plain struct in the tests); `pickTarget(bundleIDs:enabled:title:)` reads a browser's title through a closure, only when its turn comes (as before); the enabled platforms are read once per press on the main thread. Covers MIC-09, 13, 14 (order part; the two-call press stays manual), 15, 16, 25.
 - **S4 Device control policy** — `readMuted(muteSettable, mute, volume) -> Bool` and `writePlan(muteSettable, volumeSettable, mute, currentVolume, savedVolume)`. Covers MIC-04, 48, 64, O-1, O-2.
 - **S5 Teams consent step** — `mainButton(in: Node)` over a plain tree struct, plus `nextStep(elapsed, micState: Bool?, dialogs: Int, mainButtonFound, buttonPressed) -> Step` for the 0.1 s loop. Covers MIC-55, 56, 57, 60.

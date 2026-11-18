@@ -301,6 +301,107 @@ struct MicrophoneRulesTests {
         #expect(!read)
     }
 
+    // MARK: S3 meeting picker
+
+    typealias Tracker = MeetingTracker
+
+    struct FakeApp: PickerApp, Equatable, CustomStringConvertible {
+        let processIdentifier: pid_t
+        let bundleIdentifier: String?
+        var isTerminated = false
+        var description: String { "\(bundleIdentifier ?? "nil")#\(processIdentifier)" }
+    }
+
+    nonisolated static let chrome = "com.google.Chrome"
+    nonisolated static let zoom = "us.zoom.xos"
+    nonisolated static let finder = "com.apple.finder"
+
+    // MIC-09: an open meeting app or meeting page without the microphone is not a meeting.
+    @Test("MIC-09 only apps recording now are in a call")
+    func onlyRecordingAppsAreCalls() {
+        let teamsApp = FakeApp(processIdentifier: 10, bundleIdentifier: Self.teams)
+        let chromeApp = FakeApp(processIdentifier: 20, bundleIdentifier: Self.chrome)
+        let running = [teamsApp, chromeApp]
+        #expect(Tracker.orderCandidates(front: teamsApp, recent: running, running: running, micPIDs: []).isEmpty)
+        #expect(Tracker.orderCandidates(front: teamsApp, recent: running, running: running, micPIDs: [20]) == [chromeApp])
+        // A recording app that is neither a meeting app nor a known browser never counts.
+        let finderApp = FakeApp(processIdentifier: 30, bundleIdentifier: Self.finder)
+        #expect(Tracker.orderCandidates(front: finderApp, recent: [], running: [finderApp], micPIDs: [30]).isEmpty)
+    }
+
+    // MIC-13 / MIC-14: the frontmost candidate first, then the recent ones (most recent first, quit
+    // apps dropped), then other running candidates; each app once.
+    @Test("MIC-13 MIC-14 candidate order")
+    func candidateOrder() {
+        let teamsApp = FakeApp(processIdentifier: 10, bundleIdentifier: Self.teams)
+        let chromeApp = FakeApp(processIdentifier: 20, bundleIdentifier: Self.chrome)
+        let zoomApp = FakeApp(processIdentifier: 30, bundleIdentifier: Self.zoom)
+        let quit = FakeApp(processIdentifier: 40, bundleIdentifier: Self.chrome, isTerminated: true)
+        let finderApp = FakeApp(processIdentifier: 50, bundleIdentifier: Self.finder)
+        let all: Set<pid_t> = [10, 20, 30, 40, 50]
+        let running = [zoomApp, finderApp, teamsApp, chromeApp]
+
+        // Chrome in front: it goes first, even though Teams was used last (MIC-14).
+        #expect(Tracker.orderCandidates(front: chromeApp, recent: [teamsApp, chromeApp], running: running, micPIDs: all)
+                == [chromeApp, teamsApp, zoomApp])
+        // Finder in front: the last meeting app used goes first; Zoom (never in front) still counts.
+        #expect(Tracker.orderCandidates(front: finderApp, recent: [teamsApp, quit, chromeApp], running: running, micPIDs: all)
+                == [teamsApp, chromeApp, zoomApp])
+        // Nothing in front, nothing recent: running candidates in their order.
+        #expect(Tracker.orderCandidates(front: nil as FakeApp?, recent: [], running: running, micPIDs: all)
+                == [zoomApp, teamsApp, chromeApp])
+    }
+
+    // MIC-16: an activated candidate goes first, once; other apps are ignored; at most 6 kept.
+    @Test("MIC-16 recent apps")
+    func recentApps() {
+        let apps = (1...7).map { FakeApp(processIdentifier: pid_t($0), bundleIdentifier: Self.chrome) }
+        var recent: [FakeApp] = []
+        for app in apps { recent = Tracker.remember(recent, app) }
+        #expect(recent == Array(apps.reversed().prefix(6)))
+        #expect(Tracker.remember(recent, apps[3]) == [apps[3], apps[6], apps[5], apps[4], apps[2], apps[1]])
+        let finderApp = FakeApp(processIdentifier: 99, bundleIdentifier: Self.finder)
+        #expect(Tracker.remember(recent, finderApp) == recent)
+        #expect(Tracker.remember(recent, FakeApp(processIdentifier: 98, bundleIdentifier: nil)) == recent)
+    }
+
+    nonisolated static let allPlatforms = Set(MeetingPlatform.allCases)
+
+    /// `pickTarget` over `ids` with these titles; also returns which titles were read.
+    func pick(_ ids: [String?], titles: [Int: String] = [:], enabled: Set<MeetingPlatform> = allPlatforms)
+        -> (pick: (platform: MeetingPlatform, index: Int, isBrowser: Bool)?, read: [Int]) {
+        var read: [Int] = []
+        let pick = Tracker.pickTarget(bundleIDs: ids, enabled: enabled) { read.append($0); return titles[$0] }
+        return (pick, read)
+    }
+
+    // MIC-15: a meeting app whose platform is off is skipped; none left → nil (the Mac toggles, MIC-03).
+    @Test("MIC-15 platforms turned off are skipped")
+    func platformsOffAreSkipped() {
+        let first = pick([Self.teams, Self.zoom])
+        #expect(first.pick?.platform == .teams && first.pick?.index == 0 && first.pick?.isBrowser == false)
+        let noTeams = pick([Self.teams, Self.zoom], enabled: Self.allPlatforms.subtracting([.teams]))
+        #expect(noTeams.pick?.platform == .zoom && noTeams.pick?.index == 1)
+        #expect(pick([Self.teams, Self.zoom], enabled: [.meet]).pick == nil)
+        // A Meet tab with Meet off: not a meeting.
+        #expect(pick([Self.chrome], titles: [0: "Meet - abc-defg-hij"], enabled: [.teams]).pick == nil)
+        #expect(pick([]).pick == nil)
+    }
+
+    // MIC-25: a browser is a meeting by its title; unreadable or not a meeting → next candidate.
+    // Titles are read only for browsers, and only until a meeting is found.
+    @Test("MIC-25 browsers by title, read only when needed")
+    func browsersByTitle() {
+        let meet = pick([Self.chrome], titles: [0: "Meet - abc-defg-hij"])
+        #expect(meet.pick?.platform == .meet && meet.pick?.isBrowser == true && meet.read == [0])
+        let unreadable = pick([Self.chrome, Self.teams])
+        #expect(unreadable.pick?.platform == .teams && unreadable.pick?.index == 1 && unreadable.read == [0])
+        let notMeeting = pick([Self.chrome, "com.apple.Safari"], titles: [0: "Slack tips - YouTube", 1: "Chat | Microsoft Teams"])
+        #expect(notMeeting.pick?.platform == .teams && notMeeting.pick?.index == 1 && notMeeting.read == [0, 1])
+        let appFirst = pick([Self.zoom, Self.chrome], titles: [1: "Meet - abc-defg-hij"])
+        #expect(appFirst.pick?.platform == .zoom && appFirst.read.isEmpty)
+    }
+
     // MARK: B-2 Siri's panel shows the mic open
 
     // MIC-40: Siri hears the user while its panel is on screen and it records; a Mac sound makes

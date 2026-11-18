@@ -97,6 +97,16 @@ extension KeyboardShortcuts.Name {
     static let meetingWebex = Self("meetingWebex", default: .init(.m, modifiers: [.command, .shift]))
 }
 
+/// What the meeting picker reads from an app: NSRunningApplication in the app, a plain struct in
+/// PenknifeTests (S3).
+protocol PickerApp {
+    var processIdentifier: pid_t { get }
+    var bundleIdentifier: String? { get }
+    var isTerminated: Bool { get }
+}
+
+extension NSRunningApplication: PickerApp {}
+
 /// Finds the current meeting: the meeting app or meeting tab in front, else the last one that
 /// was in front. Remembers recently activated apps with one workspace notification (no polling).
 final class MeetingTracker {
@@ -136,15 +146,7 @@ final class MeetingTracker {
     }
 
     private func remember(_ app: NSRunningApplication) {
-        guard Self.isCandidate(app) else { return }
-        recent.removeAll { $0.processIdentifier == app.processIdentifier }
-        recent.insert(app, at: 0)
-        if recent.count > 6 { recent.removeLast() }
-    }
-
-    private static func isCandidate(_ app: NSRunningApplication) -> Bool {
-        guard let id = app.bundleIdentifier else { return false }
-        return browsers.contains(id) || MeetingPlatform.forApp(id) != nil
+        recent = Self.remember(recent, app)
     }
 
     /// Calls `completion` on the main thread with the current meeting, or nil. Only an app that is
@@ -154,37 +156,72 @@ final class MeetingTracker {
     /// Accessibility (no Apple Events), off the main thread.
     func findCurrent(_ completion: @escaping @MainActor @Sendable (Target?) -> Void) {
         let usingMic = Self.appsUsingMicrophone()
-        var candidates = recent.filter { !$0.isTerminated }
-        if let front = NSWorkspace.shared.frontmostApplication, Self.isCandidate(front) {
-            candidates.removeAll { $0.processIdentifier == front.processIdentifier }
-            candidates.insert(front, at: 0)
-        }
-        // Calls in apps that were never in front still count, after the recent ones.
-        for app in NSWorkspace.shared.runningApplications where Self.isCandidate(app)
-            && !candidates.contains(where: { $0.processIdentifier == app.processIdentifier }) {
-            candidates.append(app)
-        }
-        let callPIDs = Set(usingMic.map(\.appPID))
-        candidates = candidates.filter { callPIDs.contains($0.processIdentifier) }
+        let calls = Self.orderCandidates(front: NSWorkspace.shared.frontmostApplication, recent: recent,
+                                         running: NSWorkspace.shared.runningApplications,
+                                         micPIDs: Set(usingMic.map(\.appPID)))
+        let enabled = Set(MeetingPlatform.allCases.filter(\.isEnabled))
         let log = log
-        let calls = candidates
-        log.notice("Recording: \(usingMic.map(\.bundleID).joined(separator: ", "), privacy: .public); in a call: \(candidates.compactMap(\.bundleIdentifier).joined(separator: ", "), privacy: .public)")
+        log.notice("Recording: \(usingMic.map(\.bundleID).joined(separator: ", "), privacy: .public); in a call: \(calls.compactMap(\.bundleIdentifier).joined(separator: ", "), privacy: .public)")
         DispatchQueue.global(qos: .userInitiated).async {
-            var found: Target?
-            for app in calls {
-                guard let id = app.bundleIdentifier else { continue }
-                if let platform = MeetingPlatform.forApp(id) {
-                    if platform.isEnabled { found = Target(platform: platform, app: app, isBrowser: false); break }
-                    continue
-                }
-                guard let title = Self.windowTitle(pid: app.processIdentifier, log: log),
-                      let platform = MeetingPlatform.allCases.first(where: { $0.isEnabled && $0.matches(title: title) }) else { continue }
-                found = Target(platform: platform, app: app, isBrowser: true)
-                break
+            let pick = Self.pickTarget(bundleIDs: calls.map(\.bundleIdentifier), enabled: enabled) {
+                Self.windowTitle(pid: calls[$0].processIdentifier, log: log)
             }
-            let result = found
+            let result = pick.map { Target(platform: $0.platform, app: calls[$0.index], isBrowser: $0.isBrowser) }
             DispatchQueue.main.async { completion(result) }
         }
+    }
+
+    // MARK: Picker rules (S3: plain values in, decision out; PenknifeTests checks them)
+
+    nonisolated static func isCandidate(_ bundleID: String?) -> Bool {
+        guard let bundleID else { return false }
+        return browsers.contains(bundleID) || MeetingPlatform.forApp(bundleID) != nil
+    }
+
+    /// MIC-16: an activated meeting app or browser goes first, once, and at most 6 are kept.
+    static func remember<App: PickerApp>(_ recent: [App], _ app: App) -> [App] {
+        guard isCandidate(app.bundleIdentifier) else { return recent }
+        var recent = recent
+        recent.removeAll { $0.processIdentifier == app.processIdentifier }
+        recent.insert(app, at: 0)
+        if recent.count > 6 { recent.removeLast() }
+        return recent
+    }
+
+    /// MIC-13 / MIC-09: the frontmost app (if a candidate), then the recent ones still running, then
+    /// any other running candidate (calls in apps never in front still count); only those
+    /// recording from a microphone now are kept.
+    static func orderCandidates<App: PickerApp>(front: App?, recent: [App], running: [App],
+                                                micPIDs: Set<pid_t>) -> [App] {
+        var ordered = recent.filter { !$0.isTerminated }
+        if let front, isCandidate(front.bundleIdentifier) {
+            ordered.removeAll { $0.processIdentifier == front.processIdentifier }
+            ordered.insert(front, at: 0)
+        }
+        for app in running where isCandidate(app.bundleIdentifier)
+            && !ordered.contains(where: { $0.processIdentifier == app.processIdentifier }) {
+            ordered.append(app)
+        }
+        return ordered.filter { micPIDs.contains($0.processIdentifier) }
+    }
+
+    /// MIC-13 / MIC-15 / MIC-25: the first call that resolves to an enabled platform. A meeting app
+    /// by its bundle ID; anything else is a browser, told by its window title, read only when its
+    /// turn comes (`title(index)`, an Accessibility call; nil = unreadable, skipped).
+    nonisolated static func pickTarget(bundleIDs: [String?], enabled: Set<MeetingPlatform>,
+                                       title: (Int) -> String?) -> (platform: MeetingPlatform, index: Int, isBrowser: Bool)? {
+        for (index, id) in bundleIDs.enumerated() {
+            guard let id else { continue }
+            if let platform = MeetingPlatform.forApp(id) {
+                if enabled.contains(platform) { return (platform, index, false) }
+                continue
+            }
+            guard let title = title(index),
+                  let platform = MeetingPlatform.allCases.first(where: { enabled.contains($0) && $0.matches(title: title) })
+            else { continue }
+            return (platform, index, true)
+        }
+        return nil
     }
 
     /// A process recording from a microphone, and the app it works for.
