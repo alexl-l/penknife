@@ -566,7 +566,7 @@ private struct MeetingOptions: View {
         } footer: {
             Text("If another app unmutes the Mac's microphone while you are muted, Penknife mutes it again.")
         }
-        // R-31: opt-in, confirmed once quoting Teams' own text (legal-advisor, 2026-11-17).
+        // R-31: opt-in, confirmed once (legal-advisor, 2026-11-17); no Teams text is quoted or matched.
         Section {
             Toggle("Remember my choice for Teams' unmute dialog", isOn: Binding(
                 get: { teamsConsent },

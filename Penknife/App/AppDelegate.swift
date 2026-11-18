@@ -11,6 +11,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         app.run()
     }
 
+    /// Unit tests run inside the app (the test host): it then starts nothing, so no menu bar item,
+    /// shortcuts, login item, updater or file cleanup competes with the installed Penknife.
+    static let isRunningTests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     private(set) var manager: ModuleManager!
     private var statusMenu: StatusMenu!
     private var readings: MenuBarReadings!
@@ -28,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
         let jiggler = JigglerModule()
         let microphone = MicrophoneModule()
         let dialogs = DialogsModule()
@@ -65,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        guard !Self.isRunningTests else { return }
         RecordingSession.removeLeftovers()
     }
 

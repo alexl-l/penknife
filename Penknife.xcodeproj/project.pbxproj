@@ -14,12 +14,18 @@
 /* Begin PBXFileReference section */
 		A10000000000000000000010 /* Penknife.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Penknife.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000011 /* Penknife.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Penknife.entitlements; sourceTree = "<group>"; };
+		A10000000000000000000080 /* PenknifeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PenknifeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A10000000000000000000012 /* Penknife */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Penknife;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000081 /* PenknifeTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PenknifeTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +40,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000084 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -42,6 +55,7 @@
 			children = (
 				A10000000000000000000011 /* Penknife.entitlements */,
 				A10000000000000000000012 /* Penknife */,
+				A10000000000000000000081 /* PenknifeTests */,
 				A10000000000000000000002 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,6 +64,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000010 /* Penknife.app */,
+				A10000000000000000000080 /* PenknifeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -81,6 +96,27 @@
 			productReference = A10000000000000000000010 /* Penknife.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A10000000000000000000082 /* PenknifeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1000000000000000000008A /* Build configuration list for PBXNativeTarget "PenknifeTests" */;
+			buildPhases = (
+				A10000000000000000000083 /* Sources */,
+				A10000000000000000000084 /* Frameworks */,
+				A10000000000000000000085 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10000000000000000000086 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000081 /* PenknifeTests */,
+			);
+			name = PenknifeTests;
+			productName = PenknifeTests;
+			productReference = A10000000000000000000080 /* PenknifeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -90,6 +126,12 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2700;
+				TargetAttributes = {
+					A10000000000000000000082 = {
+						CreatedOnToolsVersion = 26.0;
+						TestTargetID = A10000000000000000000040;
+					};
+				};
 			};
 			buildConfigurationList = A10000000000000000000061 /* Build configuration list for PBXProject "Penknife" */;
 			developmentRegion = en;
@@ -111,12 +153,20 @@
 			projectRoot = "";
 			targets = (
 				A10000000000000000000040 /* Penknife */,
+				A10000000000000000000082 /* PenknifeTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A10000000000000000000032 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10000000000000000000085 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -133,7 +183,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A10000000000000000000083 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXContainerItemProxy section */
+		A10000000000000000000087 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000050 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000040;
+			remoteInfo = Penknife;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		A10000000000000000000086 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000040 /* Penknife */;
+			targetProxy = A10000000000000000000087 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A10000000000000000000070 /* Debug */ = {
@@ -246,6 +321,40 @@
 			};
 			name = Release;
 		};
+		A10000000000000000000088 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.alexl-l.PenknifeTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Penknife.app/Contents/MacOS/Penknife";
+			};
+			name = Debug;
+		};
+		A10000000000000000000089 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "io.github.alexl-l.PenknifeTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Penknife.app/Contents/MacOS/Penknife";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -263,6 +372,15 @@
 			buildConfigurations = (
 				A10000000000000000000070 /* Debug */,
 				A10000000000000000000071 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1000000000000000000008A /* Build configuration list for PBXNativeTarget "PenknifeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A10000000000000000000088 /* Debug */,
+				A10000000000000000000089 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

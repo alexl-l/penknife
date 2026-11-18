@@ -3,7 +3,8 @@ import CoreAudio
 import os
 
 /// Microphone toggle (R-3, R-28): mutes the current meeting with its own shortcut, or the Mac's
-/// default input device. Only a workspace notification runs between presses.
+/// default input device. Between presses: a workspace notification, plus CoreAudio listeners
+/// while "Keep the microphone muted" is on (R-34). Rules: docs/requirements/microphone.md.
 final class MicrophoneModule: Module {
     let id = ModuleID.microphone
     var needsAccessibility: Bool { true }
@@ -44,7 +45,13 @@ final class MicrophoneModule: Module {
         defaultsObserver = nil
         keeper?.stop()
         keeper = nil
+        // R-15: a module that is off holds nothing (B-1: this listener used to stay behind).
+        outputWatcher?.stop()
+        outputWatcher = nil
     }
+
+    /// For tests (R-15, MIC-80): whether the module still holds an observer or listener.
+    var holdsObservers: Bool { keeper != nil || outputWatcher != nil || defaultsObserver != nil }
 
     // MARK: Keep muted (R-34)
 

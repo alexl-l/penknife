@@ -2,11 +2,12 @@
 
 Source of truth for what the microphone module must do TODAY (Penknife 1.9). The history behind each rule (who asked, when, what was tried) stays in `docs/REQUIREMENTS.md` (R-3, R-20, R-25, R-28, R-29, R-31, R-34) and `docs/DECISIONS.md`; where they disagree with this file, this file wins. Written 2026-11-18 from the code at cdeebbe and those docs: pilot of "complete requirements per module + tests that validate them" (user, 2026-11-17).
 
-**How to use it.** Before changing anything that touches the microphone, read the rules of the parts you change. After the change, check EVERY affected rule by its Verify line, not only the new behavior. A new or changed wish → change the rule here, and keep the story in REQUIREMENTS.md.
+**How to use it.** Before changing anything that touches the microphone, read the rules of the parts you change. After the change, run `scripts/test.sh` and check EVERY affected rule by its Verify line, not only the new behavior. A new or changed wish → change the rule here, and keep the story in REQUIREMENTS.md.
 
 Code paths are relative to `Penknife/`: `MM` = Modules/MicrophoneModule.swift, `MS` = Modules/MeetingSync.swift (MeetingPlatform, MeetingTracker), `TC` = Modules/TeamsConsent.swift. "R-28 (11-17)" = the REQUIREMENTS.md R-28 line dated 2026-11-17; "D: <title>" = the DECISIONS.md bullet with that bold title.
 Verify kinds: **auto** (unit test as the code is today) · **auto after refactor** (seam named; see §4) · **manual** (the user's normal action only) · **log** (`/usr/bin/log show --last 1h --predicate 'subsystem == "Penknife" AND category == "Microphone"' --style compact`).
-Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 manual.
+Count (2026-11-18): 85 rules = 7 auto (all tested) · 24 auto after refactor · 20 log · 34 manual.
+**Tests:** `scripts/test.sh` (unit tests in `PenknifeTests/`, ~3 s once built; safe on this Mac: the test host starts no module and nothing writes the user's settings). Each test is named after its rule ("MIC-24 …").
 
 ## 1. Rules
 
@@ -26,7 +27,7 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
   Source: code only · Code: MM:setMac · Verify: auto after refactor — S1 with `hasDevice=false` → `.noDevice`.
 - **MIC-07** The no-call path needs no Accessibility permission (only a meeting press asks for it).
   Source: code only · Code: MM:toggle (ensureAccessibility only after a target is found) · Verify: auto after refactor — S1 with target nil ignores `axGranted`.
-- **MIC-08** Microphone module off (Settings › Modules): its shortcut is unregistered (F5 reaches the front app), the menu item and the Touch Bar button disappear, the mic dot is hidden, and the module holds no observers or listeners (currently broken: B-1).
+- **MIC-08** Microphone module off (Settings › Modules): its shortcut is unregistered (F5 reaches the front app), the menu item and the Touch Bar button disappear, the mic dot is hidden, and the module holds no observers or listeners (B-1 fixed 2026-11-18).
   Source: R-15 (Core/Module.swift header); R-20 · Code: ModuleManager:setEnabled/setShortcuts, TouchBar/BarLayout.swift (items filter), StatusMenu:updateIcon, MM:stop · Verify: manual — turn the module off, press F5: nothing in Penknife.
 
 ### B. Detecting a call
@@ -36,7 +37,7 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
 - **MIC-10** A recording helper counts for its app: each CoreAudio process is mapped to its responsible app's pid (Chrome Dev → `com.google.Chrome.helper`, Safari → `com.apple.WebKit.GPU`); if that lookup is unavailable the process stands for itself.
   Source: R-28 BUG (11-16); D: Meeting detection fix (b) · Code: MS:appsUsingMicrophone, responsiblePID · Verify: log — `Recording: com.google.Chrome.helper, com.apple.CoreSpeech; in a call: com.google.Chrome.dev`.
 - **MIC-11** Desktop apps by bundle ID: Teams `com.microsoft.teams2`/`com.microsoft.teams`, Zoom `us.zoom.xos`, Slack `com.tinyspeck.slackmacgap`, Webex `Cisco-Systems.Spark`/`com.webex.meetingmanager`; Meet has none.
-  Source: R-28 (11-16) platforms; IDs code only · Code: MS:MeetingPlatform.bundleIDs, forApp · Verify: auto — `forApp("us.zoom.xos") == .zoom`, `forApp("com.apple.Safari") == nil`, `forApp(nil) == nil`.
+  Source: R-28 (11-16) platforms; IDs code only · Code: MS:MeetingPlatform.bundleIDs, forApp · Verify: **auto, tested** — `forApp("us.zoom.xos") == .zoom`, `forApp("com.apple.Safari") == nil`, `forApp(nil) == nil`.
 - **MIC-12** Every press logs who records and which candidates are in a call.
   Source: D: Meeting = in a call ("Mic logs use .notice") · Code: MS:findCurrent · Verify: log — `Recording: <bundle IDs, comma-separated>; in a call: <bundle IDs>`.
 
@@ -54,7 +55,7 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
 ### D. Per-platform shortcuts
 
 - **MIC-17** Five platforms, each with its own mute shortcut, EDITABLE in Settings › Modules › Microphone › Meetings; defaults: Teams ⌘⇧M, Meet ⌘D, Zoom ⌘⇧A, Slack ⌘⇧Space, Webex ⌘⇧M; "Restore Defaults" resets the five.
-  Source: R-28 (11-16) · Code: MS:KeyboardShortcuts.Name.meeting*, Settings/SettingsView.swift:MeetingOptions · Verify: auto — each `Name.meetingX.defaultShortcut` equals the table.
+  Source: R-28 (11-16) · Code: MS:KeyboardShortcuts.Name.meeting*, Settings/SettingsView.swift:MeetingOptions · Verify: **auto, tested** — each `Name.meetingX.defaultShortcut` equals the table.
 - **MIC-18** Each platform is on by default (`meeting.<platform>.enabled`); turned off, it is never targeted and its recorder is disabled and dimmed to 40 %.
   Source: R-28 (11-16); Settings variant B (11-16) · Code: MS:MeetingPlatform.isEnabled, MeetingOptions · Verify: auto after refactor — inject a UserDefaults suite: empty → true.
 - **MIC-19** Meeting shortcuts are only SENT to the meeting app, never registered as global hotkeys: ⌘⇧M in any other app still does that app's own thing.
@@ -67,11 +68,11 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
 ### E. Browsers
 
 - **MIC-22** Known browsers: Chrome, Chrome Dev/Beta/Canary, Edge, Brave, Arc, Safari, Safari Technology Preview, Opera, Opera GX, Firefox, Firefox Developer Edition, Firefox Nightly. IT MUST WORK IN CHROME, CHROME DEV, OPERA, SAFARI AND FIREFOX.
-  Source: R-28 (11-16) BROWSERS IMPERATIVE; the others code only · Code: MS:MeetingTracker.browsers · Verify: auto — the set contains the 5 imperative bundle IDs.
+  Source: R-28 (11-16) BROWSERS IMPERATIVE; the others code only · Code: MS:MeetingTracker.browsers · Verify: **auto, tested** — the set contains the 5 imperative bundle IDs.
 - **MIC-23** A browser call counts only when the meeting is the ACTIVE tab: the focused (else main) window title is read through Accessibility (0.15 s timeout); no AppleScript/Apple Events, no Automation prompt, no "Allow JavaScript from Apple Events".
   Source: R-28 (11-16); D: Meeting detection fix (c) · Code: MS:windowTitle, findCurrent · Verify: manual — Meet call in Firefox as the active tab, F5 mutes the call; switch tab, F5 toggles the Mac.
 - **MIC-24** Title rule: the lower-cased title is split at `- – — | ·`; a trimmed part must equal a brand — "microsoft teams"; "meet", "google meet"; "zoom", "zoom meeting", "zoom workplace"; "slack"; "webex", "cisco webex" — or the title contains a Meet code `abc-defg-hij` (→ Meet). "Slack tips" does not count. First enabled platform in the order Teams, Meet, Zoom, Slack, Webex wins.
-  Source: R-28 (11-16); code · Code: MS:MeetingPlatform.matches(title:) · Verify: auto — "Meet - abc-defg-hij" → meet; "Chat | Microsoft Teams" → teams; "abc-defg-hij" → meet; "Slack tips" → none; "Zoom Workplace" → zoom.
+  Source: R-28 (11-16); code · Code: MS:MeetingPlatform.matches(title:) · Verify: **auto, tested** — "Meet - abc-defg-hij" → meet; "Chat | Microsoft Teams" → teams; "abc-defg-hij" → meet; "Slack tips" → none; "Zoom Workplace" → zoom.
 - **MIC-25** A browser in a call whose title can't be read is not a meeting; the next candidate is tried.
   Source: code only · Code: MS:windowTitle · Verify: log — `No window title for browser pid <pid>`.
 - **MIC-26** Sending to a browser that is not frontmost: it is brought forward and the shortcut is posted only once it is frontmost (checked every 50 ms, up to 20 times ≈ 1 s); never in front → nothing typed anywhere; 0.1 s after posting, the previous app comes back only if the browser is still frontmost. Already frontmost → posted at once.
@@ -86,7 +87,7 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
 - **MIC-29** New Mac state = the opposite of the CALL's state read before the press (call muted → Mac unmuted); only when the button can't be read, the opposite of the Mac's state. So a readable press always leaves call and Mac equal (self-healing), even after a click inside the app inverted them.
   Source: R-28 CHANGED (11-17); PROBLEM (11-16) · Code: MM:toggle (`after`) · Verify: auto after refactor — `newMacMuted(appMuted: Bool?, macMuted: Bool) -> Bool`: (true,false)→false, (false,true)→true, (nil,true)→false, (nil,false)→true.
 - **MIC-30** The call's button is recognized by its label (title, else description), case-insensitive prefix, English and Spanish: muted = "unmute mic", "unmute microphone", "turn on microphone", "activar (el) micrófono", "reactivar (el) micrófono"; open = "mute mic", "mute microphone", "turn off microphone", "desactivar (el) micrófono", "silenciar (el) micrófono"; other labels → unknown.
-  Source: R-28 option A (measured labels); D: Reading a meeting app's mute state · Code: MS:state(fromLabel:) · Verify: auto — "Unmute mic"→true, "Mute mic"→false, "Desactivar micrófono"→false, "Activar micrófono"→true, "Mic settings"→nil.
+  Source: R-28 option A (measured labels); D: Reading a meeting app's mute state · Code: MS:state(fromLabel:) · Verify: **auto, tested** — "Unmute mic"→true, "Mute mic"→false, "Desactivar micrófono"→false, "Activar micrófono"→true, "Mic settings"→nil.
 - **MIC-31** Only buttons/checkboxes inside the page's web content (AXWebArea) count, so a browser's own "microphone in use" toolbar button is never read as the call's.
   Source: D: Meet in Safari read Safari's own button (11-17) · Code: MS:search · Verify: manual — Meet call in Safari, press F5 twice → call and Mac change together both times.
 - **MIC-32** Windows searched: an app's focused window first, then its other windows (a Teams call in its own window); a browser only its focused window.
@@ -186,7 +187,7 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
 - **MIC-70** Settings › Modules › Microphone, in order: Meetings (5 rows: app icon or symbol, name, recorder, switch; Restore Defaults; footer "Shortcut = the keys Penknife sends to each app to mute. Match them to the app's own setting."); "Also mute the Mac's microphone" (footer "Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted."); "Keep the microphone muted"; Teams consent; "Current meeting" ("The meeting in front, or the last one you used." / "Browser meetings count only when they are the active tab.").
   Source: R-28 variant B (11-16); R-31; R-34 · Code: SettingsView:MeetingOptions, MeetingIcon · Verify: manual — open Settings › Microphone.
 - **MIC-71** Every visible mic string exists in English and Spanish (Spain wording); brand names are not translated.
-  Source: Phases (es/en); Public copy (11-15); MS:name comment · Code: Resources/Localizable.xcstrings · Verify: auto — script over the catalog: each mic key has an `es` value.
+  Source: Phases (es/en); Public copy (11-15); MS:name comment · Code: Resources/Localizable.xcstrings · Verify: **auto, tested** — script over the catalog: each mic key has an `es` value.
 
 ### M. Privacy and logging
 
@@ -209,8 +210,8 @@ Count (2026-11-18): 85 rules = 6 auto · 25 auto after refactor · 20 log · 34 
   Source: D: Reading a meeting app's mute state; D: Meeting button read in Chrome · Code: MS:withWebTree · Verify: auto after refactor — inject the AX get/set: attributes already on are never set; the ones set are cleared at the end.
 - **MIC-79** All Accessibility work runs off the main thread and every wait is bounded (browser ≤ 1 s; read ≤ ~1 s retry; Teams watch 1.5 s, +1.5 s after a button press).
   Source: MS:findCurrent/readMuted comments; R-31 · Code: MS, TC (global queue) · Verify: log — `(<ms> ms)` in `App mic:` and `Teams dialog:` lines (measured 50–1300 ms).
-- **MIC-80** Module off releases everything it holds: activation observer, defaults observer, keep-muted listeners (CURRENTLY BROKEN: B-1).
-  Source: R-15 · Code: MM:stop · Verify: auto after refactor — inject a listener registrar; after `stop()` it is empty.
+- **MIC-80** Module off releases everything it holds: activation observer, defaults observer, keep-muted listeners (B-1 fixed 2026-11-18).
+  Source: R-15 · Code: MM:stop · Verify: **auto, tested** — start/stop twice, `holdsObservers` is false (fails without the B-1 fix; checked 2026-11-18).
 
 ### O. The screen recording's microphone (R-29)
 
@@ -238,9 +239,9 @@ Not measured, no decision yet:
 - **O-6 R-31 after consent (2026-11-18 log).** (1) A second press 44 ms after accepting read Teams still muted (the user may have pressed twice); (2) a later unmute again needed the mic button, without an alert. Act only if a single press ever leaves the user muted.
 
 Known bugs:
-- **B-1 Module off keeps a CoreAudio listener (breaks R-15).** `MM:stop()` stops `keeper` but not `outputWatcher`; each off→on cycle leaves one more listener on the default output's "is running". Confirmed in the code 2026-11-18. Fix with step B.
+- **B-1 Module off kept a CoreAudio listener (broke R-15).** `MM:stop()` stopped `keeper` but not `outputWatcher`; each off→on cycle left one more listener on the default output's "is running". FIXED 2026-11-18 (on main, not released yet); test "MIC-80 module off holds nothing" fails without the fix.
 
-Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked superseded): "Also mute the Mac" default (ON wins), option A's "send only if needed" (always sent), R-31 v1 text-matching flow (v2 text-free wins), "MuteGuard" rejected vs R-34 built (R-34 wins, narrower), old Apple Events/bundle-prefix browser detection (window title + responsible pid win), stale headers ("not built", "not released"). Still stale in code comments (fix with step B): `MS:findCurrent` mentions Apple Events; `SettingsView` says the consent alert quotes Teams' text; MM's class comment says only a workspace notification runs between presses (false while Keep muted is on).
+Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked superseded): "Also mute the Mac" default (ON wins), option A's "send only if needed" (always sent), R-31 v1 text-matching flow (v2 text-free wins), "MuteGuard" rejected vs R-34 built (R-34 wins, narrower), old Apple Events/bundle-prefix browser detection (window title + responsible pid win), stale headers ("not built", "not released"). The stale code comments (`MS:findCurrent` "Apple Events", `SettingsView` "quoting Teams' text", MM's "only a workspace notification") were fixed on 2026-11-18.
 
 ## 3. Rejected / out of scope (do not rebuild)
 
@@ -259,7 +260,9 @@ Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked supersede
 - Advising users to "disable Hey Siri for the best experience", or claiming the mic "never opens": sounds broken; say "mutes it again" instead (growth review).
 - Native macOS notifications for mic alerts: hidden while sharing/DND, so no mic confirmation in meetings.
 
-## 4. Test plan (step B, not started; no test target yet; host = Penknife.app)
+## 4. Test plan (step B in progress)
+
+Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80. Next: S1–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
 
 Warning: with Penknife.app as the test host, `UserDefaults.standard` is the user's real settings. Readers must take an injected suite before any defaults test.
 

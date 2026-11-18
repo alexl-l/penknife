@@ -150,8 +150,8 @@ final class MeetingTracker {
     /// Calls `completion` on the main thread with the current meeting, or nil. Only an app that is
     /// IN A CALL counts (user, 2026-11-16: an open Teams is not a meeting): it must be using the
     /// microphone right now (what lights macOS's orange dot). With several calls, the one in front
-    /// or the last one used wins. Reading a browser's active tab uses Apple Events, so this runs
-    /// off the main thread.
+    /// or the last one used wins. A browser's active tab is told by its window title, read through
+    /// Accessibility (no Apple Events), off the main thread.
     func findCurrent(_ completion: @escaping @MainActor @Sendable (Target?) -> Void) {
         let usingMic = Self.appsUsingMicrophone()
         var candidates = recent.filter { !$0.isTerminated }
