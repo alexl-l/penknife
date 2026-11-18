@@ -352,6 +352,15 @@ struct TouchBarRulesTests {
         bar.stop()
     }
 
+    // O-8 / TB-44: Penknife's own Customize sheet doesn't make the bar step aside; Penknife's other
+    // dialogs and every other app's still count.
+    @Test("O-8 TB-44 the Customize sheet is not a dialog", arguments: [
+        (true, true, true), (true, false, false), (false, true, false), (false, false, false),
+    ])
+    func customizeSheetIgnored(isPenknife: Bool, customizing: Bool, ignored: Bool) {
+        #expect(DialogsModule.ignoresFront(isPenknife: isPenknife, customizingBar: customizing) == ignored)
+    }
+
     /// A new empty suite (never written, so no plist is created); fails if any key is already there.
     static func emptySuite(keys: [String]) throws -> UserDefaults {
         let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))

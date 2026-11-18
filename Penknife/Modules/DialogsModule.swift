@@ -160,8 +160,18 @@ final class DialogsModule: Module {
 
     // MARK: Detection
 
+    /// True while Penknife's own "Customize Touch Bar" sheet is open: it is not a dialog for the
+    /// bar, so the real bar stays and follows each change (O-8). Penknife's other alerts and panels
+    /// still count (the bar shows their native buttons).
+    static var customizingBar = false
+
+    /// O-8: Penknife in front with the Customize sheet open is never a dialog.
+    static func ignoresFront(isPenknife: Bool, customizingBar: Bool) -> Bool { isPenknife && customizingBar }
+
     private func dialogIsOpen() -> Bool {
         guard let app = NSWorkspace.shared.frontmostApplication else { return false }
+        if Self.ignoresFront(isPenknife: app.processIdentifier == ProcessInfo.processInfo.processIdentifier,
+                             customizingBar: Self.customizingBar) { return false }
         if Self.systemPromptApps.contains(app.bundleIdentifier ?? "") { return true }
         guard AXIsProcessTrusted() else { return false }
 

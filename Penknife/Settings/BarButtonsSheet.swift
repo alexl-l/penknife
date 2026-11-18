@@ -11,12 +11,15 @@ struct BarButtonsRow: View {
         }
         .sheet(isPresented: $showing) {
             BarButtonsSheet(manager: manager)
+                // The real bar doesn't step aside for this sheet: it shows the changes (O-8).
+                .onAppear { DialogsModule.customizingBar = true }
+                .onDisappear { DialogsModule.customizingBar = false }
         }
     }
 }
 
 /// Which Touch Bar buttons show and in what order. Every change is saved at once, so the bar
-/// updates while the sheet is open.
+/// updates while the sheet is open (it doesn't step aside for this sheet, O-8).
 private struct BarButtonsSheet: View {
     let manager: ModuleManager
     @Environment(\.dismiss) private var dismiss
@@ -56,8 +59,9 @@ private struct BarButtonsSheet: View {
         item.module.map(manager.isEnabled) ?? true
     }
 
+    /// The bar's own rule (TB-38), so the preview shows the time when the bar falls back to it (O-11).
     private var visible: [BarItem] {
-        order.filter { !hidden.contains($0) && isOn($0) }
+        BarLayout.visible(order: order, hidden: hidden, isOn: manager.isEnabled)
     }
 }
 
