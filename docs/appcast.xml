@@ -3,6 +3,22 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.7</title>
+            <pubDate>Tue, 17 Nov 2026 22:53:07 -0500</pubDate>
+            <sparkle:version>88</sparkle:version>
+            <sparkle:shortVersionString>1.7</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Screen recording.** Record the full screen, an area or a window (⌃⌥R) as an MP4 video or a GIF. Switch the Mac's sound and your microphone on or off, and pause when you need to. A timer in the menu bar shows the time; click it to stop.</li>
+<li>**Draw while you record.** Marks appear in the recording as you make them (⌃⌥D switches between drawing and using your apps). Blur hides what's behind it in the file itself.</li>
+<li>**Edit your marks.** Select, move, resize and erase any mark, in the screenshot editor and in the recording, with the same tools in both. The new Line can be bent into a curve.</li>
+<li>**Fewer clicks.** Drag an area, press Space for a window or Return for the full screen, and a quiet countdown starts. When you finish, Trim cuts the start and end before you save as video, save as GIF or copy.</li>
+<li>**"Keep the microphone muted"** (Settings → Microphone, on by default). When "Hey Siri" opens the Mac's microphone because the Mac played a sound, Penknife mutes it again within a moment. Calling Siri yourself still works.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.7/Penknife-1.7.zip" length="5135468" type="application/octet-stream" sparkle:edSignature="3FbbXesIT9A5P3OQoPtEDdZ+jp6TD8M/tw0d4OWhlasP5ATUIzbxAtAauUDX9UKv0+Sg1UWe4GN4CCfzgcJGAw=="/>
+        </item>
+        <item>
             <title>1.6</title>
             <pubDate>Tue, 17 Nov 2026 14:08:03 -0500</pubDate>
             <sparkle:version>81</sparkle:version>
@@ -26,21 +42,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.5/Penknife-1.5.zip" length="4362254" type="application/octet-stream" sparkle:edSignature="/J5dFqS9grtGtaIhZvU6ZI/nz3LAUO1julyx2qKm9lh0pQ+pvqSnwWGJ+8N3awGn9L/jKb7H3VZYJirQV/uMBA=="/>
-        </item>
-        <item>
-            <title>1.4</title>
-            <pubDate>Tue, 17 Nov 2026 11:57:02 -0500</pubDate>
-            <sparkle:version>72</sparkle:version>
-            <sparkle:shortVersionString>1.4</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Weather, Mac temperature and speed test as menu bar items.** Handy on Macs without a Touch Bar, where they are on by default. Turn each on or off with "Show in the menu bar" in its module.</li>
-<li>**Three styles** in Settings → General: Simple, Color and Bold. In Color, the temperature turns orange when your Mac runs hot.</li>
-<li>**Click for a small menu.** Weather offers Update now. Speed test shows your last result and Test Speed Now.</li>
-<li>**Optional: "Remember my choice for Teams' unmute dialog"** in Settings → Microphone, off by default. When you unmute with Penknife's shortcut and Teams asks "Do you agree to the use of your audio and video?", Penknife presses Yes for you. It only applies when unmuting with the shortcut, in the Microsoft Teams desktop app set to English. You remain responsible for consent, so check your employer's policy first.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.4/Penknife-1.4.zip" length="4360724" type="application/octet-stream" sparkle:edSignature="L14qTKxEXidcMHXmZFOFmtAxFz4c8/ZuPgLW91CeZs1TNqDUjAyEKXW0idcDIVSI5tvaWK0fOF5PKBTB/n21BQ=="/>
         </item>
     </channel>
 </rss>
