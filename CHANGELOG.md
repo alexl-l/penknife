@@ -3,6 +3,13 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.8 — 2026-11-18
+
+GIFs from screen recordings look right from the first frame and are several times smaller.
+
+- **Cleaner GIFs.** Dark backgrounds no longer turn into black patches at the start of a GIF.
+- **Smaller GIFs.** Each frame now stores only what changed, so a GIF is often 5 to 7 times smaller (a 6-second clip went from 1.4 MB to 207 KB).
+
 ## 1.7 — 2026-11-17
 
 Record your screen as a video or GIF and draw on it as you go, and your mute stays muted when "Hey Siri" opens the microphone.
