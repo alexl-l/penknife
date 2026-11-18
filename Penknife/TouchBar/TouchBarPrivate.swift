@@ -58,6 +58,9 @@ enum TouchBarPrivate {
 
     /// Whether this Mac has a Touch Bar (read once).
     static let hasTouchBar: Bool = {
+        // `-pretendNoTouchBar` (launch argument) shows how Penknife looks and behaves on a Mac
+        // without one, for checks and screenshots on this Mac (O-7). Display and startup only.
+        if ProcessInfo.processInfo.arguments.contains("-pretendNoTouchBar") { return false }
         let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceNameMatching("dispdfr"))
         if service != 0 { IOObjectRelease(service) }
         return TouchBarPrivate.hasTouchBar(dispdfr: service != 0, model: TouchBarPrivate.modelName())

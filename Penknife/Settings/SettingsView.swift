@@ -22,16 +22,18 @@ struct SettingsView: View {
                 }
                 Section {
                     ForEach(ModuleID.allCases) { id in
-                        let on = manager.isEnabled(id)
+                        let available = id.isAvailable(hasTouchBar: TouchBarPrivate.hasTouchBar)
+                        let on = available && manager.isEnabled(id)
                         Label {
                             // Only off modules get a style, so on ones dim with the rest of
                             // the sidebar when the window is inactive.
-                            if on { Text(id.title) } else { Text(id.title).foregroundStyle(.secondary) }
+                            if on || !available { Text(id.title) } else { Text(id.title).foregroundStyle(.secondary) }
                         } icon: {
                             ModuleTile(id: id, enabled: on)
                         }
+                        .opacity(available ? 1 : 0.5) // O-7: no Touch Bar on this Mac, the whole row dims
                         .tag(SettingsPage.module(id))
-                        .accessibilityValue(on ? Text("On") : Text("Off"))
+                        .accessibilityValue(!available ? Text("Unavailable") : on ? Text("On") : Text("Off"))
                     }
                 }
                 Section {
@@ -171,11 +173,14 @@ private struct ModuleDetail: View {
     let id: ModuleID
 
     var body: some View {
-        let on = manager.isEnabled(id)
+        // O-7: without a Touch Bar, Touch Bar and Native Dialogs show off and locked; the saved
+        // value is not changed (it applies again on a Mac with one).
+        let available = id.isAvailable(hasTouchBar: TouchBarPrivate.hasTouchBar)
+        let on = available && manager.isEnabled(id)
         Form {
             Section {
                 Toggle(isOn: Binding(
-                    get: { manager.isEnabled(id) },
+                    get: { available && manager.isEnabled(id) },
                     set: { manager.setEnabled(id, $0) }
                 )) {
                     Label {
@@ -184,10 +189,15 @@ private struct ModuleDetail: View {
                         ModuleTile(id: id, enabled: on, size: 24)
                     }
                 }
+                .disabled(!available)
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(id.summary)
-                    if !on {
+                    if !available {
+                        Label(id == .touchBar ? String(localized: "This Mac has no Touch Bar.")
+                                              : String(localized: "Only useful on Macs with a Touch Bar."),
+                              systemImage: "info.circle")
+                    } else if !on {
                         Text("A module that is off uses no CPU or memory.")
                     }
                 }

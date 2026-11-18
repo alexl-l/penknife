@@ -361,6 +361,17 @@ struct TouchBarRulesTests {
         #expect(DialogsModule.ignoresFront(isPenknife: isPenknife, customizingBar: customizing) == ignored)
     }
 
+    // O-7 / TB-01 / TB-46: without a Touch Bar, only Touch Bar and Native Dialogs are unavailable.
+    @Test("O-7 TB-01 TB-46 which modules need a Touch Bar")
+    func modulesNeedingTouchBar() {
+        for id in ModuleID.allCases {
+            let needs = id == .touchBar || id == .dialogs
+            #expect(id.needsTouchBar == needs, "\(id)")
+            #expect(id.isAvailable(hasTouchBar: true), "\(id)")
+            #expect(id.isAvailable(hasTouchBar: false) == !needs, "\(id)")
+        }
+    }
+
     /// A new empty suite (never written, so no plist is created); fails if any key is already there.
     static func emptySuite(keys: [String]) throws -> UserDefaults {
         let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))

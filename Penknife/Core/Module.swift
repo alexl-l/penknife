@@ -55,6 +55,11 @@ enum ModuleID: String, CaseIterable, Identifiable {
 
     var defaultOn: Bool { true }
 
+    /// Touch Bar and Native Dialogs do nothing without a Touch Bar: there Settings shows them as
+    /// unavailable, off and locked, without changing what is saved (O-7, variant A).
+    var needsTouchBar: Bool { self == .touchBar || self == .dialogs }
+    func isAvailable(hasTouchBar: Bool) -> Bool { !needsTouchBar || hasTouchBar }
+
     var symbol: String {
         switch self {
         case .jiggler: "computermouse"

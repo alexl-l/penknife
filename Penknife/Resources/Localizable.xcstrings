@@ -751,6 +751,36 @@
         }
       }
     },
+    "Only useful on Macs with a Touch Bar.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solo es útil en Macs con Touch Bar."
+          }
+        }
+      }
+    },
+    "This Mac has no Touch Bar.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este Mac no tiene Touch Bar."
+          }
+        }
+      }
+    },
+    "Unavailable": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No disponible"
+          }
+        }
+      }
+    },
     "“Hey Siri” is on: it opens the microphone when the Mac plays a sound, and Penknife mutes it again. When you call Siri, it still hears you.": {
       "localizations": {
         "es": {
