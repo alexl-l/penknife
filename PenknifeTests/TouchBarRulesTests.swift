@@ -477,6 +477,134 @@ struct TouchBarRulesTests {
         #expect(TouchBarModule.levelsToRead(pending: [.brightness, .keyboardLight]) == [.brightness, .keyboardLight])
     }
 
+    // MARK: S4 dialog detection
+
+    /// A plain Accessibility tree; counts the reads so a test can tell what was asked.
+    final class Node: DialogNode {
+        var role: String?
+        var subrole: String?
+        var modal: Bool?
+        var children: [Node] = []
+        weak var parent: Node?
+        var focusedWindow: Node?
+        var focusedElement: Node?
+        nonisolated(unsafe) static var reads = 0
+
+        init(_ role: String? = "AXGroup", subrole: String? = nil, modal: Bool? = nil, children: [Node] = []) {
+            self.role = role
+            self.subrole = subrole
+            self.modal = modal
+            self.children = children
+            for child in children { child.parent = self }
+        }
+
+        func isSame(as other: Node) -> Bool { self === other }
+
+        /// The focused element `depth` levels inside `top` (0 = `top` itself), each level a group.
+        func deepest(below depth: Int) -> Node {
+            var node = self
+            for _ in 0..<depth {
+                let child = Node()
+                node.children.append(child)
+                child.parent = node
+                node = child
+            }
+            return node
+        }
+
+        /// An app whose focused window is `window`, with the focus on `focus`.
+        static func app(window: Node?, focus: Node? = nil) -> Node {
+            let app = Node("AXApplication")
+            app.focusedWindow = window
+            app.focusedElement = focus
+            return app
+        }
+    }
+
+    static let window = { (children: [Node]) in Node("AXWindow", subrole: "AXStandardWindow", children: children) }
+
+    // TB-44: sheets, system dialogs and modal windows count; a plain AXDialog window doesn't.
+    @Test("TB-44 what counts as a dialog", arguments: [
+        ("AXSheet", nil, nil, true),
+        ("AXWindow", "AXSystemDialog", nil, true),
+        ("AXWindow", "AXStandardWindow", true, true),
+        ("AXGroup", nil, true, true),
+        ("AXWindow", "AXDialog", false, false),
+        ("AXWindow", "AXDialog", nil, false),
+        ("AXWindow", "AXStandardWindow", false, false),
+        (nil, nil, nil, false),
+    ] as [(String?, String?, Bool?, Bool)])
+    func isDialog(role: String?, subrole: String?, modal: Bool?, dialog: Bool) {
+        #expect(DialogsModule.isDialog(role: role, subrole: subrole, modal: modal) == dialog)
+        #expect(DialogsModule.isDialog(Node(role, subrole: subrole, modal: modal)) == dialog)
+    }
+
+    // TB-44: a system prompt app in front counts even without Accessibility; other apps need it.
+    @Test("TB-44 system prompt apps")
+    func systemPromptApps() {
+        let prompts = ["com.apple.SecurityAgent", "com.apple.UserNotificationCenter", "com.apple.coreservices.uiagent",
+                       "com.apple.LocalAuthentication.UIAgent", "com.apple.CoreLocationAgent",
+                       "com.apple.accessibility.universalAccessAuthWarn"]
+        #expect(DialogsModule.systemPromptApps == Set(prompts))
+        var appReads = 0
+        func app() -> Node { appReads += 1; return Node.app(window: Self.window([])) }
+        // Outside #expect: it evaluates a call's arguments up front, which would read the app.
+        for id in prompts {
+            let open = DialogsModule.dialogIsOpen(frontBundleID: id, trusted: false, app: app())
+            #expect(open, "\(id)")
+        }
+        let textEdit = DialogsModule.dialogIsOpen(frontBundleID: "com.apple.TextEdit", trusted: false, app: app())
+        let none = DialogsModule.dialogIsOpen(frontBundleID: nil, trusted: false, app: app())
+        #expect(!textEdit && !none)
+        #expect(appReads == 0) // nothing of the app is read without Accessibility or for a prompt app
+    }
+
+    // TB-44: with Accessibility, the focused window, an attached sheet, or focus inside a dialog.
+    @Test("TB-44 dialogs in the front app")
+    func dialogsInFrontApp() {
+        func open(_ app: Node) -> Bool { DialogsModule.dialogIsOpen(frontBundleID: "com.apple.TextEdit", trusted: true, app: app) }
+
+        #expect(!open(Node.app(window: nil)))                                   // no focused window
+        #expect(!open(Node.app(window: Self.window([Node("AXButton")]))))       // a plain window
+        #expect(open(Node.app(window: Node("AXWindow", subrole: "AXSystemDialog"))))
+        #expect(open(Node.app(window: Self.window([Node("AXButton"), Node("AXSheet")])))) // save sheet
+        #expect(open(Node.app(window: Self.window([Node("AXSheet")]))))
+
+        // Warp: hidden plain AXDialog windows are not dialogs, even as children.
+        #expect(!open(Node.app(window: Self.window([Node("AXWindow", subrole: "AXDialog", modal: false)]))))
+
+        // Focus three levels inside a modal group that isn't a direct child of the window.
+        let modal = Node("AXGroup", modal: true)
+        let window = Self.window([Node("AXGroup", children: [modal])])
+        #expect(!open(Node.app(window: window)))
+        #expect(open(Node.app(window: window, focus: modal.deepest(below: 3))))
+
+        // A sheet's grandchild isn't a child of the window: found through the focus only.
+        let sheet = Node("AXSheet")
+        let deep = Self.window([Node("AXGroup", children: [sheet])])
+        #expect(!open(Node.app(window: deep)))
+        #expect(open(Node.app(window: deep, focus: sheet.deepest(below: 1))))
+    }
+
+    // TB-44: the walk up from the focus checks 12 elements at most and stops at the window.
+    @Test("TB-44 how far up the focus is followed")
+    func focusWalk() {
+        func open(_ app: Node) -> Bool { DialogsModule.dialogIsOpen(frontBundleID: "com.apple.TextEdit", trusted: true, app: app) }
+        // The modal group is a grandchild of the window, so only the walk from the focus finds it.
+        let modal = Node("AXGroup", modal: true)
+        let window = Self.window([Node("AXGroup", children: [modal])])
+        #expect(open(Node.app(window: window, focus: modal.deepest(below: 11)))) // the 12th element
+        let far = Node("AXGroup", modal: true)
+        #expect(!open(Node.app(window: Self.window([Node("AXGroup", children: [far])]), focus: far.deepest(below: 12)))) // the 13th
+
+        // Above the window nothing counts (a modal app-level group isn't the window's dialog).
+        let top = Node("AXGroup", modal: true)
+        let inner = Self.window([])
+        top.children = [inner]
+        inner.parent = top
+        #expect(!open(Node.app(window: inner, focus: inner.deepest(below: 2))))
+    }
+
     // MARK: S6 module lifecycle
 
     /// Records what the module asks of the system; never touches the real Touch Bar.

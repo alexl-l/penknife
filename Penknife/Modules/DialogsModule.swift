@@ -26,7 +26,7 @@ final class DialogsModule: Module {
     @ObservationIgnored private var pendingCheck: DispatchWorkItem?
     @ObservationIgnored private let log = Logger(subsystem: "Penknife", category: "Dialogs")
 
-    private static let systemPromptApps: Set<String> = [
+    static let systemPromptApps: Set<String> = [
         "com.apple.SecurityAgent",
         "com.apple.UserNotificationCenter",
         "com.apple.coreservices.uiagent",
@@ -172,39 +172,50 @@ final class DialogsModule: Module {
         guard let app = NSWorkspace.shared.frontmostApplication else { return false }
         if Self.ignoresFront(isPenknife: app.processIdentifier == ProcessInfo.processInfo.processIdentifier,
                              customizingBar: Self.customizingBar) { return false }
-        if Self.systemPromptApps.contains(app.bundleIdentifier ?? "") { return true }
-        guard AXIsProcessTrusted() else { return false }
+        return Self.dialogIsOpen(frontBundleID: app.bundleIdentifier, trusted: AXIsProcessTrusted(),
+                                 app: DialogAXNode.app(app.processIdentifier))
+    }
 
-        let appElement = AXUIElementCreateApplication(app.processIdentifier)
-        AXUIElementSetMessagingTimeout(appElement, 0.2)
+    /// TB-44: a system prompt app in front counts even without Accessibility; otherwise, with it,
+    /// the focused window, a direct child of it (an attached sheet), or the focused element or
+    /// one of its parents below that window (12 elements at most) is a dialog. Each value is read
+    /// only when needed, in this order.
+    static func dialogIsOpen<Node: DialogNode>(frontBundleID: String?, trusted: @autoclosure () -> Bool,
+                                               app: @autoclosure () -> Node) -> Bool {
+        if systemPromptApps.contains(frontBundleID ?? "") { return true }
+        guard trusted() else { return false }
+        let app = app()
 
-        guard let window: AXUIElement = Self.attribute(appElement, kAXFocusedWindowAttribute) else { return false }
-        if Self.isDialog(window) { return true }
+        guard let window = app.focusedWindow else { return false }
+        if isDialog(window) { return true }
 
         // A sheet attached to the focused window.
-        let children: [AXUIElement] = Self.attribute(window, kAXChildrenAttribute) ?? []
-        if children.contains(where: Self.isDialog) { return true }
+        if window.children.contains(where: isDialog) { return true }
 
         // Focus inside a dialog (e.g. on its default button).
-        var element: AXUIElement? = Self.attribute(appElement, kAXFocusedUIElementAttribute)
+        var element = app.focusedElement
         for _ in 0..<12 {
-            guard let current = element, !CFEqual(current, window) else { break }
-            if Self.isDialog(current) { return true }
-            element = Self.attribute(current, kAXParentAttribute)
+            guard let current = element, !current.isSame(as: window) else { break }
+            if isDialog(current) { return true }
+            element = current.parent
         }
         return false
     }
 
-    /// Only real dialogs count: sheets, system dialogs and modal windows. Plain "AXDialog"
-    /// windows don't (apps such as Warp keep hidden ones around).
-    private static func isDialog(_ element: AXUIElement) -> Bool {
-        let role: String? = attribute(element, kAXRoleAttribute)
-        let subrole: String? = attribute(element, kAXSubroleAttribute)
-        let modal: Bool? = attribute(element, kAXModalAttribute)
-        return role == kAXSheetRole || subrole == kAXSystemDialogSubrole || modal == true
+    static func isDialog<Node: DialogNode>(_ node: Node) -> Bool {
+        let role = node.role
+        let subrole = node.subrole
+        let modal = node.modal
+        return isDialog(role: role, subrole: subrole, modal: modal)
     }
 
-    private static func attribute<T>(_ element: AXUIElement, _ name: String) -> T? {
+    /// Only real dialogs count: sheets, system dialogs and modal windows. Plain "AXDialog"
+    /// windows don't (apps such as Warp keep hidden ones around).
+    static func isDialog(role: String?, subrole: String?, modal: Bool?) -> Bool {
+        role == kAXSheetRole || subrole == kAXSystemDialogSubrole || modal == true
+    }
+
+    fileprivate static func attribute<T>(_ element: AXUIElement, _ name: String) -> T? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success, let value else { return nil }
         if T.self == AXUIElement.self {
@@ -212,5 +223,47 @@ final class DialogsModule: Module {
             return (value as! T)
         }
         return value as? T
+    }
+}
+
+/// What dialog detection reads from an Accessibility element (S4): `DialogAXNode` in the app, a
+/// plain tree in PenknifeTests. Each property is read only when a rule asks.
+protocol DialogNode {
+    var role: String? { get }
+    var subrole: String? { get }
+    var modal: Bool? { get }
+    var children: [Self] { get }
+    var parent: Self? { get }
+    /// On the app element.
+    var focusedWindow: Self? { get }
+    var focusedElement: Self? { get }
+    func isSame(as other: Self) -> Bool
+}
+
+/// An Accessibility element, read at each access (0.2 s timeout set on the app element).
+struct DialogAXNode: DialogNode {
+    let element: AXUIElement
+
+    static func app(_ pid: pid_t) -> DialogAXNode {
+        let element = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(element, 0.2) // unresponsive apps must not block us
+        return DialogAXNode(element: element)
+    }
+
+    var role: String? { DialogsModule.attribute(element, kAXRoleAttribute) }
+    var subrole: String? { DialogsModule.attribute(element, kAXSubroleAttribute) }
+    var modal: Bool? { DialogsModule.attribute(element, kAXModalAttribute) }
+    var children: [DialogAXNode] {
+        let children: [AXUIElement] = DialogsModule.attribute(element, kAXChildrenAttribute) ?? []
+        return children.map(DialogAXNode.init)
+    }
+    var parent: DialogAXNode? { node(kAXParentAttribute) }
+    var focusedWindow: DialogAXNode? { node(kAXFocusedWindowAttribute) }
+    var focusedElement: DialogAXNode? { node(kAXFocusedUIElementAttribute) }
+    func isSame(as other: DialogAXNode) -> Bool { CFEqual(element, other.element) }
+
+    private func node(_ name: String) -> DialogAXNode? {
+        let value: AXUIElement? = DialogsModule.attribute(element, name)
+        return value.map(DialogAXNode.init)
     }
 }
