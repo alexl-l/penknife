@@ -72,7 +72,7 @@ Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módu
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
 ### ¿Tienes Touch Bar?
-Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app.
+Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app. ¿Vienes de MTMR? Ciérralo antes de activar la Touch Bar, o las dos barras se irán sustituyendo una a otra.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Touch Bar de Penknife en modo arcoíris">
 

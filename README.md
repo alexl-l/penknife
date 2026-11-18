@@ -72,7 +72,7 @@ One window in the style of System Settings: turn any module on or off and give i
 <img src="docs/screenshots/settings.png" alt="Penknife Settings">
 
 ### Have a Touch Bar?
-Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state: tap the battery for percentage or icon, hold it to change colors. You choose which buttons appear and in what order. When an app shows a prompt, the bar steps aside so you see the app's own buttons.
+Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state: tap the battery for percentage or icon, hold it to change colors. You choose which buttons appear and in what order. When an app shows a prompt, the bar steps aside so you see the app's own buttons. Coming from MTMR? Quit it before turning on the Touch Bar, or the two bars will keep replacing each other.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Penknife's Touch Bar in rainbow mode">
 
