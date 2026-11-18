@@ -34,9 +34,10 @@ enum AlertKind {
     }
 }
 
-/// Short confirmation in a Liquid Glass capsule at the top right, under the menu bar, like the
-/// macOS 26 volume and brightness indicator (R-20). Always announced to VoiceOver, even when the
-/// alert type is hidden. The panel exists only while an alert is on screen.
+/// Short confirmation in a Liquid Glass capsule at the top center, under the menu bar or the notch,
+/// clear of Apple's notification banners and the volume indicator at the top right (R-20). Always
+/// announced to VoiceOver, even when the alert type is hidden. The panel exists only while an alert
+/// is on screen.
 final class HUD {
     static let shared = HUD()
 
@@ -54,9 +55,11 @@ final class HUD {
 
     private static let singleHeight: CGFloat = 44
     private static let doubleHeight: CGFloat = 56
+    private static let minWidth: CGFloat = 120
     private static let maxWidth: CGFloat = 360
-    private static let margin: CGFloat = 12
-    private static let edge: CGFloat = 16
+    /// Slides down this far when it appears, and up this far when it goes.
+    private static let slideIn: CGFloat = 10
+    private static let slideOut: CGFloat = 6
 
     func show(_ title: String, detail: String? = nil, symbol: String, kind: AlertKind, category: AlertCategory) {
         let spoken = [title, detail].compactMap { $0 }.joined(separator: ". ")
@@ -70,13 +73,12 @@ final class HUD {
         generation += 1
         let content = makeContent(title: title, detail: detail, symbol: symbol, kind: kind, spoken: spoken)
         let height = detail == nil ? Self.singleHeight : Self.doubleHeight
-        let width = min(max(height, content.fittingSize.width), Self.maxWidth)
+        let width = min(max(Self.minWidth, content.fittingSize.width), Self.maxWidth)
         let background = makeBackground(content: content, cornerRadius: detail == nil ? height / 2 : 16)
 
         let mouse = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main else { return }
-        let area = screen.visibleFrame
-        let frame = NSRect(x: area.maxX - width - Self.edge, y: area.maxY - Self.margin - height, width: width, height: height)
+        let frame = Self.frame(width: width, height: height, on: screen)
 
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -87,15 +89,16 @@ final class HUD {
         if wasVisible || reduceMotion {
             panel.setFrame(frame, display: true)
         } else {
-            panel.setFrame(frame.offsetBy(dx: 0, dy: 6), display: true)
+            panel.setFrame(frame.offsetBy(dx: 0, dy: Self.slideIn), display: true)
         }
         if !wasVisible { panel.alphaValue = 0 }
         panel.orderFrontRegardless()
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.25
+            context.duration = reduceMotion ? 0.15 : 0.25
             context.timingFunction = CAMediaTimingFunction(name: .easeOut)
             panel.animator().alphaValue = 1
-            if !wasVisible && !reduceMotion { panel.animator().setFrame(frame, display: true) }
+            // Also when it takes over: this replaces a fade-out's slide that is still running.
+            if !reduceMotion { panel.animator().setFrame(frame, display: true) }
         }
 
         hideWork?.cancel()
@@ -115,6 +118,7 @@ final class HUD {
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.2
             panel.animator().alphaValue = 0
+            panel.animator().setFrame(panel.frame.offsetBy(dx: 0, dy: Self.slideOut), display: true)
         } completionHandler: { [weak self] in
             MainActor.assumeIsolated {
                 guard let self, self.generation == shown else { return }
@@ -122,6 +126,15 @@ final class HUD {
                 self.panel = nil
             }
         }
+    }
+
+    /// 8 pt under the menu bar or the notch, whichever is lower. With no menu bar (full screen,
+    /// auto-hidden) and no notch: 12 pt under the top edge.
+    private static func frame(width: CGFloat, height: CGFloat, on screen: NSScreen) -> NSRect {
+        let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
+        let top = max(menuBar, screen.safeAreaInsets.top)
+        let gap: CGFloat = top > 0 ? 8 : 12
+        return NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - top - gap - height, width: width, height: height)
     }
 
     private func makePanel() -> NSPanel {
@@ -151,7 +164,10 @@ final class HUD {
             texts.addArrangedSubview(label(detail, font: .systemFont(ofSize: 11), color: .secondaryLabelColor))
         }
 
-        let row = NSStackView(views: [icon, texts])
+        // Center gravity: short messages stay centered in the minimum width.
+        let row = NSStackView()
+        row.addView(icon, in: .center)
+        row.addView(texts, in: .center)
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 8
