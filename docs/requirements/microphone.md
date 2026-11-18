@@ -6,7 +6,7 @@ Source of truth for what the microphone module must do TODAY (Penknife 1.9). The
 
 Code paths are relative to `Penknife/`: `MM` = Modules/MicrophoneModule.swift, `MS` = Modules/MeetingSync.swift (MeetingPlatform, MeetingTracker), `TC` = Modules/TeamsConsent.swift. "R-28 (11-17)" = the REQUIREMENTS.md R-28 line dated 2026-11-17; "D: <title>" = the DECISIONS.md bullet with that bold title.
 Verify kinds: **auto** (unit test as the code is today) · **auto after refactor** (seam named; see §4) · **manual** (the user's normal action only) · **log** (`/usr/bin/log show --last 1h --predicate 'subsystem == "Penknife" AND category == "Microphone"' --style compact`).
-Count (2026-11-18, after S1): 85 rules = 12 auto (all tested) · 18 auto after refactor · 20 log · 35 manual.
+Count (2026-11-18, after S2): 85 rules = 18 auto (all tested) · 13 auto after refactor · 20 log · 34 manual.
 **Tests:** `scripts/test.sh` (unit tests in `PenknifeTests/`, ~3 s once built; safe on this Mac: the test host starts no module and nothing writes the user's settings). Each test is named after its rule ("MIC-24 …").
 
 ## 1. Rules
@@ -109,32 +109,32 @@ Count (2026-11-18, after S1): 85 rules = 12 auto (all tested) · 18 auto after r
 ### H. Siri
 
 - **MIC-38** Siri (`com.apple.CoreSpeech`) counts as listening only when it is the ONLY process recording; Siri recording alongside a call app doesn't count.
-  Source: D: Meeting detection fix (a) (11-16) · Code: MM:isSiriListening · Verify: auto after refactor — `isSiriListening(recorders:[String])`: [CoreSpeech]→true; [CoreSpeech, teams2]→false; []→false.
+  Source: D: Meeting detection fix (a) (11-16) · Code: MM:isSiriListening · Verify: **auto, tested** (S2) — `isSiriListening(recorders:)`: [CoreSpeech]→true; [CoreSpeech, teams2]→false; [CoreSpeech, Penknife]→false; []→false.
 - **MIC-39** While Siri listens, a press that would change the Mac's mic does nothing (no change, no HUD); checked once at the press.
   Source: R-28 TRUTHFUL MIC STATE (11-16) · Code: MM:setMac · Verify: auto (S1) — `macGate(siriListening: true, …)` → `.siriListening`, checked before the device; log — `Toggle ignored: Siri is listening`.
-- **MIC-40** No Siri badge: during a Siri session the Touch Bar icon and the dot show the mic open (Siri clears the mute itself), and the previous state when Siri restores it.
+- **MIC-40** No Siri badge: during a Siri session the Touch Bar icon and the dot show the mic open, and the previous state when Siri ends. **BROKEN (B-2):** it relied on Siri clearing the mute itself, which a called Siri doesn't always do.
   Source: R-28 (11-16); D: Siri and the mic icon · Code: TouchBarModule:updateMicrophone; StatusMenu:updateIcon · Verify: manual — muted, say "Hey Siri" → icon open while it listens, muted after.
 - **MIC-41** Touch Bar taps make no sound (only the slicing game clicks), so a tap never triggers Siri's mute clear that undid the tap.
   Source: R-25 TAP FEEDBACK REMOVED (11-16); D: Hey Siri vs the mic mute · Code: TouchBar/BarView.swift (GameSound only) · Verify: manual — "Hey Siri" on, tap the mic button several times → each tap sticks.
 - **MIC-42** Called Siri still hears you: a mute cleared with no sound started in the previous 0.5 s is not put back by Penknife; Siri restores the mute itself when done.
-  Source: R-34 REGRESSION fix (11-17) IMPERATIVE "quiero las dos cosas" · Code: MM:microphoneChanged · Verify: auto after refactor — S2: no output start in the last 0.5 s → false; manual — muted, ask Siri the time → it answers.
+  Source: R-34 REGRESSION fix (11-17) IMPERATIVE "quiero las dos cosas" · Code: MM:microphoneChanged · Verify: **auto, tested** (S2) — `shouldRemute` with the sound 0.5 s, 30 s or never before → false; manual — muted, ask Siri the time → it answers.
 
 ### I. "Keep the microphone muted" (R-34)
 
 - **MIC-43** Setting "Keep the microphone muted", ON by default (`microphone.keepMuted`), its own section after "Also mute the Mac's microphone", footer "If another app unmutes the Mac's microphone while you are muted, Penknife mutes it again."; takes effect at once (no relaunch).
   Source: R-34 IMPERATIVE "DEJEMOS ESTO EN CONFIGURACIÓN"; Built (designer's spec) · Code: MM:keepMuted, updateKeeper (defaults observer), MeetingOptions · Verify: auto after refactor — injected defaults → true.
 - **MIC-44** Re-mute rule: with the setting on, when the default input goes muted → open, Penknife mutes it again at once only if ALL hold: it happened ≤ 0.5 s after the Mac's sound output started running; > 1 s after Penknife's own last change; no process other than Siri is recording.
-  Source: R-34 REGRESSION fix (11-17); D: R-34 keep-muted · Code: MM:microphoneChanged, OutputWatcher · Verify: auto after refactor — S2 `shouldRemute(wasMuted:isMuted:now:ownChangeUntil:outputStartedAt:otherRecorders:) -> Bool`.
+  Source: R-34 REGRESSION fix (11-17); D: R-34 keep-muted · Code: MM:microphoneChanged, OutputWatcher · Verify: **auto, tested** (S2) — `shouldRemute(wasMuted:isMuted:now:ownChangeUntil:outputStarted:recorders:)`: all hold (Siri or nobody recording, sound ≤ 0.49 s before) → true; any other mute change → false without reading the recorders.
 - **MIC-45** Result: muted with no call, a system sound (Finder's trash) or video leaves the mic muted again within ~0.15 s (measured 0.13–0.15 s) and it stays muted through Siri's ~6 s.
   Source: R-34 measured (11-17) · Code: MM:microphoneChanged · Verify: manual — muted, delete a file (trash sound) → the dot/Touch Bar end muted.
 - **MIC-46** Penknife's own unmute is never undone (1 s window after each Mac change Penknife makes).
-  Source: R-34 acceptance + Built (11-17) · Code: MM:setMac (`ownChangeUntil`) · Verify: auto after refactor — S2 with `now < ownChangeUntil` → false.
+  Source: R-34 acceptance + Built (11-17) · Code: MM:setMac (`ownChangeUntil`) · Verify: **auto, tested** (S2) — `now` ≤ `ownChangeUntil` → false; 0.01 s after → true.
 - **MIC-47** No re-mute while another app (not Siri) records, e.g. during a call or Penknife's own recording with the mic on (open question O-4).
-  Source: R-34 Built (11-17) · Code: MM:microphoneChanged · Verify: auto after refactor — S2 with `otherRecorders=["com.microsoft.teams2"]` → false.
+  Source: R-34 Built (11-17) · Code: MM:microphoneChanged · Verify: **auto, tested** (S2) — recorders [teams2], [CoreSpeech, teams2] or [Penknife] → false.
 - **MIC-48** The re-mute writes the same control as a press (settable mute → 1, else volume 0) on the current default input, silently: no HUD.
   Source: R-34 Built "Re-mutes silently (debug log, no HUD)" · Code: MM:microphoneChanged · Verify: log (debug level: `/usr/bin/log stream --level debug --predicate 'subsystem == "Penknife"'`) — `Kept muted: the mute was cleared by someone else`.
 - **MIC-49** Known, accepted limit: if a sound starts within 0.5 s before the user calls Siri, that Siri call is muted.
-  Source: R-34 (11-17) · Code: MM:microphoneChanged · Verify: manual — no test needed; keep as documented limit.
+  Source: R-34 (11-17) · Code: MM:microphoneChanged · Verify: **auto, tested** (S2) — sound 0.3 s before, only Siri recording → true (the limit is kept on purpose).
 - **MIC-50** Setting off: no listeners, nothing is re-muted (Siri opens the mic ~5.5 s after a sound, as macOS does).
   Source: R-34 acceptance "with it off, today's behavior" · Code: MM:updateKeeper · Verify: manual — setting off, muted, trash sound → icon open a few seconds, then muted by Siri.
 - **MIC-51** Siri note: only when the setting is on AND "Listen for Siri" is on (`com.apple.Siri` `VoiceTriggerUserEnabled`), Settings shows "“Hey Siri” is on: it opens the microphone when the Mac plays a sound, and Penknife mutes it again. When you call Siri, it still hears you." with a link button "Open Siri Settings…".
@@ -224,7 +224,7 @@ Count (2026-11-18, after S1): 85 rules = 12 auto (all tested) · 18 auto after r
 - **MIC-84** The capture session exists only while the switch is on, so macOS shows the mic in use only then.
   Source: ScreenRecorder header (R-29) · Code: ScreenRecorder:setMicrophone · Verify: manual — record with the mic off → no orange dot.
 - **MIC-85** Recording never changes the Mac's mute (recording while muted records silence); while it records with the mic on, Penknife counts as another app using the mic, so Keep muted doesn't re-mute and the Siri check doesn't block presses. Code only, not measured.
-  Source: code only · Code: ScreenRecorder; MM:microphoneChanged, isSiriListening · Verify: manual — muted, record with mic on, speak → silent track (to confirm with the user if wanted).
+  Source: code only · Code: ScreenRecorder; MM:microphoneChanged, isSiriListening · Verify: auto (S2) — Penknife among the recorders → no re-mute, not "Siri listening"; manual — muted, record with mic on, speak → silent track (to confirm with the user if wanted).
 
 ## 2. Open decisions, questions and known bugs
 
@@ -239,6 +239,7 @@ Not measured, no decision yet:
 - **O-6 R-31 after consent (2026-11-18 log).** (1) A second press 44 ms after accepting read Teams still muted (the user may have pressed twice); (2) a later unmute again needed the mic button, without an alert. Act only if a single press ever leaves the user muted.
 
 Known bugs:
+- **B-2 Called Siri hears you while the icon says muted (breaks MIC-40, MIC-63).** Measured 2026-11-18 (user: "el ícono no mostraba el estado real. ESE ERA EL BUG"): "Hey Siri" with the Mac muted → Siri recorded ~5 s and answered, the input mute stayed 1 the whole time, with Penknife running AND with Penknife quit, so the icon (which follows the mute) stayed closed. Not caused by a commit: since R-34 (verified live 11-17) only B-1 and S1 touched the module, and with Penknife quit nothing of Penknife runs. The 11-16/11-17 measurements saw Siri clear the mute when called; today it didn't (a sound still makes it clear the mute: 12:46, 0.05 s after the sound). macOS announces nothing (again: no CoreAudio process or device event, no app activation, no Siri window). Fix to decide with the user.
 - **B-1 Module off kept a CoreAudio listener (broke R-15).** `MM:stop()` stopped `keeper` but not `outputWatcher`; each off→on cycle left one more listener on the default output's "is running". FIXED 2026-11-18 (on main, not released yet); test "MIC-80 module off holds nothing" fails without the fix.
 
 Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked superseded): "Also mute the Mac" default (ON wins), option A's "send only if needed" (always sent), R-31 v1 text-matching flow (v2 text-free wins), "MuteGuard" rejected vs R-34 built (R-34 wins, narrower), old Apple Events/bundle-prefix browser detection (window title + responsible pid win), stale headers ("not built", "not released"). The stale code comments (`MS:findCurrent` "Apple Events", `SettingsView` "quoting Teams' text", MM's "only a workspace notification") were fixed on 2026-11-18.
@@ -262,13 +263,13 @@ Doc conflicts fixed on 2026-11-18 (REQUIREMENTS/DECISIONS lines marked supersede
 
 ## 4. Test plan (step B in progress)
 
-Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1 (14 tests / 75 cases pass). Next: S2–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
+Done 2026-11-18: test target `PenknifeTests` (Swift Testing, host = Penknife.app), the as-is tests below + MIC-80; S1 and S2 (20 tests pass). Next: S3–S5, one at a time, each refactor verified by its tests AND the affected manual rules.
 
 Warning: with Penknife.app as the test host, `UserDefaults.standard` is the user's real settings. Readers must take an injected suite before any defaults test.
 
 - **Testable as-is:** `MeetingPlatform.matches(title:)` (MIC-24), `MeetingTracker.state(fromLabel:)` (MIC-30), `MeetingPlatform.forApp(_:)`/`bundleIDs` (MIC-11), `MeetingTracker.browsers` (MIC-22), `KeyboardShortcuts.Name.meeting*` defaults (MIC-17). Small tweaks: `isChromium` should take a bundle ID; `flags(_:)` should be internal (MIC-20).
 - **S1 Press routing** — DONE 2026-11-18 (MM, "Press rules"). Three steps, as the press happens (the call's state is known only after the read): `route(meeting: (platform, isBrowser)?, axGranted: @autoclosure, alsoMac, teamsConsent) -> PressRoute` (`.mac`, `.nothing`, `.meeting(.teamsConsent | .readAndSend | .sendOnly)`); `afterSend(alsoMac, appMuted, macMuted) -> .setMac(muted:) | .showToggled` with `newMacMuted(appMuted:macMuted:)`; `macGate(siriListening, device) -> .siriListening | .noDevice | .write(device)`. Covers MIC-03, 06, 07, 28, 29, 35, 36, 39, 53. MIC-21 stays manual (`route` has no shortcut input by design).
-- **S2 Keep-muted decision** — `shouldRemute(wasMuted, isMuted, now, ownChangeUntil, outputStartedAt, recorders: [String]) -> Bool`, plus `isSiriListening(recorders:)`. Covers MIC-38, 42, 44, 46, 47, 49, 85.
+- **S2 Keep-muted decision** — DONE 2026-11-18 (MM, next to `isSiriListening`). `shouldRemute(wasMuted, isMuted, now, ownChangeUntil, outputStarted, recorders: @autoclosure) -> Bool` (the CoreAudio recorder query runs only when everything else holds) and `isSiriListening(recorders:)`. Covers MIC-38, 42, 44, 46, 47, 49, 85. Test lesson: `#expect(f(x()))` evaluates `x()` itself, so a laziness check computes the result outside `#expect`.
 - **S3 Meeting picker** — `orderCandidates(front, recent, running, micPIDs)` + `pickTarget(candidates: [(bundleID, title?)], enabled: Set<MeetingPlatform>)` + `remember(recent, app)`. Covers MIC-09, 13, 14, 15, 16, 25.
 - **S4 Device control policy** — `readMuted(muteSettable, mute, volume) -> Bool` and `writePlan(muteSettable, volumeSettable, mute, currentVolume, savedVolume)`. Covers MIC-04, 48, 64, O-1, O-2.
 - **S5 Teams consent step** — `mainButton(in: Node)` over a plain tree struct, plus `nextStep(elapsed, micState: Bool?, dialogs: Int, mainButtonFound, buttonPressed) -> Step` for the 0.1 s loop. Covers MIC-55, 56, 57, 60.

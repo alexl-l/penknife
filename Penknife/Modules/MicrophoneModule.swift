@@ -92,9 +92,10 @@ final class MicrophoneModule: Module {
     private func microphoneChanged() {
         let muted = isMuted
         defer { lastMuted = isMuted }
-        guard lastMuted, !muted, Date() > ownChangeUntil, Date().timeIntervalSince(outputStarted) < 0.5 else { return }
-        let others = MeetingTracker.appsUsingMicrophone().map(\.bundleID).filter { $0 != Self.siriBundleID }
-        guard others.isEmpty, let device = Self.defaultInputDevice() else { return }
+        guard Self.shouldRemute(wasMuted: lastMuted, isMuted: muted, now: Date(), ownChangeUntil: ownChangeUntil,
+                                outputStarted: outputStarted,
+                                recorders: MeetingTracker.appsUsingMicrophone().map(\.bundleID)),
+              let device = Self.defaultInputDevice() else { return }
         if Self.isSettable(device, kAudioDevicePropertyMute) {
             Self.set(device, kAudioDevicePropertyMute, UInt32(1))
         } else if Self.isSettable(device, kAudioDevicePropertyVolumeScalar) {
@@ -288,8 +289,20 @@ final class MicrophoneModule: Module {
     /// microphone, for the whole call (measured 2026-11-16 with Meet in Chrome Dev and Safari),
     /// so it counts as listening only when nothing else records. Read only at the press.
     static var isSiriListening: Bool {
-        let recording = MeetingTracker.appsUsingMicrophone().map(\.bundleID)
-        return recording.contains(siriBundleID) && recording.allSatisfy { $0 == siriBundleID }
+        isSiriListening(recorders: MeetingTracker.appsUsingMicrophone().map(\.bundleID))
+    }
+
+    /// S2 (tested): `recorders` = bundle IDs of the processes recording now.
+    static func isSiriListening(recorders: [String]) -> Bool {
+        recorders.contains(siriBundleID) && recorders.allSatisfy { $0 == siriBundleID }
+    }
+
+    /// S2 (tested): whether "Keep the microphone muted" puts the mute back (see `microphoneChanged`).
+    /// `recorders` is read only when everything else holds (a CoreAudio query).
+    static func shouldRemute(wasMuted: Bool, isMuted: Bool, now: Date, ownChangeUntil: Date, outputStarted: Date,
+                             recorders: @autoclosure () -> [String]) -> Bool {
+        guard wasMuted, !isMuted, now > ownChangeUntil, now.timeIntervalSince(outputStarted) < 0.5 else { return false }
+        return recorders().allSatisfy { $0 == siriBundleID }
     }
 
     static func defaultInputDevice() -> AudioObjectID? {

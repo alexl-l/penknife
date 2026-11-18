@@ -133,7 +133,9 @@ struct MicrophoneRulesTests {
     func noCallTogglesTheMac(alsoMac: Bool, teamsConsent: Bool) {
         var asked = false
         func ask() -> Bool { asked = true; return true }
-        #expect(Mic.route(meeting: nil, axGranted: ask(), alsoMac: alsoMac, teamsConsent: teamsConsent) == .mac)
+        // Outside #expect: the macro evaluates call arguments on its own, which would ask.
+        let route = Mic.route(meeting: nil, axGranted: ask(), alsoMac: alsoMac, teamsConsent: teamsConsent)
+        #expect(route == .mac)
         #expect(!asked)
         #expect(Mic.newMacMuted(appMuted: nil, macMuted: true) == false)
         #expect(Mic.newMacMuted(appMuted: nil, macMuted: false) == true)
@@ -189,6 +191,81 @@ struct MicrophoneRulesTests {
         #expect(Mic.macGate(siriListening: true, device: nil) == .siriListening)
         #expect(Mic.macGate(siriListening: false, device: nil) == .noDevice)
         #expect(Mic.macGate(siriListening: false, device: 42) == .write(42))
+    }
+
+    // MARK: S2 keep muted and Siri
+
+    nonisolated static let siri = "com.apple.CoreSpeech"
+    nonisolated static let teams = "com.microsoft.teams2"
+    nonisolated static let penknife = "io.github.alexl-l.Penknife"
+
+    // MIC-38 / MIC-85: Siri listens only when it is the ONLY one recording.
+    @Test("MIC-38 MIC-85 Siri listening", arguments: [
+        ([siri], true),
+        ([siri, siri], true),
+        ([siri, teams], false),     // Siri records alongside every call
+        ([siri, penknife], false),  // Penknife's own recording with the mic on
+        ([teams], false),
+        ([], false),
+    ])
+    func siriListening(recorders: [String], listening: Bool) {
+        #expect(Mic.isSiriListening(recorders: recorders) == listening)
+    }
+
+    /// A mute cleared at `now`; the sound started `soundAgo` seconds before; Penknife's own change
+    /// protection ended `ownAgo` seconds before (negative = still on).
+    func remute(wasMuted: Bool = true, isMuted: Bool = false, soundAgo: TimeInterval = 0.05,
+                ownAgo: TimeInterval = 5, recorders: [String] = [siri]) -> Bool {
+        let now = Date()
+        return Mic.shouldRemute(wasMuted: wasMuted, isMuted: isMuted, now: now,
+                                ownChangeUntil: now.addingTimeInterval(-ownAgo),
+                                outputStarted: now.addingTimeInterval(-soundAgo), recorders: recorders)
+    }
+
+    // MIC-44: muted → open right after a sound started, not by Penknife, only Siri recording
+    // (or nobody) → muted again.
+    @Test("MIC-44 a mute cleared by a sound is put back")
+    func clearedBySoundIsPutBack() {
+        #expect(remute())
+        #expect(remute(recorders: []))
+        #expect(remute(soundAgo: 0.49))
+    }
+
+    // MIC-42 / MIC-49: no sound in the previous 0.5 s = the user called Siri → left alone. The
+    // accepted limit: a sound just before calling Siri mutes that call.
+    @Test("MIC-42 MIC-49 called Siri still hears you")
+    func calledSiriHearsYou() {
+        #expect(!remute(soundAgo: 0.5))
+        #expect(!remute(soundAgo: 30))
+        #expect(!remute(soundAgo: .infinity))  // nothing played since launch (distantPast)
+        #expect(remute(soundAgo: 0.3))          // MIC-49: accepted limit
+    }
+
+    // MIC-46: Penknife's own unmute (1 s window) is never undone.
+    @Test("MIC-46 Penknife's own unmute is kept")
+    func ownUnmuteIsKept() {
+        #expect(!remute(ownAgo: -0.5))
+        #expect(!remute(ownAgo: 0))
+        #expect(remute(ownAgo: 0.01))
+    }
+
+    // MIC-47 / MIC-85: another app recording (a call, Penknife's recording with the mic on) → left alone.
+    @Test("MIC-47 MIC-85 no re-mute while another app records", arguments: [[teams], [siri, teams], [penknife]])
+    func otherRecorderIsLeftAlone(recorders: [String]) {
+        #expect(!remute(recorders: recorders))
+    }
+
+    // MIC-44: only the change muted → open counts; the recorder list isn't even read otherwise.
+    @Test("MIC-44 only a cleared mute counts", arguments: [(false, false), (false, true), (true, true)])
+    func onlyAClearedMuteCounts(wasMuted: Bool, isMuted: Bool) {
+        var read = false
+        func recorders() -> [String] { read = true; return [] }
+        let now = Date()
+        // Outside #expect: the macro evaluates call arguments on its own, which would read them.
+        let remuted = Mic.shouldRemute(wasMuted: wasMuted, isMuted: isMuted, now: now, ownChangeUntil: .distantPast,
+                                       outputStarted: now, recorders: recorders())
+        #expect(!remuted)
+        #expect(!read)
     }
 
     // MIC-08 / MIC-80 (R-15): a module that is off holds no observers or listeners, also after
