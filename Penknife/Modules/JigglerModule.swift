@@ -8,8 +8,9 @@ enum JigglerKey: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     static let key = "jiggler.key"
 
-    static var current: JigglerKey {
-        UserDefaults.standard.string(forKey: key).flatMap(JigglerKey.init) ?? .capsLock
+    static var current: JigglerKey { current(in: .standard) }
+    static func current(in defaults: UserDefaults) -> JigglerKey {
+        defaults.string(forKey: key).flatMap(JigglerKey.init) ?? .capsLock
     }
 
     var title: String {
@@ -37,6 +38,70 @@ enum JigglerKey: String, CaseIterable, Identifiable {
     var presses: Int { self == .capsLock ? 2 : 1 }
 }
 
+/// When the next jiggle is due (JG-05): with `idle` seconds since the last input, jiggle now if
+/// the interval has passed; then sleep until the earliest moment the next one could be due.
+enum JigglerTiming {
+    static let floor: TimeInterval = 0.5
+
+    static func next(idle: TimeInterval, interval: TimeInterval) -> (jiggle: Bool, wait: TimeInterval) {
+        idle >= interval ? (true, interval) : (false, max(interval - idle, floor))
+    }
+}
+
+/// The jiggle's path (JG-06): a 3 px square from `origin` (right, down, left, up, back to the start).
+enum JigglerMotion {
+    static func steps(from origin: CGPoint) -> [CGPoint] {
+        [(3, 0), (0, 3), (-3, 0), (0, -3), (0, 0)].map { CGPoint(x: origin.x + $0.0, y: origin.y + $0.1) }
+    }
+}
+
+/// Everything the jiggler touches outside itself (S3): `live` is the real Mac; tests pass fakes.
+struct JigglerEnvironment {
+    var defaults: UserDefaults
+    var ensurePermission: () -> Bool
+    var hud: (_ title: String, _ detail: String?, _ symbol: String, _ kind: AlertKind) -> Void
+    /// Starts listening for the screen lock; the returned closure stops it.
+    var observeLock: (_ locked: @escaping @MainActor () -> Void, _ unlocked: @escaping @MainActor () -> Void) -> () -> Void
+    /// A one-shot wakeup after `seconds`; the returned closure cancels it.
+    var schedule: (_ seconds: TimeInterval, _ fire: @escaping @MainActor () -> Void) -> () -> Void
+    var idleSeconds: () -> TimeInterval
+    var mouseLocation: () -> CGPoint
+    var moveMouse: (CGPoint) -> Void
+    var key: (CGKeyCode) -> Void
+
+    static var live: Self {
+        Self(defaults: .standard,
+             ensurePermission: { Permissions.shared.ensureAccessibility() },
+             hud: { HUD.shared.show($0, detail: $1, symbol: $2, kind: $3, category: .jiggler) },
+             observeLock: { locked, unlocked in
+                 let center = DistributedNotificationCenter.default()
+                 let observers = [
+                     center.addObserver(forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main) { _ in
+                         MainActor.assumeIsolated { locked() }
+                     },
+                     center.addObserver(forName: .init("com.apple.screenIsUnlocked"), object: nil, queue: .main) { _ in
+                         MainActor.assumeIsolated { unlocked() }
+                     },
+                 ]
+                 return { observers.forEach(center.removeObserver) }
+             },
+             schedule: { seconds, fire in
+                 let timer = Timer(timeInterval: seconds, repeats: false) { _ in
+                     MainActor.assumeIsolated { fire() }
+                 }
+                 timer.tolerance = 1
+                 RunLoop.main.add(timer, forMode: .common)
+                 return { timer.invalidate() }
+             },
+             idleSeconds: {
+                 CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
+             },
+             mouseLocation: { EventPoster.mouseLocation },
+             moveMouse: { EventPoster.moveMouse(to: $0) },
+             key: { EventPoster.key($0) })
+    }
+}
+
 /// Mouse jiggler (R-3): while active, nudges the mouse after a chosen time without input (R-24).
 /// Optionally follows the screen lock: off when the Mac locks, on when it unlocks (and at launch).
 /// No event tap and no 1 s polling: it reads the system idle time and sleeps until the
@@ -47,17 +112,21 @@ final class JigglerModule: Module {
     var needsAccessibility: Bool { true }
 
     private(set) var isActive = false
-    @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private let env: JigglerEnvironment
+    @ObservationIgnored private var cancelTimer: (() -> Void)?
     @ObservationIgnored private var isJiggling = false
-    @ObservationIgnored private var lockObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var stopObservingLock: (() -> Void)?
     @ObservationIgnored private var running = false
 
-    private static let followsLockKey = "jiggler.followsLock"
+    static let followsLockKey = "jiggler.followsLock"
+    static func followsLock(in defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: followsLockKey) as? Bool ?? true
+    }
 
     /// Turn on when unlocking, off when locking. On by default.
-    var followsLock: Bool = UserDefaults.standard.object(forKey: JigglerModule.followsLockKey) as? Bool ?? true {
+    var followsLock: Bool {
         didSet {
-            UserDefaults.standard.set(followsLock, forKey: Self.followsLockKey)
+            env.defaults.set(followsLock, forKey: Self.followsLockKey)
             updateLockObservers()
         }
     }
@@ -66,9 +135,20 @@ final class JigglerModule: Module {
     static let intervals: [TimeInterval] = [10, 30, 60, 120, 300]
 
     /// Seconds without input before the mouse moves (R-24). Anything not offered in Settings means 10 s.
-    private var idleThreshold: TimeInterval {
-        let value = UserDefaults.standard.double(forKey: Self.intervalKey)
-        return Self.intervals.contains(value) ? value : 10
+    static func interval(in defaults: UserDefaults) -> TimeInterval {
+        let value = defaults.double(forKey: intervalKey)
+        return intervals.contains(value) ? value : 10
+    }
+
+    private var idleThreshold: TimeInterval { Self.interval(in: env.defaults) }
+
+    /// Whether a timer or the lock notifications are live (for tests of JG-12, JG-14).
+    var isScheduled: Bool { cancelTimer != nil }
+    var isObservingLock: Bool { stopObservingLock != nil }
+
+    init(env: JigglerEnvironment = .live) {
+        self.env = env
+        followsLock = Self.followsLock(in: env.defaults)
     }
 
     /// Settings changed the interval: count again from now, so a shorter time applies at once.
@@ -98,7 +178,7 @@ final class JigglerModule: Module {
     func toggle() {
         if isActive {
             deactivate()
-            HUD.shared.show(String(localized: "Mouse jiggler off"), symbol: "cursorarrow", kind: .off, category: .jiggler)
+            env.hud(String(localized: "Mouse jiggler off"), nil, "cursorarrow", .off)
         } else {
             activate()
         }
@@ -106,62 +186,45 @@ final class JigglerModule: Module {
 
     private func activate() {
         guard !isActive else { return }
-        guard Permissions.shared.ensureAccessibility() else {
-            HUD.shared.show(String(localized: "Mouse Jiggler"), detail: String(localized: "Needs the Accessibility permission"),
-                             symbol: "lock.fill", kind: .permission, category: .jiggler)
+        guard env.ensurePermission() else {
+            env.hud(String(localized: "Mouse Jiggler"), String(localized: "Needs the Accessibility permission"),
+                    "lock.fill", .permission)
             return
         }
         isActive = true
         schedule(after: idleThreshold)
-        HUD.shared.show(String(localized: "Mouse jiggler on"), symbol: "cursorarrow.motionlines", kind: .on, category: .jiggler)
+        env.hud(String(localized: "Mouse jiggler on"), nil, "cursorarrow.motionlines", .on)
     }
 
     /// Lock notifications are observed only while the module is on and the option is set (R-15).
     private func updateLockObservers() {
-        let center = DistributedNotificationCenter.default()
         let wanted = running && followsLock
-        guard wanted != !lockObservers.isEmpty else { return }
-        if !wanted {
-            lockObservers.forEach(center.removeObserver)
-            lockObservers = []
-            return
+        guard wanted != isObservingLock else { return }
+        if wanted {
+            stopObservingLock = env.observeLock({ [weak self] in self?.deactivate() },
+                                                { [weak self] in self?.activate() })
+        } else {
+            stopObservingLock?()
+            stopObservingLock = nil
         }
-        lockObservers = [
-            center.addObserver(forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.deactivate() }
-            },
-            center.addObserver(forName: .init("com.apple.screenIsUnlocked"), object: nil, queue: .main) { [weak self] _ in
-                MainActor.assumeIsolated { self?.activate() }
-            },
-        ]
     }
 
     func deactivate() {
-        timer?.invalidate()
-        timer = nil
+        cancelTimer?()
+        cancelTimer = nil
         isActive = false
     }
 
     private func schedule(after seconds: TimeInterval) {
-        timer?.invalidate()
-        let timer = Timer(timeInterval: max(seconds, 0.5), repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated { self?.tick() }
-        }
-        timer.tolerance = 1
-        RunLoop.main.add(timer, forMode: .common)
-        self.timer = timer
+        cancelTimer?()
+        cancelTimer = env.schedule(max(seconds, JigglerTiming.floor)) { [weak self] in self?.tick() }
     }
 
     private func tick() {
         guard isActive else { return }
-        let anyInput = CGEventType(rawValue: ~0)!
-        let idle = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
-        if idle >= idleThreshold {
-            jiggle()
-            schedule(after: idleThreshold)
-        } else {
-            schedule(after: idleThreshold - idle)
-        }
+        let next = JigglerTiming.next(idle: env.idleSeconds(), interval: idleThreshold)
+        if next.jiggle { jiggle() }
+        schedule(after: next.wait)
     }
 
     /// Same movement as the old Hammerspoon script: a 3 px square, then the chosen key
@@ -169,18 +232,17 @@ final class JigglerModule: Module {
     private func jiggle() {
         guard !isJiggling else { return }
         isJiggling = true
-        let origin = EventPoster.mouseLocation
-        let key = JigglerKey.current
-        let steps: [CGPoint] = [.init(x: 3, y: 0), .init(x: 0, y: 3), .init(x: -3, y: 0), .init(x: 0, y: -3), .zero]
+        let steps = JigglerMotion.steps(from: env.mouseLocation())
+        let key = JigglerKey.current(in: env.defaults)
         Task {
             for step in steps {
-                EventPoster.moveMouse(to: CGPoint(x: origin.x + step.x, y: origin.y + step.y))
+                env.moveMouse(step)
                 try? await Task.sleep(for: .milliseconds(80))
             }
             if let code = key.keyCode {
                 for press in 0..<key.presses {
                     if press > 0 { try? await Task.sleep(for: .milliseconds(100)) }
-                    EventPoster.key(code)
+                    env.key(code)
                 }
             }
             isJiggling = false

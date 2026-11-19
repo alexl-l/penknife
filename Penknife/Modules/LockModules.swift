@@ -23,16 +23,19 @@ enum ScreenLocker {
 final class LockScreenModule: Module {
     let id = ModuleID.lockScreen
     private weak var jiggler: JigglerModule?
+    private let lock: @MainActor () -> Void
 
-    init(jiggler: JigglerModule) {
+    /// `lock` locks the Mac; tests pass a fake (S4).
+    init(jiggler: JigglerModule, lock: @escaping @MainActor () -> Void = { ScreenLocker.lock() }) {
         self.jiggler = jiggler
+        self.lock = lock
     }
 
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .lockScreen, title: String(localized: "Lock Screen"), symbol: id.symbol,
                       perform: { [weak self] in
                           if let jiggler = self?.jiggler, jiggler.followsLock { jiggler.deactivate() }
-                          ScreenLocker.lock()
+                          self?.lock()
                       })]
     }
 
