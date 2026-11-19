@@ -740,7 +740,7 @@ final class EasterEggView: NSView {
 
 /// Slider and ✕ as one gray element, full bar height (R-1).
 final class SliderPanel: NSView {
-    let slider: NSSlider
+    let slider: LevelSlider
     var onClose: (() -> Void)?
     private let control: LevelControl
     private let autoClose: Bool
@@ -749,7 +749,7 @@ final class SliderPanel: NSView {
     init(control: LevelControl, tint: NSColor, label: String, closeOnRight: Bool, autoClose: Bool) {
         self.control = control
         self.autoClose = autoClose
-        slider = NSSlider(value: Double(control.level ?? 0), minValue: 0, maxValue: 1, target: nil, action: nil)
+        slider = LevelSlider(value: Double(control.level ?? 0), minValue: 0, maxValue: 1, target: nil, action: nil)
         super.init(frame: .zero)
         wantsLayer = true
         layer?.backgroundColor = NSColor(white: 0.28, alpha: 1).cgColor
@@ -757,8 +757,8 @@ final class SliderPanel: NSView {
 
         let cell = TintedSliderCell()
         cell.tint = tint
-        cell.onTrackingEnded = { [weak self] in self?.scheduleClose(after: .release) }
         slider.cell = cell
+        slider.onRelease = { [weak self] in self?.scheduleClose(after: .release) }
         slider.minValue = 0
         slider.maxValue = 1
         slider.doubleValue = Double(control.level ?? 0)
@@ -838,10 +838,38 @@ final class SliderPanel: NSView {
     }
 }
 
+/// A level slider that follows the finger itself (B-12). AppKit's own tracking puts back the
+/// starting value when the touch ends outside the slider, and stops following once the finger
+/// passes its end; here the value is the finger's x clamped to the track and stays where the
+/// finger lifts. Still an NSSlider, so VoiceOver and the accessibility actions are unchanged.
+final class LevelSlider: NSSlider {
+    var onRelease: (() -> Void)?
+
+    /// TB-29/TB-32: the knob's center spans the width minus one knob; beyond either end clamps.
+    nonisolated static func value(x: CGFloat, width: CGFloat, knob: CGFloat) -> Double {
+        let span = width - knob
+        guard span > 0 else { return 0 }
+        return Double(min(max((x - knob / 2) / span, 0), 1))
+    }
+
+    private func follow(_ event: NSEvent) {
+        guard let touch = event.touches(matching: .any, in: self).first else { return }
+        let knob = (cell as? NSSliderCell)?.knobThickness ?? 0
+        let value = Self.value(x: touch.location(in: self).x, width: bounds.width, knob: knob)
+        guard value != doubleValue else { return }
+        doubleValue = value
+        sendAction(action, to: target)
+    }
+
+    override func touchesBegan(with event: NSEvent) { follow(event) }
+    override func touchesMoved(with event: NSEvent) { follow(event) }
+    override func touchesEnded(with event: NSEvent) { follow(event); onRelease?() }
+    override func touchesCancelled(with event: NSEvent) { onRelease?() }
+}
+
 /// Track tinted with the item's color and a round white knob.
 final class TintedSliderCell: NSSliderCell {
     var tint: NSColor = .white
-    var onTrackingEnded: (() -> Void)?
 
     override func drawBar(inside rect: NSRect, flipped: Bool) {
         let track = NSRect(x: rect.minX, y: rect.midY - 2, width: rect.width, height: 4)
@@ -859,10 +887,5 @@ final class TintedSliderCell: NSSliderCell {
         let rect = NSRect(x: knobRect.midX - size / 2, y: knobRect.midY - size / 2, width: size, height: size)
         NSColor.white.setFill()
         NSBezierPath(ovalIn: rect).fill()
-    }
-
-    override func stopTracking(last lastPoint: NSPoint, current stopPoint: NSPoint, in controlView: NSView, mouseIsUp flag: Bool) {
-        super.stopTracking(last: lastPoint, current: stopPoint, in: controlView, mouseIsUp: flag)
-        onTrackingEnded?()
     }
 }

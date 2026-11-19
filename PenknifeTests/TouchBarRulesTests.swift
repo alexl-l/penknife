@@ -430,6 +430,18 @@ struct TouchBarRulesTests {
         #expect(OutputVolume.mute(for: 1) == 0)
     }
 
+    // B-12: the value follows the finger's x clamped to the track, so past the end is 100 %
+    // (it stopped at 97 % and jumped back to the start value when lifted outside).
+    @Test("TB-29 TB-32 B-12 the slider value follows the finger, clamped past either end")
+    func sliderFollowsFinger() {
+        #expect(LevelSlider.value(x: 557, width: 318.5, knob: 22) == 1)
+        #expect(LevelSlider.value(x: 307, width: 318.5, knob: 22) < 1)
+        #expect(LevelSlider.value(x: -40, width: 318.5, knob: 22) == 0)
+        #expect(LevelSlider.value(x: 11, width: 318.5, knob: 22) == 0)
+        #expect(abs(LevelSlider.value(x: 159.25, width: 318.5, knob: 22) - 0.5) < 0.0001)
+        #expect(LevelSlider.value(x: 50, width: 10, knob: 22) == 0)
+    }
+
     // TB-12 / TB-20 / TB-28 / TB-47: a hold's release isn't also a tap: taps are ignored while held
     // and for 0.5 s after.
     @Test("TB-12 TB-20 TB-28 TB-47 the release after a hold is not a tap")
