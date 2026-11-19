@@ -345,6 +345,41 @@ final class MicrophoneModule: Module {
         return (.volume(savedVolume ?? 1), savedVolume)
     }
 
+    // MARK: Recording with the microphone (REC-27, user 2026-11-19)
+
+    /// What to write so a recording with the microphone hears the user: a muted Mac microphone
+    /// records silence. nil = already open, or it can't be unmuted.
+    static func unmuteForRecording(_ input: some MicControls) -> MicWrite? {
+        guard readMuted(input) else { return nil }
+        let write = writePlan(input, mute: false, savedVolume: nil).write
+        return write == .nothing || write == .unchanged ? nil : write
+    }
+
+    /// The device Penknife unmuted for the running recording; muted again when it ends.
+    private(set) static var unmutedForRecording: AudioObjectID?
+
+    /// The recording's microphone switch is on: open the Mac's microphone if it is muted,
+    /// with the usual alert. Never touched when the switch is off.
+    static func openForRecording() {
+        guard unmutedForRecording == nil, let device = defaultInputDevice(),
+              let write = unmuteForRecording(InputDevice(id: device)) else { return }
+        Self.write(write, to: device)
+        unmutedForRecording = device
+        HUD.shared.show(String(localized: "Microphone unmuted"), symbol: "mic.fill", kind: .on, category: .microphone)
+    }
+
+    /// The switch went off or the recording ended: mute again only what Penknife opened, and
+    /// only if it is still the default input.
+    static func closeAfterRecording() {
+        guard let device = unmutedForRecording else { return }
+        unmutedForRecording = nil
+        guard defaultInputDevice() == device else { return }
+        let input = InputDevice(id: device)
+        guard !readMuted(input) else { return }
+        Self.write(writePlan(input, mute: true, savedVolume: nil).write, to: device)
+        HUD.shared.show(String(localized: "Microphone muted"), symbol: "mic.slash.fill", kind: .off, category: .microphone)
+    }
+
     static func write(_ write: MicWrite, to device: AudioObjectID) {
         switch write {
         case .mute(let value): set(device, kAudioDevicePropertyMute, value)

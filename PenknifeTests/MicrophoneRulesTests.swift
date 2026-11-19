@@ -567,6 +567,16 @@ struct MicrophoneRulesTests {
         var volume: Float32?
     }
 
+    @Test("MIC-85 recording with the microphone opens a muted Mac microphone; an open one is left alone")
+    func unmuteForRecording() {
+        typealias M = MicrophoneModule
+        #expect(M.unmuteForRecording(FakeControls(muteSettable: true, mute: 1, volume: 0.7)) == .mute(0))
+        #expect(M.unmuteForRecording(FakeControls(muteSettable: true, mute: 0, volume: 0.7)) == nil)
+        #expect(M.unmuteForRecording(FakeControls(volumeSettable: true, volume: 0)) == .volume(1))
+        #expect(M.unmuteForRecording(FakeControls(volumeSettable: true, volume: 0.4)) == nil)
+        #expect(M.unmuteForRecording(FakeControls(mute: 1)) == nil) // can't be set
+    }
+
     // MIC-64: the state is read from the control a press writes (D: Mic state bug).
     @Test("MIC-64 the state is read from the control a press writes", arguments: [
         (FakeControls(muteSettable: true, mute: 1, volume: 0.7), true),

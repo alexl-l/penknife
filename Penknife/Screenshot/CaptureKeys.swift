@@ -31,6 +31,8 @@ enum CaptureKeyAction: Equatable {
     case choose
     case startRecording
     case beginText
+    /// Space with a shape tool: a mark in the middle of the selection, selected (O-15).
+    case placeMark
     case copy
     case save
     case undo
@@ -45,6 +47,9 @@ enum CaptureKeyAction: Equatable {
 
 /// The overlay's key table as a plain rule: nil means not ours (the key goes on to the app).
 enum CaptureKeys {
+    /// Tools whose mark Return can place by keyboard (O-15); pen, highlighter and eraser are freehand.
+    static let placeable: Set<CaptureTool> = [.arrow, .line, .rectangle, .ellipse, .blur]
+
     static func action(keyCode: UInt16, characters: String?, flags: NSEvent.ModifierFlags, isRepeat: Bool,
                        context c: CaptureKeyContext) -> CaptureKeyAction? {
         let flags = flags.intersection(.deviceIndependentFlagsMask)
@@ -58,6 +63,9 @@ enum CaptureKeys {
             return .cancel
         case 49 where !c.hasSelection:                          // Space: window ⇄ area
             return c.capturing ? .swallow : .toggleWindowMode
+        case 49 where !c.recordMode && !c.typing && !command:   // Space: place the shape (O-15)
+            guard let tool = c.tool, CaptureKeys.placeable.contains(tool) else { return nil }
+            return .placeMark
         case 36, 76:                                            // Return
             if c.recordMode { return c.hasSelection ? .startRecording : .choose }
             if !c.hasSelection { return .choose }

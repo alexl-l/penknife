@@ -112,6 +112,20 @@ nonisolated enum CaptureGeometry {
 
     /// Below the selection; above when there's no room; inside its bottom when neither fits.
     /// Kept 8 pt from the sides and from the top.
+    /// A mark placed by keyboard (O-15), centered in the selection, inside it with 8 pt to spare:
+    /// arrow and line horizontal, pointing right, a third of the selection's width (60–240 pt);
+    /// rectangle, circle and blur a third of each side (60–240 pt wide, 40–160 pt high).
+    static func placedMark(_ tool: CaptureTool, in selection: CGRect) -> (start: CGPoint, end: CGPoint) {
+        let room = CGSize(width: max(selection.width - 16, 4), height: max(selection.height - 16, 4))
+        let width = min(min(max(selection.width / 3, 60), 240), room.width)
+        let center = CGPoint(x: selection.midX, y: selection.midY)
+        if tool == .arrow || tool == .line {
+            return (CGPoint(x: center.x - width / 2, y: center.y), CGPoint(x: center.x + width / 2, y: center.y))
+        }
+        let height = min(min(max(selection.height / 3, 40), 160), room.height)
+        return (CGPoint(x: center.x - width / 2, y: center.y - height / 2), CGPoint(x: center.x + width / 2, y: center.y + height / 2))
+    }
+
     static func toolbarFrame(selection: CGRect, size: CGSize, bounds: CGRect) -> CGRect {
         var y = selection.maxY + 10
         if y + size.height > bounds.height - 8 {

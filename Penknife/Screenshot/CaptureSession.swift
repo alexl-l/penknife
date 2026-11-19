@@ -569,6 +569,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         guard index != selectedMark else { return }
         redrawMark(selectedMark)
         selectedMark = index
+        defer { updateCaption() }
         guard let index, annotations.indices.contains(index) else { return }
         redrawMark(index)
         let mark = annotations[index]
@@ -576,6 +577,38 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         if mark.tool != .blur { state.sizeIndex = mark.size }
         announce(String(localized: "Selected: \(mark.tool.title). Delete removes it, arrows move it, Tab selects the next one."))
     }
+
+    /// Space with a shape tool (O-15): the mark goes in the middle of the selection, selected,
+    /// so the arrows move it and ⌥ arrows change its tip or size (SS-38).
+    private func placeMark() {
+        guard let selection, let tool = state.tool, CaptureKeys.placeable.contains(tool) else { return }
+        let ends = CaptureGeometry.placedMark(tool, in: selection)
+        var mark = Annotation(tool: tool, color: state.color, size: state.sizeIndex, points: [ends.start, ends.end])
+        if tool == .blur {
+            prepareBlur()
+            mark.image = blurredPart(mark.rect)
+        }
+        add(mark)
+        selectedMark = nil
+        selectMark(annotations.count - 1)
+        needsDisplay = true
+        announce(tool == .arrow || tool == .line
+            ? String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows move its tip.")
+            : String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows change its size."))
+    }
+
+    /// The line under the toolbar (O-15): the tool keys until a tool is chosen, then how Return
+    /// Space places the chosen shape; nothing while a mark is selected or a text is typed.
+    private func updateCaption() {
+        let caption = CaptureEditorState.caption(tool: state.tool, toolChosen: toolChosen,
+                                                 markSelected: selectedMark != nil, typing: textView != nil)
+        guard caption != state.caption else { return }
+        state.caption = caption
+        relayoutToolbar()
+    }
+
+    /// A tool was chosen in this overlay: the keys line has done its job.
+    private var toolChosen = false
 
     private func removeMark(_ index: Int) {
         guard annotations.indices.contains(index) else { return }
@@ -889,6 +922,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             let view = NSHostingView(rootView: CaptureToolbar(state: state) { [weak self] in self?.run($0) })
             addSubview(view)
             toolbar = view
+            state.caption = CaptureEditorState.caption(tool: state.tool, toolChosen: toolChosen,
+                                                       markSelected: selectedMark != nil, typing: textView != nil)
         }
         layoutToolbar()
     }
@@ -948,11 +983,14 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .pointer:
             state.tool = nil
             selectMark(nil)
+            updateCaption()
             updateHoveredMark(mouseLocation)
             announce(String(localized: "No tool: drag to move the selection"))
         case .tool(let tool):
             state.tool = state.tool == tool ? nil : tool
+            toolChosen = true
             selectMark(nil)
+            updateCaption()
             updateHoveredMark(mouseLocation)
             announce(state.tool.map { $0.title } ?? String(localized: "No tool: drag to move the selection"))
         default: break
@@ -1022,6 +1060,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .startRecording: startRecording()
         case .beginText:
             if let selection { beginText(at: CGPoint(x: selection.minX + 12, y: selection.minY + 12)) }
+        case .placeMark: placeMark()
         case .copy: copyImage()
         case .save: saveImage()
         case .undo: undo()
@@ -1170,6 +1209,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         textView = view
         textOrigin = point
         window?.makeFirstResponder(view)
+        updateCaption()
     }
 
     private var textSize = CaptureSize.defaultIndex
@@ -1217,6 +1257,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         updateUndoState()
         textScale = 1
         needsDisplay = true
+        updateCaption()
     }
 
     // MARK: Undo

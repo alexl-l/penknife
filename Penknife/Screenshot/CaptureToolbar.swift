@@ -17,6 +17,21 @@ final class CaptureEditorState {
     var recordOnly = false
     var microphone = RecordingPrefs.microphone
     var macSound = RecordingPrefs.macSound
+    /// The line under the toolbar (O-15).
+    var caption: Caption?
+
+    enum Caption: Equatable {
+        /// The tool keys, until a tool is chosen.
+        case keys
+        /// How Space places this shape.
+        case place(CaptureTool)
+    }
+
+    static func caption(tool: CaptureTool?, toolChosen: Bool, markSelected: Bool, typing: Bool) -> Caption? {
+        if typing { return nil }
+        if let tool { return CaptureKeys.placeable.contains(tool) ? .place(tool) : nil }
+        return toolChosen || markSelected ? nil : .keys
+    }
 
     typealias Expansion = StyleRow
 
@@ -42,6 +57,14 @@ struct CaptureToolbar: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
+        VStack(spacing: 6) {
+            capsule
+            if let caption = state.caption { ToolbarCaption(caption: caption) }
+        }
+        .fixedSize()
+    }
+
+    private var capsule: some View {
         editorControls
         .buttonStyle(.plain)
         .padding(8)
@@ -232,6 +255,56 @@ final class CaptureHintModel {
     var visible = false
     var windowMode = false
     var recording = false
+}
+
+/// Under the editor's toolbar (O-15): small key caps so the keyboard is discoverable.
+/// VoiceOver hears the same in the overlay's announcements.
+struct ToolbarCaption: View {
+    let caption: CaptureEditorState.Caption
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        HStack(spacing: 10) { items }
+            .font(.system(size: 11))
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background {
+                if opaque {
+                    Capsule().fill(Color(nsColor: .windowBackgroundColor))
+                        .overlay(Capsule().strokeBorder(Color.primary.opacity(contrast == .increased ? 1 : 0.15)))
+                }
+            }
+            .glassEffect(opaque ? .identity : .regular, in: .capsule)
+            .fixedSize()
+            .accessibilityHidden(true)
+    }
+
+    private var opaque: Bool { reduceTransparency || contrast == .increased }
+
+    @ViewBuilder private var items: some View {
+        switch caption {
+        case .keys:
+            ForEach([CaptureTool.arrow, .line, .rectangle, .ellipse, .text, .blur], id: \.self) { tool in
+                item(tool.key, tool.title)
+            }
+        case .place(let tool):
+            item(String(localized: "Space"), String(localized: "Place \(tool.title.lowercased())"))
+            item("← →", String(localized: "Move"))
+            item("⌥", tool == .arrow || tool == .line ? String(localized: "Tip") : String(localized: "Size"))
+        }
+    }
+
+    private func item(_ key: String, _ text: String) -> some View {
+        HStack(spacing: 4) {
+            Text(key)
+                .font(.system(size: 10, weight: .semibold))
+                .frame(minWidth: 16, minHeight: 16)
+                .padding(.horizontal, 3)
+                .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
+            Text(text).foregroundStyle(.secondary)
+        }
+    }
 }
 
 struct CaptureHint: View {

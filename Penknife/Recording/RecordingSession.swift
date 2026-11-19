@@ -78,6 +78,7 @@ final class RecordingSession {
             guard let self else { return }
             if request.microphone { state.microphone = await Self.microphoneAllowed() }
             guard stage == .countdown else { return }
+            if state.microphone { MicrophoneModule.openForRecording() }
             if let window = request.window {
                 await WindowFocus.focus(window.id, frame: window.frame)
             } else {
@@ -494,6 +495,7 @@ final class RecordingSession {
             state.microphone = false
             RecordingPrefs.microphone = false
             recorder?.setMicrophone(false)
+            MicrophoneModule.closeAfterRecording()
             announce(String(localized: "Microphone off"))
             return
         }
@@ -501,6 +503,7 @@ final class RecordingSession {
             guard await Self.microphoneAllowed(), let self, stage == .countdown || stage == .recording else { return }
             state.microphone = true
             RecordingPrefs.microphone = true
+            MicrophoneModule.openForRecording()
             recorder?.setMicrophone(true)
             announce(String(localized: "Microphone on"))
         }
@@ -707,6 +710,8 @@ final class RecordingSession {
     }
 
     private func closeWindows() {
+        // The Mac's microphone goes back to muted if Penknife opened it for this recording.
+        MicrophoneModule.closeAfterRecording()
         timer?.invalidate()
         timer = nil
         drawShortcut?.cancel()

@@ -1245,6 +1245,54 @@ struct ScreenshotRulesTests {
         #expect(moved.erasures.first?.points == [Self.p(100, 50)])
     }
 
+    @Test("SS-42 O-15 Space places the chosen shape; Return still copies; other tools leave Space alone")
+    func placeByKeyboard() {
+        func key(_ code: UInt16, _ c: CaptureKeyContext) -> CaptureKeyAction? {
+            CaptureKeys.action(keyCode: code, characters: code == 49 ? " " : "\r", flags: [], isRepeat: false, context: c)
+        }
+        for tool in [CaptureTool.arrow, .line, .rectangle, .ellipse, .blur] {
+            let c = CaptureKeyContext(hasSelection: true, tool: tool)
+            #expect(key(49, c) == .placeMark, "\(tool)")
+            #expect(key(36, c) == .copy, "\(tool)")
+            var selected = c
+            selected.markCount = 1
+            selected.selectedMark = 0
+            #expect(key(49, selected) == .placeMark && key(36, selected) == .copy)
+            var held = c
+            held.hasSelection = true
+            #expect(CaptureKeys.action(keyCode: 49, characters: " ", flags: [], isRepeat: true, context: held) == .swallow)
+        }
+        for tool in [CaptureTool?.none, .pen, .highlighter, .eraser] {
+            #expect(key(49, CaptureKeyContext(hasSelection: true, tool: tool)) == nil)
+        }
+        #expect(key(49, CaptureKeyContext(hasSelection: false, tool: .line)) == .toggleWindowMode)
+        #expect(key(49, CaptureKeyContext(hasSelection: true, recordMode: true, tool: .line)) == nil)
+    }
+
+    @Test("O-15 a placed mark is centered inside the selection; arrow and line point right")
+    func placedMark() {
+        let selection = CGRect(x: 100, y: 100, width: 600, height: 300)
+        let line = CaptureGeometry.placedMark(.line, in: selection)
+        #expect(line.start == CGPoint(x: 300, y: 250) && line.end == CGPoint(x: 500, y: 250))
+        let box = CaptureGeometry.placedMark(.rectangle, in: selection)
+        #expect(box.start == CGPoint(x: 300, y: 200) && box.end == CGPoint(x: 500, y: 300))
+        let tiny = CGRect(x: 0, y: 0, width: 40, height: 30)
+        for tool in [CaptureTool.arrow, .rectangle, .blur] {
+            let mark = CaptureGeometry.placedMark(tool, in: tiny)
+            #expect(tiny.contains(mark.start) && tiny.contains(mark.end), "\(tool)")
+        }
+    }
+
+    @Test("O-15 the caption: tool keys until a tool is chosen, then how Space places a shape")
+    func caption() {
+        typealias S = CaptureEditorState
+        #expect(S.caption(tool: nil, toolChosen: false, markSelected: false, typing: false) == .keys)
+        #expect(S.caption(tool: nil, toolChosen: true, markSelected: false, typing: false) == nil)
+        #expect(S.caption(tool: .line, toolChosen: true, markSelected: true, typing: false) == .place(.line))
+        #expect(S.caption(tool: .pen, toolChosen: true, markSelected: false, typing: false) == nil)
+        #expect(S.caption(tool: .text, toolChosen: true, markSelected: false, typing: true) == nil)
+    }
+
     @Test("REC-05 O-18 during the countdown M flips the microphone, S the Mac sound; other keys do nothing")
     func countdownKeys() {
         typealias S = RecordingSession

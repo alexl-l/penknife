@@ -51,6 +51,26 @@
         }
       }
     },
+    "%@ placed in the middle. Arrows move it, Option arrows change its size.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ en el centro. Las flechas lo mueven; Opción y flechas cambian su tamaño."
+          }
+        }
+      }
+    },
+    "%@ placed in the middle. Arrows move it, Option arrows move its tip.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ en el centro. Las flechas la mueven; Opción y flechas mueven su punta."
+          }
+        }
+      }
+    },
     "%@, pinned": {
       "localizations": {
         "es": {
@@ -847,6 +867,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Enderezar"
+          }
+        }
+      }
+    },
+    "Place %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Colocar %@"
           }
         }
       }
@@ -3451,6 +3481,16 @@
         }
       }
     },
+    "Space": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espacio"
+          }
+        }
+      }
+    },
     "Space for images to paste as files": {
       "localizations": {
         "es": {
@@ -3627,6 +3667,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hora"
+          }
+        }
+      }
+    },
+    "Tip": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Punta"
           }
         }
       }
