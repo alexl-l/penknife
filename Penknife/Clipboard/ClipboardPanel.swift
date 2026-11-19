@@ -25,7 +25,7 @@ enum ClipboardPosition: String, CaseIterable {
 final class ClipboardPanelModel {
     let store: ClipboardStore
     /// Pinned items whose files are all missing: kept, but not shown (O-22).
-    let hidden: Set<ClipItem.ID>
+    var hidden: Set<ClipItem.ID>
     var query = "" {
         didSet {
             selectFirst()
@@ -123,10 +123,10 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     private weak var module: ClipboardModule?
     private let onClose: () -> Void
 
-    init(module: ClipboardModule, hidden: Set<ClipItem.ID>, onClose: @escaping () -> Void) {
+    init(module: ClipboardModule, onClose: @escaping () -> Void) {
         self.module = module
         self.onClose = onClose
-        model = ClipboardPanelModel(store: module.store, hidden: hidden)
+        model = ClipboardPanelModel(store: module.store)
         super.init(contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .floating
@@ -169,6 +169,12 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
             glass.contentView = hosting
             contentView = glass
         }
+    }
+
+    /// Pinned items whose files went missing (O-22), found after the panel opened.
+    func hide(_ ids: Set<ClipItem.ID>) {
+        model.hidden = ids
+        if !model.rows.contains(where: { $0.id == model.selection }) { model.selectFirst() }
     }
 
     override var canBecomeKey: Bool { true }

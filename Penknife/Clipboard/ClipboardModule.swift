@@ -138,11 +138,19 @@ final class ClipboardModule: Module {
             return
         }
         previousApp = NSWorkspace.shared.frontmostApplication
-        // Checked once per opening, never in the background (O-22).
-        let hidden = store.dropMissingFiles()
-        let panel = ClipboardPanel(module: self, hidden: hidden) { [weak self] in self?.panel = nil }
+        let panel = ClipboardPanel(module: self) { [weak self] in self?.panel = nil }
         self.panel = panel
         panel.show()
+        // Files that no longer exist leave the list (O-22): checked once per opening, off the main
+        // thread (a network disk can take seconds), and applied when the answer comes.
+        let urls = store.fileURLs
+        guard !urls.isEmpty else { return }
+        Task { [weak self] in
+            let missing = await Task.detached(priority: .userInitiated) { ClipboardStore.missing(urls) }.value
+            guard let self, !missing.isEmpty else { return }
+            let hidden = self.store.dropMissingFiles { !missing.contains($0) }
+            self.panel?.hide(hidden)
+        }
     }
 }
 
@@ -175,10 +183,8 @@ enum ClipboardReader {
     ]
 
     /// Puts a text or files item on a cleared pasteboard: the plain text, plus the RTF and HTML
-    /// when `formatted`; files as references, only those that still exist (O-22).
-    static func write(_ item: ClipItem, formatted: Bool,
-                      exists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
-                      to pasteboard: NSPasteboard) {
+    /// when `formatted`; files as references.
+    static func write(_ item: ClipItem, formatted: Bool, to pasteboard: NSPasteboard) {
         switch item.kind {
         case .text:
             if formatted {
@@ -187,7 +193,7 @@ enum ClipboardReader {
             }
             pasteboard.setString(item.text ?? "", forType: .string)
         case .files:
-            pasteboard.writeObjects((item.files ?? []).filter(exists) as [NSURL])
+            pasteboard.writeObjects((item.files ?? []) as [NSURL])
         case .image:
             break
         }

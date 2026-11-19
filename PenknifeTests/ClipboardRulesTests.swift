@@ -275,6 +275,15 @@ struct ClipboardRulesTests {
         temp.store.togglePin(temp.store.history[0].id)
         let aside = temp.folder.appending(path: "Pinned (unreadable).plist")
         #expect((try? Data(contentsOf: aside)) == original)
+        let mode = try FileManager.default.attributesOfItem(atPath: aside.path)[.posixPermissions] as? Int
+        #expect(mode == 0o600)
+
+        // Still unreadable at the next launches: set aside once, not again each time.
+        try original.write(to: temp.pinsFile)
+        temp.reload(); temp.reload()
+        let copies = try FileManager.default.contentsOfDirectory(atPath: temp.folder.path)
+            .filter { $0.hasPrefix("Pinned (unreadable)") }
+        #expect(copies.count == 1)
 
         // Not a list at all: set aside, never overwritten.
         try Data("garbage".utf8).write(to: temp.pinsFile)
@@ -335,6 +344,13 @@ struct ClipboardRulesTests {
 
         let model = ClipboardPanelModel(store: store, hidden: hidden)
         #expect(!model.rows.contains { $0.id == pin })
+
+        // The real check, off the main thread in the app.
+        let real = temp.folder.appending(path: "real.txt")
+        try? FileManager.default.createDirectory(at: temp.folder, withIntermediateDirectories: true)
+        FileManager.default.createFile(atPath: real.path, contents: Data())
+        #expect(ClipboardStore.missing([real, gone]) == [gone])
+        #expect(store.fileURLs == [gone, here])
     }
 
     // MARK: E. The panel

@@ -192,8 +192,18 @@ final class ClipboardStore {
     /// Files that no longer exist leave the history (O-22): the missing ones are taken out of
     /// each files item, and an item with none left is removed. Pinned items are never removed
     /// (CB-15); the ids of those whose files are all missing are returned, to be hidden.
+    /// Every file the history and the pins point to, for `missing` off the main thread.
+    var fileURLs: Set<URL> {
+        Set((history + pinned).filter { $0.kind == .files }.flatMap { $0.files ?? [] })
+    }
+
+    /// The ones of `urls` that don't exist. Slow on a network disk: never on the main thread.
+    nonisolated static func missing(_ urls: Set<URL>) -> Set<URL> {
+        urls.filter { !FileManager.default.fileExists(atPath: $0.path) }
+    }
+
     @discardableResult
-    func dropMissingFiles(exists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }) -> Set<ClipItem.ID> {
+    func dropMissingFiles(exists: (URL) -> Bool) -> Set<ClipItem.ID> {
         for index in history.indices.reversed() where history[index].kind == .files {
             let files = history[index].files ?? []
             let left = files.filter(exists)
@@ -272,6 +282,23 @@ final class ClipboardStore {
         return url
     }
 
+    /// Whether these exact bytes are already set aside: a pin that stays unreadable is copied
+    /// once, not at every launch.
+    private func isSetAside(_ data: Data) -> Bool {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder.path)) ?? []
+        return names.contains { name in
+            name.hasPrefix("Pinned (unreadable)")
+                && (try? Data(contentsOf: folder.appending(path: name))) == data
+        }
+    }
+
+    /// Owner-only, whatever the file had before (pins files older than the 0600 rule).
+    private func ownerOnly(_ url: URL) throws {
+        let manager = FileManager.default
+        try manager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: folder.path)
+        try manager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
     /// Pins are read one by one. If any can't be read (a kind this version doesn't know, a damaged
     /// file), the file is first copied aside as it is, so saving the readable pins never loses the
     /// others (B-18).
@@ -279,13 +306,17 @@ final class ClipboardStore {
         guard let data = try? Data(contentsOf: pinsFile) else { return }
         let saved = try? PropertyListDecoder().decode([SavedPin].self, from: data)
         let items = saved?.compactMap(\.item) ?? []
-        if saved == nil || items.count < saved!.count {
+        if saved == nil || items.count < saved!.count, !isSetAside(data) {
             do {
                 // Nothing readable: moved, so the next launch doesn't set it aside again.
                 if saved == nil {
-                    try FileManager.default.moveItem(at: pinsFile, to: unreadablePinsFile)
+                    let aside = unreadablePinsFile
+                    try FileManager.default.moveItem(at: pinsFile, to: aside)
+                    try ownerOnly(aside)
                 } else {
-                    try FileManager.default.copyItem(at: pinsFile, to: unreadablePinsFile)
+                    let aside = unreadablePinsFile
+                    try FileManager.default.copyItem(at: pinsFile, to: aside)
+                    try ownerOnly(aside)
                 }
             } catch {
                 // It couldn't be kept: never write over it in this run.
