@@ -285,6 +285,58 @@ struct ClipboardRulesTests {
         #expect((try? Data(contentsOf: aside)) == Data("garbage".utf8))
     }
 
+    @Test("CB-16 O-21 an unpinned item over the limit stays; the others go")
+    func unpinBig() {
+        let temp = TempStore(limit: 15 * Self.mb)
+        let store = temp.store!
+        store.add(.image(Self.blob(10 * Self.mb, 1), type: "public.png"))
+        store.togglePin(store.history[0].id)
+        temp.limit = 5 * Self.mb
+        store.add(.text("a")); store.add(.text("b"))
+        let big = store.pinned[0].id
+        store.togglePin(big)
+        #expect(store.history.map(\.id) == [big] && store.usedBytes == 10 * Self.mb)
+    }
+
+    // MARK: F. Using an item
+
+    @Test("CB-07 CB-25 O-20 web formatting: HTML is kept and written back only when formatting is kept")
+    func htmlFormatting() throws {
+        let html = Data("<b>hi</b>".utf8)
+        let item = try #require(Self.read { $0.setString("hi", forType: .string); $0.setData(html, forType: .html) })
+        #expect(item.kind == .text && item.html == html && item.bytes == 2 + html.count)
+
+        let pasteboard = NSPasteboard(name: .init("PenknifeTests.\(UUID().uuidString)"))
+        defer { pasteboard.releaseGlobally() }
+        pasteboard.clearContents()
+        ClipboardReader.write(item, formatted: true, to: pasteboard)
+        #expect(pasteboard.data(forType: .html) == html && pasteboard.string(forType: .string) == "hi")
+        pasteboard.clearContents()
+        ClipboardReader.write(item, formatted: false, to: pasteboard)
+        #expect(pasteboard.data(forType: .html) == nil && pasteboard.data(forType: .rtf) == nil)
+        #expect(pasteboard.string(forType: .string) == "hi")
+    }
+
+    @Test("O-22 files that no longer exist leave the history; pins are only hidden")
+    func missingFiles() {
+        let temp = TempStore()
+        let store = temp.store!
+        let gone = URL(filePath: "/gone/a"), here = URL(filePath: "/here/b")
+        store.add(.files([gone]))
+        store.togglePin(store.history[0].id)
+        store.add(.files([gone, here])); store.add(.files([URL(filePath: "/gone/c")])); store.add(.text("t"))
+        let pin = store.pinned[0].id
+        let hidden = store.dropMissingFiles { !$0.path.hasPrefix("/gone") }
+        #expect(hidden == [pin] && store.pinned.count == 1)
+        #expect(store.history.map(\.kind) == [.text, .files] && store.history[1].files == [here])
+        #expect(store.usedBytes == store.history.reduce(0) { $0 + $1.bytes })
+        store.add(.files([here]))
+        #expect(store.history.count == 2)   // the same copy as the trimmed item
+
+        let model = ClipboardPanelModel(store: store, hidden: hidden)
+        #expect(!model.rows.contains { $0.id == pin })
+    }
+
     // MARK: E. The panel
 
     @Test("CB-21 a row's line")

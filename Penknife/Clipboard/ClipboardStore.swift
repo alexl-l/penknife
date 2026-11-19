@@ -11,6 +11,8 @@ struct ClipItem: Identifiable, Codable, Equatable {
     let kind: Kind
     var text: String?
     var rtf: Data?
+    /// HTML that came with the text (web pages), written back with the RTF when formatting is kept.
+    var html: Data?
     var image: Data?
     var imageType: String?
     var files: [URL]?
@@ -23,7 +25,7 @@ struct ClipItem: Identifiable, Codable, Equatable {
 
     /// Memory the item takes, counted against the limit (R-7).
     var bytes: Int {
-        (text?.utf8.count ?? 0) + (rtf?.count ?? 0) + (image?.count ?? 0)
+        (text?.utf8.count ?? 0) + (rtf?.count ?? 0) + (html?.count ?? 0) + (image?.count ?? 0)
             + (files?.reduce(0) { $0 + $1.path.utf8.count } ?? 0)
     }
 
@@ -42,8 +44,9 @@ struct ClipItem: Identifiable, Codable, Equatable {
         }
     }
 
-    static func text(_ text: String, rtf: Data? = nil, source: String? = nil, date: Date = .now) -> ClipItem {
-        ClipItem(id: UUID(), kind: .text, text: text, rtf: rtf, source: source, date: date,
+    static func text(_ text: String, rtf: Data? = nil, html: Data? = nil, source: String? = nil,
+                     date: Date = .now) -> ClipItem {
+        ClipItem(id: UUID(), kind: .text, text: text, rtf: rtf, html: html, source: source, date: date,
                  key: fingerprint(.text, [Data(text.utf8)]))
     }
 
@@ -65,6 +68,7 @@ struct ClipItem: Identifiable, Codable, Equatable {
         kind = try values.decode(Kind.self, forKey: .kind)
         text = try values.decodeIfPresent(String.self, forKey: .text)
         rtf = try values.decodeIfPresent(Data.self, forKey: .rtf)
+        html = try values.decodeIfPresent(Data.self, forKey: .html)
         image = try values.decodeIfPresent(Data.self, forKey: .image)
         imageType = try values.decodeIfPresent(String.self, forKey: .imageType)
         files = try values.decodeIfPresent([URL].self, forKey: .files)
@@ -75,12 +79,13 @@ struct ClipItem: Identifiable, Codable, Equatable {
         key = contentKey
     }
 
-    init(id: UUID, kind: Kind, text: String? = nil, rtf: Data? = nil, image: Data? = nil, imageType: String? = nil,
+    init(id: UUID, kind: Kind, text: String? = nil, rtf: Data? = nil, html: Data? = nil, image: Data? = nil, imageType: String? = nil,
          files: [URL]? = nil, source: String? = nil, date: Date, pinned: Bool = false, key: String) {
         self.id = id
         self.kind = kind
         self.text = text
         self.rtf = rtf
+        self.html = html
         self.image = image
         self.imageType = imageType
         self.files = files
@@ -175,12 +180,34 @@ final class ClipboardStore {
         trim()
     }
 
-    /// Drops the oldest unpinned items until the history fits the limit.
-    func trim() {
+    /// Drops the oldest unpinned items until the history fits the limit. `keeping` is never
+    /// dropped: an item just unpinned stays even if it alone is over the limit (O-21).
+    func trim(keeping kept: ClipItem.ID? = nil) {
         let limit = limit()
-        while usedBytes > limit, let last = history.popLast() {
-            usedBytes -= last.bytes
+        while usedBytes > limit, let index = history.lastIndex(where: { $0.id != kept }) {
+            usedBytes -= history.remove(at: index).bytes
         }
+    }
+
+    /// Files that no longer exist leave the history (O-22): the missing ones are taken out of
+    /// each files item, and an item with none left is removed. Pinned items are never removed
+    /// (CB-15); the ids of those whose files are all missing are returned, to be hidden.
+    @discardableResult
+    func dropMissingFiles(exists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) }) -> Set<ClipItem.ID> {
+        for index in history.indices.reversed() where history[index].kind == .files {
+            let files = history[index].files ?? []
+            let left = files.filter(exists)
+            guard left.count < files.count else { continue }
+            usedBytes -= history[index].bytes
+            if left.isEmpty {
+                history.remove(at: index)
+            } else {
+                history[index].files = left
+                history[index].key = history[index].contentKey
+                usedBytes += history[index].bytes
+            }
+        }
+        return Set(pinned.filter { $0.kind == .files && !($0.files ?? []).contains(where: exists) }.map(\.id))
     }
 
     func remove(_ id: ClipItem.ID) {
@@ -198,7 +225,7 @@ final class ClipboardStore {
             item.pinned = false
             history.insert(item, at: 0)
             usedBytes += item.bytes
-            trim()
+            trim(keeping: id)
         } else if let index = history.firstIndex(where: { $0.id == id }) {
             var item = history.remove(at: index)
             usedBytes -= item.bytes

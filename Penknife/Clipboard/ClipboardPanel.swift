@@ -24,6 +24,8 @@ enum ClipboardPosition: String, CaseIterable {
 @Observable
 final class ClipboardPanelModel {
     let store: ClipboardStore
+    /// Pinned items whose files are all missing: kept, but not shown (O-22).
+    let hidden: Set<ClipItem.ID>
     var query = "" {
         didSet {
             selectFirst()
@@ -39,8 +41,9 @@ final class ClipboardPanelModel {
     @ObservationIgnored private var icons: [String: NSImage] = [:]
     @ObservationIgnored private var thumbnails: [ClipItem.ID: NSImage] = [:]
 
-    init(store: ClipboardStore) {
+    init(store: ClipboardStore, hidden: Set<ClipItem.ID> = []) {
         self.store = store
+        self.hidden = hidden
         selectFirst()
     }
 
@@ -50,7 +53,7 @@ final class ClipboardPanelModel {
         return haystack.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
     }
 
-    var pinned: [ClipItem] { store.pinned.filter(matches) }
+    var pinned: [ClipItem] { store.pinned.filter { !hidden.contains($0.id) && matches($0) } }
     var history: [ClipItem] { store.history.filter(matches) }
     /// Visible rows in order; the first nine get ⌘1–⌘9.
     var rows: [ClipItem] { pinned + history }
@@ -120,10 +123,10 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     private weak var module: ClipboardModule?
     private let onClose: () -> Void
 
-    init(module: ClipboardModule, onClose: @escaping () -> Void) {
+    init(module: ClipboardModule, hidden: Set<ClipItem.ID>, onClose: @escaping () -> Void) {
         self.module = module
         self.onClose = onClose
-        model = ClipboardPanelModel(store: module.store)
+        model = ClipboardPanelModel(store: module.store, hidden: hidden)
         super.init(contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .floating

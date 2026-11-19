@@ -90,9 +90,8 @@ final class ClipboardModule: Module {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         switch item.kind {
-        case .text:
-            if Self.keepsFormatting != invertFormatting, let rtf = item.rtf { pasteboard.setData(rtf, forType: .rtf) }
-            pasteboard.setString(item.text ?? "", forType: .string)
+        case .text, .files:
+            ClipboardReader.write(item, formatted: Self.keepsFormatting != invertFormatting, to: pasteboard)
         case .image:
             guard let data = item.image else { break }
             if previousApp?.bundleIdentifier == "com.apple.finder",
@@ -102,8 +101,6 @@ final class ClipboardModule: Module {
             } else {
                 pasteboard.setData(data, forType: NSPasteboard.PasteboardType(item.imageType ?? NSPasteboard.PasteboardType.tiff.rawValue))
             }
-        case .files:
-            pasteboard.writeObjects((item.files ?? []) as [NSURL])
         }
         // Our own write is not a new copy.
         lastChange = pasteboard.changeCount
@@ -141,7 +138,9 @@ final class ClipboardModule: Module {
             return
         }
         previousApp = NSWorkspace.shared.frontmostApplication
-        let panel = ClipboardPanel(module: self) { [weak self] in self?.panel = nil }
+        // Checked once per opening, never in the background (O-22).
+        let hidden = store.dropMissingFiles()
+        let panel = ClipboardPanel(module: self, hidden: hidden) { [weak self] in self?.panel = nil }
         self.panel = panel
         panel.show()
     }
@@ -175,6 +174,25 @@ enum ClipboardReader {
         "com.dashlane.Dashlane",
     ]
 
+    /// Puts a text or files item on a cleared pasteboard: the plain text, plus the RTF and HTML
+    /// when `formatted`; files as references, only those that still exist (O-22).
+    static func write(_ item: ClipItem, formatted: Bool,
+                      exists: (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
+                      to pasteboard: NSPasteboard) {
+        switch item.kind {
+        case .text:
+            if formatted {
+                if let rtf = item.rtf { pasteboard.setData(rtf, forType: .rtf) }
+                if let html = item.html { pasteboard.setData(html, forType: .html) }
+            }
+            pasteboard.setString(item.text ?? "", forType: .string)
+        case .files:
+            pasteboard.writeObjects((item.files ?? []).filter(exists) as [NSURL])
+        case .image:
+            break
+        }
+    }
+
     static func read(_ pasteboard: NSPasteboard, frontApp: String?) -> ClipItem? {
         guard let types = pasteboard.types, !types.isEmpty,
               !types.contains(where: { skipped.contains($0.rawValue) }) else { return nil }
@@ -200,7 +218,9 @@ enum ClipboardReader {
 
         if isText, let text = pasteboard.string(forType: .string), !text.isEmpty {
             let rtf = hasRTF ? pasteboard.data(forType: .rtf) : nil
-            return .text(text, rtf: rtf, source: source)
+            // Web pages often offer HTML and no RTF: keep it too, so their formatting can come back (O-20).
+            let html = types.contains(.html) ? pasteboard.data(forType: .html) : nil
+            return .text(text, rtf: rtf, html: html, source: source)
         }
         if let imageType, let data = pasteboard.data(forType: imageType) {
             return .image(data, type: imageType.rawValue, source: source)
