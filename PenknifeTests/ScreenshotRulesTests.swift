@@ -630,4 +630,141 @@ struct ScreenshotRulesTests {
         taken.insert(stem + " 2.png")
         #expect(CaptureGeometry.saveURL(folder: folder, date: date) { taken.contains($0.lastPathComponent) }.lastPathComponent == stem + " 3.png")
     }
+
+    // MARK: S3 key dispatch
+
+    /// One key through the overlay's key table (codes: Esc 53, Space 49, Return 36, keypad Enter 76,
+    /// Tab 48, Delete 51, Forward Delete 117, arrows 123 ← 124 → 125 ↓ 126 ↑).
+    private func key(_ code: UInt16, _ characters: String = "", _ flags: NSEvent.ModifierFlags = [], isRepeat: Bool = false,
+                     _ context: CaptureKeyContext = CaptureKeyContext()) -> CaptureKeyAction? {
+        CaptureKeys.action(keyCode: code, characters: characters, flags: flags, isRepeat: isRepeat, context: context)
+    }
+
+    private static let editing = CaptureKeyContext(hasSelection: true, markCount: 3)
+
+    @Test("SS-13 Space switches area ⇄ window before a selection, not while grabbing, once when held")
+    func spaceKey() {
+        #expect(key(49, " ") == .toggleWindowMode)
+        #expect(key(49, " ", [], CaptureKeyContext(windowMode: true)) == .toggleWindowMode)
+        #expect(key(49, " ", [], CaptureKeyContext(capturing: true)) == .swallow)
+        #expect(key(49, " ", isRepeat: true) == .swallow)
+        #expect(key(49, " ", [], Self.editing) == nil)
+        #expect(key(49, " ", [], CaptureKeyContext(recordMode: true)) == .toggleWindowMode)
+    }
+
+    @Test("SS-14 arrows before a selection go through the windows in window mode only")
+    func arrowsBeforeSelection() {
+        let window = CaptureKeyContext(windowMode: true)
+        #expect(key(124, "", [], window) == .nextTarget(forward: true))
+        #expect(key(125, "", [], window) == .nextTarget(forward: true))
+        #expect(key(123, "", [], window) == .nextTarget(forward: false))
+        #expect(key(126, "", [], window) == .nextTarget(forward: false))
+        #expect(key(124) == .swallow)
+        // A window's frozen image can't move.
+        #expect(key(124, "", [], CaptureKeyContext(hasSelection: true, fixedSelection: true, windowMode: true)) == .swallow)
+        #expect(key(124, "", [.shift], Self.editing) == .nudgeSelection(dx: 10, dy: 0, resize: false))
+        #expect(key(126, "", [.option], Self.editing) == .nudgeSelection(dx: 0, dy: -1, resize: true))
+    }
+
+    @Test("SS-27 tool, color and size keys: with a selection, ⇧ allowed, not with ⌃ ⌥ ⌘")
+    func toolKeys() {
+        #expect(key(9, "v", [], Self.editing) == .tool(.arrow))
+        #expect(key(9, "V", [.shift], Self.editing) == .tool(.arrow))
+        for tool in CaptureTool.allCases {
+            #expect(key(0, tool.key.lowercased(), [], Self.editing) == .tool(tool))
+        }
+        #expect(key(9, "v", [.option], Self.editing) == nil)
+        #expect(key(9, "v", [.control], Self.editing) == nil)
+        #expect(key(9, "v") == nil)
+        #expect(key(18, "1", [], Self.editing) == .color(0))
+        #expect(key(28, "8", [], Self.editing) == .color(7))
+        #expect(key(25, "9", [], Self.editing) == nil)
+        #expect(key(29, "0", [], Self.editing) == nil)
+        var sized = Self.editing
+        sized.sizeIndex = 0
+        #expect(key(27, "-", [], sized) == .size(0))
+        #expect(key(24, "=", [], sized) == .size(1))
+        #expect(key(24, "+", [.shift], sized) == .size(1))
+        sized.sizeIndex = CaptureSize.count - 1
+        #expect(key(24, "=", [], sized) == .size(CaptureSize.count - 1))
+        #expect(key(27, "-", [], sized) == .size(CaptureSize.count - 2))
+    }
+
+    @Test("SS-38 mark keys: Tab cycles and wraps, Delete removes, arrows move (⇧ 10) or resize (⌥)")
+    func markKeys() {
+        #expect(key(48, "\t", [], Self.editing) == .selectMark(0))
+        #expect(key(48, "\t", [.shift], Self.editing) == .selectMark(2))
+        var selected = Self.editing
+        selected.selectedMark = 2
+        #expect(key(48, "\t", [], selected) == .selectMark(0))
+        #expect(key(48, "\t", [.shift], selected) == .selectMark(1))
+        #expect(key(48, "\t", [.option], selected) == nil)
+        #expect(key(48, "\t", [], CaptureKeyContext(hasSelection: true)) == nil)
+        #expect(key(53, "", [], selected) == .deselectMark)
+        #expect(key(51, "", [], selected) == .removeMark(2))
+        #expect(key(117, "", [], selected) == .removeMark(2))
+        #expect(key(123, "", [], selected) == .nudgeMark(2, CGVector(dx: -1, dy: 0), grow: false))
+        #expect(key(125, "", [.shift], selected) == .nudgeMark(2, CGVector(dx: 0, dy: 10), grow: false))
+        #expect(key(124, "", [.option], selected) == .nudgeMark(2, CGVector(dx: 1, dy: 0), grow: true))
+        // Without a mark selected the arrows move the selection; Delete is not ours.
+        #expect(key(51, "", [], Self.editing) == nil)
+        // Not in record mode.
+        var record = selected
+        record.recordMode = true
+        #expect(key(48, "\t", [], record) == nil)
+        #expect(key(51, "", [], record) == nil)
+    }
+
+    @Test("SS-42 Return chooses, starts typing with Text on, else copies; held once")
+    func returnKey() {
+        #expect(key(36) == .choose)
+        #expect(key(76) == .choose)
+        #expect(key(36, "", [], Self.editing) == .copy)
+        var text = Self.editing
+        text.tool = .text
+        #expect(key(36, "", [], text) == .beginText)
+        text.typing = true
+        #expect(key(36, "", [], text) == .copy)
+        #expect(key(36, "", isRepeat: true, Self.editing) == .swallow)
+        #expect(key(76, "", isRepeat: true) == .swallow)
+    }
+
+    @Test("SS-43 Esc lets the selected mark go, else closes the overlay; held once")
+    func escKey() {
+        var selected = Self.editing
+        selected.selectedMark = 0
+        #expect(key(53, "", [], selected) == .deselectMark)
+        #expect(key(53, "", [], Self.editing) == .cancel)
+        #expect(key(53) == .cancel)
+        #expect(key(53, "", isRepeat: true, selected) == .swallow)
+    }
+
+    @Test("SS-44 ⌘ keys in the editor: C, S, Z, ⇧Z, ⇧R; any other goes on to the app")
+    func commandKeys() {
+        let c = Self.editing
+        #expect(key(8, "c", [.command], c) == .copy)
+        #expect(key(1, "s", [.command], c) == .save)
+        #expect(key(6, "z", [.command], c) == .undo)
+        #expect(key(6, "Z", [.command, .shift], c) == .redo)
+        #expect(key(15, "R", [.command, .shift], c) == .record)
+        #expect(key(15, "r", [.command], c) == nil)
+        #expect(key(43, ",", [.command], c) == nil)   // B-9: Settings opens under the overlay
+        #expect(key(12, "q", [.command], c) == nil)
+        // Also before a selection.
+        #expect(key(8, "c", [.command]) == .copy)
+    }
+
+    @Test("SS-52 record mode: no tools or ⌘ keys but ⌘Q; Return chooses or starts; Esc closes")
+    func recordModeKeys() {
+        let choosing = CaptureKeyContext(recordMode: true)
+        let chosen = CaptureKeyContext(hasSelection: true, recordMode: true, markCount: 2)
+        #expect(key(8, "c", [.command], chosen) == .swallow)
+        #expect(key(6, "z", [.command], choosing) == .swallow)
+        #expect(key(12, "q", [.command], chosen) == nil)
+        #expect(key(9, "v", [], chosen) == nil)
+        #expect(key(18, "1", [], chosen) == nil)
+        #expect(key(53, "", [], choosing) == .cancel)
+        #expect(key(36, "", [], choosing) == .choose)
+        #expect(key(36, "", [], chosen) == .startRecording)
+    }
 }

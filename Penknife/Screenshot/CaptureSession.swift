@@ -653,47 +653,23 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         beginText(at: mark.points.first ?? .zero, text: mark.text, scale: mark.scale)
     }
 
-    /// Keys for marks: Tab selects the next one (⇧ the previous); with one selected, Esc lets it
-    /// go, Delete removes it, arrows move it (⇧ by 10, ⌥ make it bigger or smaller). Nil: not ours.
-    private func handleMarkKey(_ event: NSEvent, flags: NSEvent.ModifierFlags) -> Bool? {
-        if event.keyCode == 48, !annotations.isEmpty, flags.isDisjoint(with: [.control, .option, .command]) {
-            let count = annotations.count
-            let backward = flags.contains(.shift)
-            selectMark(selectedMark.map { ($0 + (backward ? -1 : 1) + count) % count } ?? (backward ? count - 1 : 0))
-            return true
+    /// Arrows on the selected mark: move it, or (⌥) make it bigger or smaller.
+    private func nudgeMark(_ index: Int, by delta: CGVector, grow: Bool) {
+        let label = grow ? String(localized: "Resize") : String(localized: "Move")
+        // Held or repeated arrows make one undo step.
+        if !(nudgeStepOpen && undoStack.last?.label == label && Date().timeIntervalSince(lastNudge) < 1) {
+            commit(annotations, label: label)
+            nudgeStepOpen = true
         }
-        guard let index = selectedMark, annotations.indices.contains(index), !flags.contains(.command) else { return nil }
-        switch Int(event.keyCode) {
-        case 53:
-            selectMark(nil)
-            return true
-        case 51, 117:
-            removeMark(index)
-            return true
-        case 123, 124, 125, 126:
-            let step: CGFloat = flags.contains(.shift) ? 10 : 1
-            let delta = CGVector(dx: event.keyCode == 123 ? -step : event.keyCode == 124 ? step : 0,
-                                 dy: event.keyCode == 126 ? -step : event.keyCode == 125 ? step : 0)
-            let grow = flags.contains(.option)
-            let label = grow ? String(localized: "Resize") : String(localized: "Move")
-            // Held or repeated arrows make one undo step.
-            if !(nudgeStepOpen && undoStack.last?.label == label && Date().timeIntervalSince(lastNudge) < 1) {
-                commit(annotations, label: label)
-                nudgeStepOpen = true
-            }
-            lastNudge = Date()
-            redrawMark(index)
-            if grow { annotations[index] = MarkEditing.grown(annotations[index], by: delta) } else { annotations[index].move(by: delta) }
-            if annotations[index].tool == .blur {
-                prepareBlur()
-                annotations[index].image = blurredPart(annotations[index].rect)
-            }
-            redrawMark(index)
-            announceSoon(grow ? String(localized: "Resized") : String(localized: "Moved"))
-            return true
-        default:
-            return nil
+        lastNudge = Date()
+        redrawMark(index)
+        if grow { annotations[index] = MarkEditing.grown(annotations[index], by: delta) } else { annotations[index].move(by: delta) }
+        if annotations[index].tool == .blur {
+            prepareBlur()
+            annotations[index].image = blurredPart(annotations[index].rect)
         }
+        redrawMark(index)
+        announceSoon(grow ? String(localized: "Resized") : String(localized: "Moved"))
     }
 
     /// What the selection paints: its border, handles and the size label above it.
@@ -1041,19 +1017,26 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     /// Keys while no text is being typed. Returns false to let the event through.
     func handleKey(_ event: NSEvent) -> Bool {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let command = flags.contains(.command)
-        let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
-        if event.type == .keyDown, event.isARepeat, [49, 36, 76, 53].contains(Int(event.keyCode)) {
-            return true                                         // held Space/Return/Esc: once only
-        }
-        if !state.recordMode, selection != nil, let handled = handleMarkKey(event, flags: flags) { return handled }
-        switch Int(event.keyCode) {
-        case 53:                                                // Esc
-            session?.cancel()
-            return true
-        case 49 where selection == nil:                         // Space: window ⇄ area
-            guard !capturing else { return true }
+        let context = CaptureKeyContext(
+            hasSelection: selection != nil, recordMode: state.recordMode, fixedSelection: fixedSelection,
+            windowMode: windowMode, capturing: capturing, typing: textView != nil, tool: state.tool,
+            markCount: annotations.count, selectedMark: selectedMark, sizeIndex: state.sizeIndex)
+        guard let action = CaptureKeys.action(keyCode: event.keyCode, characters: event.charactersIgnoringModifiers,
+                                              flags: event.modifierFlags, isRepeat: event.type == .keyDown && event.isARepeat,
+                                              context: context) else { return false }
+        perform(action)
+        return true
+    }
+
+    private func perform(_ action: CaptureKeyAction) {
+        switch action {
+        case .swallow: break
+        case .selectMark(let index): selectMark(index)
+        case .deselectMark: selectMark(nil)
+        case .removeMark(let index): removeMark(index)
+        case .nudgeMark(let index, let delta, let grow): nudgeMark(index, by: delta, grow: grow)
+        case .cancel: session?.cancel()
+        case .toggleWindowMode:
             windowMode.toggle()
             hintModel.windowMode = windowMode
             hovered = windowMode ? target(at: mouseLocation) : nil
@@ -1062,83 +1045,38 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             announce(windowMode
                 ? String(localized: "Window: click a window, or use the arrows and Return")
                 : String(localized: "Area: drag to select, or Return for the whole screen"))
-            return true
-        case 36, 76:                                            // Return
-            if state.recordMode {
-                if selection == nil {
-                    if let hovered { select(hovered) } else { select(bounds) }
-                } else {
-                    startRecording()
-                }
-                return true
-            }
-            if selection == nil {
-                if let hovered { select(hovered) } else { select(bounds) }
-            } else if state.tool == .text, textView == nil, let selection {
-                beginText(at: CGPoint(x: selection.minX + 12, y: selection.minY + 12))
-            } else {
-                copyImage()
-            }
-            return true
-        case 123, 124, 125, 126:
-            let forward = event.keyCode == 124 || event.keyCode == 125
-            guard var rect = selection, !fixedSelection else {
-                // Window mode: the arrows go through the windows, front to back, then the desktop.
-                guard windowMode, selection == nil else { return true }
-                let targets = windowRects + [.desktop(bounds)]
-                let index = hovered.flatMap { targets.firstIndex(of: $0) }
-                let next = CaptureGeometry.nextTarget(current: index, count: targets.count, forward: forward)
-                hovered = targets[next]
-                needsDisplay = true
-                announce(next == targets.count - 1
-                    ? String(localized: "Desktop")
-                    : String(localized: "Window \(next + 1) of \(windowRects.count)"))
-                return true
-            }
-            let step: CGFloat = flags.contains(.shift) ? 10 : 1
-            let dx: CGFloat = event.keyCode == 123 ? -step : event.keyCode == 124 ? step : 0
-            let dy: CGFloat = event.keyCode == 126 ? -step : event.keyCode == 125 ? step : 0
-            rect = CaptureGeometry.nudge(selection: rect, dx: dx, dy: dy, resize: flags.contains(.option), bounds: bounds)
-            selection = rect
+        case .choose:
+            if let hovered { select(hovered) } else { select(bounds) }
+        case .startRecording: startRecording()
+        case .beginText:
+            if let selection { beginText(at: CGPoint(x: selection.minX + 12, y: selection.minY + 12)) }
+        case .copy: copyImage()
+        case .save: saveImage()
+        case .undo: undo()
+        case .redo: redo()
+        case .record: run(.record)
+        case .nextTarget(let forward):
+            let targets = windowRects + [.desktop(bounds)]
+            let index = hovered.flatMap { targets.firstIndex(of: $0) }
+            let next = CaptureGeometry.nextTarget(current: index, count: targets.count, forward: forward)
+            hovered = targets[next]
+            needsDisplay = true
+            announce(next == targets.count - 1
+                ? String(localized: "Desktop")
+                : String(localized: "Window \(next + 1) of \(windowRects.count)"))
+        case .nudgeSelection(let dx, let dy, let resize):
+            guard let rect = selection else { return }
+            let moved = CaptureGeometry.nudge(selection: rect, dx: dx, dy: dy, resize: resize, bounds: bounds)
+            selection = moved
             layoutToolbar()
             needsDisplay = true
-            announceSoon(flags.contains(.option)
-                ? String(localized: "\(Int(rect.width * scale)) by \(Int(rect.height * scale)) pixels")
+            announceSoon(resize
+                ? String(localized: "\(Int(moved.width * scale)) by \(Int(moved.height * scale)) pixels")
                 : String(localized: "Selection moved"))
-            return true
-        default: break
+        case .tool(let tool): run(.tool(tool))
+        case .color(let index): run(.color(index))
+        case .size(let index): run(.size(index))
         }
-        if state.recordMode {
-            // Record mode has no tools, copy or save.
-            return command && key != "q"
-        }
-        if command {
-            switch key {
-            case "r" where flags.contains(.shift): run(.record); return true
-            case "z": flags.contains(.shift) ? redo() : undo(); return true
-            case "c": copyImage(); return true
-            case "s": saveImage(); return true
-            default: return false
-            }
-        }
-        guard selection != nil, flags.isDisjoint(with: [.control, .option]) else { return false }
-        if let tool = CaptureTool.allCases.first(where: { $0.key.lowercased() == key }) {
-            run(.tool(tool))
-            return true
-        }
-        if let digit = Int(key), (1...CapturePalette.colors.count).contains(digit) {
-            run(.color(digit - 1))
-            return true
-        }
-        if key == "-" {
-            run(.size(max(state.sizeIndex - 1, 0)))
-            return true
-        }
-        if key == "+" || key == "=" {
-            run(.size(min(state.sizeIndex + 1, CaptureSize.count - 1)))
-            return true
-        }
-        return false
     }
 
     private var pendingAnnouncement: DispatchWorkItem?
