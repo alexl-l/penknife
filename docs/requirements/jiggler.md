@@ -60,6 +60,9 @@ Questions for the user (asked 2026-11-19; recommendation in brackets):
 - **O-23 The jiggler also moves the pointer while Penknife is recording the screen.** With the Mac idle for the interval during a screen recording (a demo where you stop to talk), the 3 px square and the key are recorded too (a small cursor twitch every 10 s). The same happens over the capture overlay (the window under the pointer can change) and the clipboard panel (hover can pick another row if the pointer sits on a row's edge). [Skip the jiggle while a recording runs or one of Penknife's own panels is open; it is waiting for you there anyway. Small change; or leave as is.]
 - **O-24 An alert at every unlock.** With JG-08 on, every unlock (and every launch) shows "Mouse jiggler on"; without Accessibility, every unlock shows "Needs the Accessibility permission". [Leave as is: it is how you know it is on, and the type can be hidden in Settings › Alerts.]
 
+Ideas for later (not designed):
+- **Stop time** (user, 2026-11-19): each person picks a time when the jiggler turns itself off (e.g. 18:00). Details and open points in REQUIREMENTS.md › Future ideas "Jiggler stop time". Phone remote control was discussed and not chosen (REQUIREMENTS.md › Rejected).
+
 Not measured (check live; nothing to decide yet):
 - Whether Teams and Slack really count the jiggle as activity with each key choice (the user is happy with Caps Lock ×2; Shift, Control and Option are posted as plain key presses, not as modifier changes).
 - Whether the system idle time counts Penknife's own moves (if it didn't, a jiggle would still happen once per interval; same result).
