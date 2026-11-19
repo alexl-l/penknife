@@ -98,20 +98,16 @@ final class CaptureSession {
         onFinish()
     }
 
-    /// Visible app windows, front to back, in global top-left coordinates (as CoreGraphics gives
-    /// them). Penknife's own windows are skipped.
-    private static func onScreenWindows() -> [CaptureTarget] {
+    /// Visible windows, front to back, in global top-left coordinates (as CoreGraphics gives
+    /// them). Which ones can be chosen: `CaptureGeometry.windowTargets`.
+    private static func onScreenWindows() -> [WindowInfo] {
         guard let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return [] }
-        let pid = getpid()
         return list.compactMap { info in
-            guard (info[kCGWindowLayer as String] as? Int) == 0,
-                  (info[kCGWindowOwnerPID as String] as? pid_t) != pid,
-                  (info[kCGWindowAlpha as String] as? Double ?? 1) > 0,
-                  let bounds = info[kCGWindowBounds as String] as? NSDictionary,
+            guard let bounds = info[kCGWindowBounds as String] as? NSDictionary,
                   let rect = CGRect(dictionaryRepresentation: bounds),
-                  let id = info[kCGWindowNumber as String] as? CGWindowID,
-                  rect.width > 40, rect.height > 40 else { return nil }
-            return .window(id, rect)
+                  let id = info[kCGWindowNumber as String] as? CGWindowID else { return nil }
+            return WindowInfo(id: id, layer: info[kCGWindowLayer as String] as? Int, ownerPID: info[kCGWindowOwnerPID as String] as? pid_t,
+                              alpha: info[kCGWindowAlpha as String] as? Double, bounds: rect)
         }
     }
 }
@@ -120,7 +116,7 @@ final class CaptureSession {
 final class CaptureWindow: NSPanel {
     let canvas: CaptureCanvas
 
-    init(screen: NSScreen, image: CGImage?, windowRects: [CaptureTarget], session: CaptureSession) {
+    init(screen: NSScreen, image: CGImage?, windowRects: [WindowInfo], session: CaptureSession) {
         canvas = CaptureCanvas(screen: screen, image: image, windowRects: windowRects, session: session)
         super.init(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         setFrame(screen.frame, display: false)
@@ -167,7 +163,7 @@ final class CaptureWindow: NSPanel {
 
 /// Something window mode can select: an app window (captured alone, with its rounded corners)
 /// or the desktop (wallpaper and icons, without windows), as macOS does.
-enum CaptureTarget: Equatable {
+nonisolated enum CaptureTarget: Equatable {
     case window(CGWindowID, CGRect)
     case desktop(CGRect)
 
@@ -247,24 +243,14 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case erasing(last: CGPoint, stroke: Int)
     }
 
-    /// Handle positions as fractions of the selection: corners and edge midpoints.
-    private static let handles: [(CGFloat, CGFloat)] = [(0, 0), (0.5, 0), (1, 0), (1, 0.5), (1, 1), (0.5, 1), (0, 1), (0, 0.5)]
-
-    init(screen: NSScreen, image: CGImage?, windowRects: [CaptureTarget], session: CaptureSession) {
+    init(screen: NSScreen, image: CGImage?, windowRects: [WindowInfo], session: CaptureSession) {
         self.session = session
         state = session.state
         self.screen = screen
         self.base = image
         scale = image.map { CGFloat($0.width) / screen.frame.width } ?? screen.backingScaleFactor
         let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
-        let top = primaryHeight - screen.frame.maxY
-        let local = CGRect(origin: .zero, size: screen.frame.size)
-        self.windowRects = windowRects.compactMap { target in
-            guard case .window(let id, let rect) = target else { return nil }
-            let converted = rect.offsetBy(dx: -screen.frame.minX, dy: -top)
-            let visible = converted.intersection(local)
-            return visible.isNull || visible.width < 40 || visible.height < 40 ? nil : .window(id, converted)
-        }
+        self.windowRects = CaptureGeometry.windowTargets(list: windowRects, ownPID: getpid(), screenFrame: screen.frame, primaryHeight: primaryHeight)
         super.init(frame: NSRect(origin: .zero, size: screen.frame.size))
         setAccessibilityElement(true)
         setAccessibilityRole(.group)
@@ -375,7 +361,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             NSGraphicsContext.saveGraphicsState()
             shadow.set()
             NSColor.white.setFill()
-            for point in handlePoints(selection) {
+            for point in CaptureGeometry.handlePoints(selection) {
                 NSBezierPath(ovalIn: CGRect(x: point.x - 4, y: point.y - 4, width: 8, height: 8)).fill()
             }
             NSGraphicsContext.restoreGraphicsState()
@@ -392,28 +378,22 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     private func drawSizeLabel(_ selection: CGRect) {
-        let text = "\(Int((selection.width * outputScale).rounded())) × \(Int((selection.height * outputScale).rounded()))"
+        let text = CaptureGeometry.sizeText(selection: selection, scale: outputScale)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium),
             .foregroundColor: NSColor.white,
         ]
         let string = NSAttributedString(string: text, attributes: attributes)
         let size = string.size()
-        var pill = CGRect(x: selection.minX, y: selection.minY - size.height - 12, width: size.width + 14, height: size.height + 6)
-        if pill.minY < 4 { pill.origin.y = selection.minY + 6; pill.origin.x += 6 }
-        pill.origin.x = min(max(pill.minX, 4), bounds.width - pill.width - 4)
+        let pill = CaptureGeometry.sizeLabelFrame(selection: selection, textSize: size, bounds: bounds)
         NSColor.black.withAlphaComponent(0.6).setFill()
         NSBezierPath(roundedRect: pill, xRadius: pill.height / 2, yRadius: pill.height / 2).fill()
         string.draw(at: CGPoint(x: pill.minX + 7, y: pill.minY + 3))
     }
 
-    private func handlePoints(_ rect: CGRect) -> [CGPoint] {
-        Self.handles.map { CGPoint(x: rect.minX + rect.width * $0.0, y: rect.minY + rect.height * $0.1) }
-    }
-
     private func handle(at point: CGPoint) -> Int? {
         guard let selection, !fixedSelection else { return nil }
-        return handlePoints(selection).firstIndex { abs($0.x - point.x) <= 8 && abs($0.y - point.y) <= 8 }
+        return CaptureGeometry.handle(at: point, of: selection)
     }
 
     // MARK: Pointer
@@ -736,19 +716,12 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         switch drag {
         case .none: return
         case .selecting(let start):
-            selection = CGRect(x: min(start.x, point.x), y: min(start.y, point.y), width: abs(point.x - start.x), height: abs(point.y - start.y))
+            selection = CaptureGeometry.dragRect(from: start, to: point)
         case .moving(let offset):
             guard let selection else { return }
-            var origin = CGPoint(x: point.x - offset.x, y: point.y - offset.y)
-            origin.x = min(max(origin.x, 0), bounds.width - selection.width)
-            origin.y = min(max(origin.y, 0), bounds.height - selection.height)
-            self.selection?.origin = origin
+            self.selection = CaptureGeometry.moved(selection, to: CGPoint(x: point.x - offset.x, y: point.y - offset.y), bounds: bounds)
         case .resizing(let index, let original):
-            let (fx, fy) = Self.handles[index]
-            var minX = original.minX, maxX = original.maxX, minY = original.minY, maxY = original.maxY
-            if fx == 0 { minX = point.x } else if fx == 1 { maxX = point.x }
-            if fy == 0 { minY = point.y } else if fy == 1 { maxY = point.y }
-            selection = CGRect(x: min(minX, maxX), y: min(minY, maxY), width: max(abs(maxX - minX), 1), height: max(abs(maxY - minY), 1))
+            selection = CaptureGeometry.resizeSelection(handle: index, original: original, to: point)
         case .drawing:
             guard let tool = current?.tool, let last = current?.points.last else { return }
             switch tool {
@@ -785,7 +758,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         switch finished {
         case .none: return
         case .selecting:
-            if let selection, selection.width >= 4, selection.height >= 4 {
+            if let selection, CaptureGeometry.keepsDrag(selection) {
                 select(selection)
             } else {
                 selection = nil
@@ -814,7 +787,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     private func clamp(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: min(max(point.x, 0), bounds.width), y: min(max(point.y, 0), bounds.height))
+        CaptureGeometry.clamp(point, to: bounds)
     }
 
     /// Canvas rect back to global top-left coordinates (CoreGraphics / Accessibility).
@@ -898,7 +871,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// The selection is made. In live mode the screen is taken now, without Penknife's windows.
     private func select(_ rect: CGRect) {
         session?.hideHints()
-        selection = rect.integral.intersection(bounds)
+        selection = CaptureGeometry.chosen(rect, bounds: bounds)
         hovered = nil
         windowMode = false
         recordWindow = nil
@@ -979,15 +952,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// Below the selection; above when there's no room; inside its bottom when neither fits.
     private func layoutToolbar() {
         guard let toolbar, let selection else { return }
-        let size = toolbar.fittingSize
-        var y = selection.maxY + 10
-        if y + size.height > bounds.height - 8 {
-            y = selection.minY - 10 - size.height
-            if y < 8 { y = selection.maxY - size.height - 10 }
-        }
-        var x = selection.midX - size.width / 2
-        x = min(max(x, 8), bounds.width - size.width - 8)
-        toolbar.frame = CGRect(x: x, y: max(y, 8), width: size.width, height: size.height)
+        toolbar.frame = CaptureGeometry.toolbarFrame(selection: selection, size: toolbar.fittingSize, bounds: bounds)
         toolbar.isHidden = false
     }
 
@@ -1058,17 +1023,12 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     override func scrollWheel(with event: NSEvent) {
         guard selection != nil else { return }
-        // Physical direction: undo natural scrolling's inversion.
-        var delta = event.scrollingDeltaY * (event.isDirectionInvertedFromDevice ? -1 : 1)
-        if ScreenshotModule.scrollUpThinner { delta = -delta }
-        if event.hasPreciseScrollingDeltas {
-            scrollAccumulator += delta
-            guard abs(scrollAccumulator) >= 24 else { return }
-            delta = scrollAccumulator
-            scrollAccumulator = 0
-        }
-        guard delta != 0 else { return }
-        let next = min(max(state.sizeIndex + (delta > 0 ? 1 : -1), 0), CaptureSize.count - 1)
+        let (step, accumulated) = CaptureGeometry.scrollStep(
+            delta: event.scrollingDeltaY, inverted: event.isDirectionInvertedFromDevice, precise: event.hasPreciseScrollingDeltas,
+            accumulated: scrollAccumulator, upThinner: ScreenshotModule.scrollUpThinner)
+        scrollAccumulator = accumulated
+        guard step != 0 else { return }
+        let next = min(max(state.sizeIndex + step, 0), CaptureSize.count - 1)
         if next != state.sizeIndex { run(.size(next)) }
     }
 
@@ -1126,8 +1086,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 // Window mode: the arrows go through the windows, front to back, then the desktop.
                 guard windowMode, selection == nil else { return true }
                 let targets = windowRects + [.desktop(bounds)]
-                let index = hovered.flatMap { targets.firstIndex(of: $0) } ?? -1
-                let next = (index + (forward ? 1 : -1) + targets.count) % targets.count
+                let index = hovered.flatMap { targets.firstIndex(of: $0) }
+                let next = CaptureGeometry.nextTarget(current: index, count: targets.count, forward: forward)
                 hovered = targets[next]
                 needsDisplay = true
                 announce(next == targets.count - 1
@@ -1138,14 +1098,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             let step: CGFloat = flags.contains(.shift) ? 10 : 1
             let dx: CGFloat = event.keyCode == 123 ? -step : event.keyCode == 124 ? step : 0
             let dy: CGFloat = event.keyCode == 126 ? -step : event.keyCode == 125 ? step : 0
-            if flags.contains(.option) {
-                // ⌥ arrows resize from the bottom-right corner.
-                rect.size.width = min(max(rect.width + dx, 8), bounds.width - rect.minX)
-                rect.size.height = min(max(rect.height + dy, 8), bounds.height - rect.minY)
-            } else {
-                rect.origin.x = min(max(rect.minX + dx, 0), bounds.width - rect.width)
-                rect.origin.y = min(max(rect.minY + dy, 0), bounds.height - rect.height)
-            }
+            rect = CaptureGeometry.nudge(selection: rect, dx: dx, dy: dy, resize: flags.contains(.option), bounds: bounds)
             selection = rect
             layoutToolbar()
             needsDisplay = true
@@ -1455,19 +1408,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private func saveImage() {
         endText()
         guard let rep = render(), let png = rep.representation(using: .png, properties: [:]) else { return }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        let date = formatter.string(from: .now)
-        formatter.dateFormat = "HH.mm.ss"
-        let time = formatter.string(from: .now)
         let folder = ScreenshotModule.folder
-        var url = folder.appendingPathComponent(String(localized: "Screenshot \(date) at \(time)") + ".png")
-        var copyNumber = 2
-        while FileManager.default.fileExists(atPath: url.path) {
-            url = folder.appendingPathComponent(String(localized: "Screenshot \(date) at \(time)") + " \(copyNumber).png")
-            copyNumber += 1
-        }
+        let url = CaptureGeometry.saveURL(folder: folder, date: .now) { FileManager.default.fileExists(atPath: $0.path) }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try png.write(to: url, options: .atomic)

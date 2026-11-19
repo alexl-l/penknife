@@ -492,4 +492,142 @@ struct ScreenshotRulesTests {
         #expect(stroke.covers(Self.p(50, 5)) && !stroke.covers(Self.p(50, 5.01)))
         #expect(!Erasure(points: [], width: 10, stroke: 0).covers(.zero))
     }
+
+    // MARK: S2 overlay geometry
+
+    static let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)
+
+    @Test("SS-12 an area drag: clamped, under 4 pt dropped, rounded out and kept on the screen")
+    func areaDrag() {
+        let g = CaptureGeometry.self
+        #expect(g.clamp(Self.p(-5, 900), to: Self.screen) == Self.p(0, 800))
+        #expect(g.clamp(Self.p(1200, -1), to: Self.screen) == Self.p(1000, 0))
+        #expect(g.dragRect(from: Self.p(50, 60), to: Self.p(10, 20)) == CGRect(x: 10, y: 20, width: 40, height: 40))
+        #expect(!g.keepsDrag(CGRect(x: 0, y: 0, width: 3.9, height: 100)))
+        #expect(!g.keepsDrag(CGRect(x: 0, y: 0, width: 100, height: 3)))
+        #expect(g.keepsDrag(CGRect(x: 0, y: 0, width: 4, height: 4)))
+        #expect(g.chosen(CGRect(x: 10.4, y: 20.6, width: 30.2, height: 40.1), bounds: Self.screen) == CGRect(x: 10, y: 20, width: 31, height: 41))
+        #expect(g.chosen(CGRect(x: 990.5, y: -5, width: 50, height: 50), bounds: Self.screen) == CGRect(x: 990, y: 0, width: 10, height: 45))
+    }
+
+    @Test("SS-17 moving, resizing and nudging an area selection")
+    func changingSelection() {
+        let g = CaptureGeometry.self
+        let rect = CGRect(x: 100, y: 100, width: 200, height: 100)
+        // Handles: corners and edge midpoints, grabbed within 8 pt.
+        #expect(g.handlePoints(rect) == [Self.p(100, 100), Self.p(200, 100), Self.p(300, 100), Self.p(300, 150),
+                                         Self.p(300, 200), Self.p(200, 200), Self.p(100, 200), Self.p(100, 150)])
+        #expect(g.handle(at: Self.p(308, 192), of: rect) == 4)
+        #expect(g.handle(at: Self.p(308.5, 200), of: rect) == nil)
+        #expect(g.handle(at: Self.p(200, 150), of: rect) == nil)
+        // Dragging inside moves it, kept inside the screen.
+        #expect(g.moved(rect, to: Self.p(-20, 750), bounds: Self.screen) == CGRect(x: 0, y: 700, width: 200, height: 100))
+        #expect(g.moved(rect, to: Self.p(900, 10), bounds: Self.screen) == CGRect(x: 800, y: 10, width: 200, height: 100))
+        // A handle: crossing over flips; at least 1 pt.
+        #expect(g.resizeSelection(handle: 4, original: rect, to: Self.p(50, 80)) == CGRect(x: 50, y: 80, width: 50, height: 20))
+        #expect(g.resizeSelection(handle: 3, original: rect, to: Self.p(100, 999)) == CGRect(x: 100, y: 100, width: 1, height: 100))
+        #expect(g.resizeSelection(handle: 1, original: rect, to: Self.p(999, 130)) == CGRect(x: 100, y: 130, width: 200, height: 70))
+        // Arrows move inside the screen; ⌥ arrows resize from the bottom-right, at least 8 pt, within the screen.
+        #expect(g.nudge(selection: rect, dx: 10, dy: 0, resize: false, bounds: Self.screen) == CGRect(x: 110, y: 100, width: 200, height: 100))
+        let atEdge = CGRect(x: 0, y: 700, width: 200, height: 100)
+        #expect(g.nudge(selection: atEdge, dx: -1, dy: 1, resize: false, bounds: Self.screen) == atEdge)
+        #expect(g.nudge(selection: CGRect(x: 0, y: 0, width: 9, height: 9), dx: -10, dy: -10, resize: true, bounds: Self.screen)
+                == CGRect(x: 0, y: 0, width: 8, height: 8))
+        #expect(g.nudge(selection: CGRect(x: 900, y: 750, width: 95, height: 45), dx: 10, dy: 10, resize: true, bounds: Self.screen)
+                == CGRect(x: 900, y: 750, width: 100, height: 50))
+    }
+
+    @Test("SS-14 the windows window mode can choose, and the arrows through them")
+    func windowTargets() {
+        let primary = CGRect(x: 0, y: 0, width: 1440, height: 900)
+        func info(_ id: CGWindowID, _ rect: CGRect, layer: Int? = 0, pid: pid_t? = 7, alpha: Double? = 1) -> WindowInfo {
+            WindowInfo(id: id, layer: layer, ownerPID: pid, alpha: alpha, bounds: rect)
+        }
+        let list = [
+            info(1, CGRect(x: 100, y: 100, width: 500, height: 400)),
+            info(2, CGRect(x: 100, y: 100, width: 500, height: 400), pid: 99),            // Penknife's own
+            info(3, CGRect(x: 100, y: 100, width: 500, height: 400), layer: 25),          // a panel, not layer 0
+            info(4, CGRect(x: 100, y: 100, width: 500, height: 400), layer: nil),
+            info(5, CGRect(x: 100, y: 100, width: 500, height: 400), alpha: 0),
+            info(6, CGRect(x: 100, y: 100, width: 500, height: 400), pid: nil, alpha: nil), // missing values: kept
+            info(7, CGRect(x: 100, y: 100, width: 40, height: 400)),                       // 40 pt wide: too small
+            info(8, CGRect(x: 1410, y: 100, width: 500, height: 400)),                     // 30 pt on this screen
+            info(9, CGRect(x: 1400, y: 100, width: 500, height: 400)),                     // 40 pt on this screen
+        ]
+        let targets = CaptureGeometry.windowTargets(list: list, ownPID: 99, screenFrame: primary, primaryHeight: 900)
+        #expect(targets == [.window(1, CGRect(x: 100, y: 100, width: 500, height: 400)),
+                            .window(6, CGRect(x: 100, y: 100, width: 500, height: 400)),
+                            .window(9, CGRect(x: 1400, y: 100, width: 500, height: 400))])
+        // A second screen above the primary one: global y −1000 is 80 pt from its top.
+        let above = CGRect(x: 0, y: 900, width: 1920, height: 1080)
+        let upper = CaptureGeometry.windowTargets(list: [info(1, CGRect(x: 100, y: -1000, width: 500, height: 400)), list[0]],
+                                                  ownPID: 99, screenFrame: above, primaryHeight: 900)
+        #expect(upper == [.window(1, CGRect(x: 100, y: 80, width: 500, height: 400))])
+        // Arrows: front to back, then the desktop, wrapping both ways; none highlighted = just before the first.
+        #expect(CaptureGeometry.nextTarget(current: nil, count: 4, forward: true) == 0)
+        #expect(CaptureGeometry.nextTarget(current: nil, count: 4, forward: false) == 2)
+        #expect(CaptureGeometry.nextTarget(current: 3, count: 4, forward: true) == 0)
+        #expect(CaptureGeometry.nextTarget(current: 0, count: 4, forward: false) == 3)
+        #expect(CaptureGeometry.nextTarget(current: nil, count: 1, forward: true) == 0)
+    }
+
+    @Test("SS-18 the size label: output pixels, above the top-left corner or inside it")
+    func sizeLabel() {
+        let g = CaptureGeometry.self
+        #expect(g.sizeText(selection: CGRect(x: 0, y: 0, width: 400, height: 300), scale: 2) == "800 × 600")
+        #expect(g.sizeText(selection: CGRect(x: 0, y: 0, width: 100.3, height: 50.2), scale: 2) == "201 × 100")
+        let text = CGSize(width: 60, height: 14)
+        #expect(g.sizeLabelFrame(selection: CGRect(x: 100, y: 100, width: 200, height: 100), textSize: text, bounds: Self.screen)
+                == CGRect(x: 100, y: 74, width: 74, height: 20))
+        #expect(g.sizeLabelFrame(selection: CGRect(x: 100, y: 0, width: 200, height: 100), textSize: text, bounds: Self.screen)
+                == CGRect(x: 106, y: 6, width: 74, height: 20))
+        #expect(g.sizeLabelFrame(selection: CGRect(x: 980, y: 100, width: 20, height: 100), textSize: text, bounds: Self.screen).maxX == 996)
+        #expect(g.sizeLabelFrame(selection: CGRect(x: 0, y: 100, width: 20, height: 100), textSize: text, bounds: Self.screen).minX == 4)
+    }
+
+    @Test("SS-21 the toolbar: below, above, or inside the selection; 8 pt from the edges")
+    func toolbarPlacement() {
+        let g = CaptureGeometry.self
+        let bar = CGSize(width: 400, height: 44)
+        #expect(g.toolbarFrame(selection: CGRect(x: 300, y: 100, width: 400, height: 200), size: bar, bounds: Self.screen)
+                == CGRect(x: 300, y: 310, width: 400, height: 44))
+        #expect(g.toolbarFrame(selection: CGRect(x: 300, y: 500, width: 400, height: 250), size: bar, bounds: Self.screen)
+                == CGRect(x: 300, y: 446, width: 400, height: 44))
+        #expect(g.toolbarFrame(selection: Self.screen, size: bar, bounds: Self.screen) == CGRect(x: 300, y: 746, width: 400, height: 44))
+        #expect(g.toolbarFrame(selection: CGRect(x: 0, y: 100, width: 100, height: 100), size: bar, bounds: Self.screen).minX == 8)
+        #expect(g.toolbarFrame(selection: CGRect(x: 950, y: 100, width: 50, height: 100), size: bar, bounds: Self.screen).maxX == 992)
+        // Never higher than 8 pt from the top.
+        #expect(g.toolbarFrame(selection: CGRect(x: 300, y: 0, width: 400, height: 40), size: CGSize(width: 400, height: 790),
+                               bounds: Self.screen).minY == 8)
+    }
+
+    @Test("SS-26 the scroll wheel: one step per notch or per 24 pt, by the physical direction")
+    func scrollSteps() {
+        let g = CaptureGeometry.self
+        #expect(g.scrollStep(delta: 1, inverted: false, precise: false, accumulated: 0, upThinner: false) == (1, 0))
+        #expect(g.scrollStep(delta: -3, inverted: false, precise: false, accumulated: 5, upThinner: false) == (-1, 5))
+        #expect(g.scrollStep(delta: 0, inverted: false, precise: false, accumulated: 0, upThinner: false) == (0, 0))
+        #expect(g.scrollStep(delta: 1, inverted: true, precise: false, accumulated: 0, upThinner: false) == (-1, 0))
+        #expect(g.scrollStep(delta: 1, inverted: false, precise: false, accumulated: 0, upThinner: true) == (-1, 0))
+        #expect(g.scrollStep(delta: 1, inverted: true, precise: false, accumulated: 0, upThinner: true) == (1, 0))
+        // Trackpad: 23 pt is not a step yet; 24 is, and the leftover starts again.
+        #expect(g.scrollStep(delta: 23, inverted: false, precise: true, accumulated: 0, upThinner: false) == (0, 23))
+        #expect(g.scrollStep(delta: 1, inverted: false, precise: true, accumulated: 23, upThinner: false) == (1, 0))
+        #expect(g.scrollStep(delta: 10, inverted: true, precise: true, accumulated: -20, upThinner: false) == (-1, 0))
+    }
+
+    @Test("SS-48 the save name: date and time, then \" 2\", \" 3\" when taken")
+    func saveName() throws {
+        let folder = URL(filePath: "/nonexistent/Shots", directoryHint: .isDirectory)
+        let date = try #require(Calendar.current.date(from: DateComponents(year: 2026, month: 11, day: 19, hour: 10, minute: 0, second: 0)))
+        let free = CaptureGeometry.saveURL(folder: folder, date: date) { _ in false }
+        #expect(free.deletingLastPathComponent().path == folder.path)
+        let base = free.lastPathComponent
+        #expect(["Screenshot 2026-11-19 at 10.00.00.png", "Captura de pantalla 2026-11-19 a las 10.00.00.png"].contains(base))
+        let stem = String(base.dropLast(4))
+        var taken: Set<String> = [base]
+        #expect(CaptureGeometry.saveURL(folder: folder, date: date) { taken.contains($0.lastPathComponent) }.lastPathComponent == stem + " 2.png")
+        taken.insert(stem + " 2.png")
+        #expect(CaptureGeometry.saveURL(folder: folder, date: date) { taken.contains($0.lastPathComponent) }.lastPathComponent == stem + " 3.png")
+    }
 }
