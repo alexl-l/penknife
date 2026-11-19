@@ -1153,12 +1153,14 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     private func startRecording() {
-        guard state.recordMode, let selection, !capturing, selection.width >= 8, selection.height >= 8 else { return }
+        guard state.recordMode, let selection, !capturing else { return }
+        let region = CaptureGeometry.recordRegion(selection, bounds: bounds)
+        guard region.width >= 8, region.height >= 8 else { return }
         var window: (id: CGWindowID, frame: CGRect)?
         if let recordWindow, case .window(let id, let rect)? = selectedTarget, id == recordWindow {
             window = (id, Self.globalFrame(rect, on: screen))
         }
-        session?.record(screen: screen, rect: selection, fullScreen: selection == bounds, window: window,
+        session?.record(screen: screen, rect: region, fullScreen: region == bounds, window: window,
                        marks: annotations.map { mark in
                            // A blur is blurred live in the recording, not from this screenshot.
                            var mark = mark

@@ -792,4 +792,14 @@ struct ScreenshotRulesTests {
         #expect(frame == CGRect(x: 300, y: 746, width: 400, height: 44))
         #expect(Self.screen.contains(frame))
     }
+
+    @Test("B-10 a recording takes only the selection's part on the screen")
+    func recordRegionOnScreen() {
+        let g = CaptureGeometry.self
+        #expect(g.recordRegion(CGRect(x: 600, y: 500, width: 800, height: 600), bounds: Self.screen)
+                == CGRect(x: 600, y: 500, width: 400, height: 300))
+        #expect(g.recordRegion(CGRect(x: -100, y: -50, width: 1200, height: 900), bounds: Self.screen) == Self.screen)
+        #expect(g.recordRegion(CGRect(x: 10, y: 10, width: 100, height: 50), bounds: Self.screen)
+                == CGRect(x: 10, y: 10, width: 100, height: 50))
+    }
 }

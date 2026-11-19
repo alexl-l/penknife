@@ -38,6 +38,12 @@ nonisolated enum CaptureGeometry {
         rect.integral.intersection(bounds)
     }
 
+    /// What a recording takes: the selection's part on this screen. A window chosen in the
+    /// editor keeps its whole frame, even past the screen's edge (B-10).
+    static func recordRegion(_ selection: CGRect, bounds: CGRect) -> CGRect {
+        selection.intersection(bounds)
+    }
+
     // MARK: Changing the selection (SS-17)
 
     /// Handle positions as fractions of the selection: corners and edge midpoints.
