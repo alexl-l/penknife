@@ -14,9 +14,13 @@ final class ClipboardModule: Module {
         UserDefaults.standard.object(forKey: formattingKey) as? Bool ?? true
     }
 
-    let store = ClipboardStore()
+    let store: ClipboardStore
+    /// The clipboard watched and written (`.general`; tests pass a private one, CB-03, CB-09).
+    private let pasteboard: NSPasteboard
+    /// The app in front when a change is seen, for the skip list (CB-06).
+    private let frontApp: () -> String?
     private var timer: Timer?
-    private var lastChange = NSPasteboard.general.changeCount
+    private var lastChange: Int
     private var observers: [NSObjectProtocol] = []
     private var panel: ClipboardPanel?
     /// The app in front when the panel opened: the paste goes there and nowhere else.
@@ -27,13 +31,21 @@ final class ClipboardModule: Module {
         UserDefaults.standard.object(forKey: pasteKey) as? Bool ?? true
     }
 
+    init(store: ClipboardStore = ClipboardStore(), pasteboard: NSPasteboard = .general,
+         frontApp: @escaping () -> String? = { NSWorkspace.shared.frontmostApplication?.bundleIdentifier }) {
+        self.store = store
+        self.pasteboard = pasteboard
+        self.frontApp = frontApp
+        lastChange = pasteboard.changeCount
+    }
+
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .clipboardHistory, title: String(localized: "Clipboard History"), symbol: id.symbol,
                       perform: { [weak self] in self?.showPanel() })]
     }
 
     func start() {
-        lastChange = NSPasteboard.general.changeCount
+        lastChange = pasteboard.changeCount
         startTimer()
         let center = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.screensDidSleepNotification, NSWorkspace.screensDidWakeNotification] {
@@ -72,12 +84,12 @@ final class ClipboardModule: Module {
         timer = nil
     }
 
-    private func check() {
-        let pasteboard = NSPasteboard.general
+    /// One look at the change count (CB-05); internal so tests can call it without the timer.
+    func check() {
         let change = pasteboard.changeCount
         guard change != lastChange else { return }
         lastChange = change
-        if let item = ClipboardReader.read(pasteboard, frontApp: NSWorkspace.shared.frontmostApplication?.bundleIdentifier) {
+        if let item = ClipboardReader.read(pasteboard, frontApp: frontApp()) {
             store.add(item)
         }
     }
@@ -87,21 +99,8 @@ final class ClipboardModule: Module {
     /// Puts the item back on the clipboard and, if chosen, pastes it into the front app.
     func use(_ id: ClipItem.ID, paste: Bool, invertFormatting: Bool = false) {
         guard let item = store.item(id) else { return }
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        switch item.kind {
-        case .text, .files:
-            ClipboardReader.write(item, formatted: Self.keepsFormatting != invertFormatting, to: pasteboard)
-        case .image:
-            guard let data = item.image else { break }
-            if previousApp?.bundleIdentifier == "com.apple.finder",
-               let png = PastableImage.png(from: data, type: item.imageType) {
-                // In Finder the image is pasted as a PNG file into the open folder.
-                PastableImage.copy(png, named: PastableImage.timestampName { String(localized: "Image \($0) at \($1)") })
-            } else {
-                pasteboard.setData(data, forType: NSPasteboard.PasteboardType(item.imageType ?? NSPasteboard.PasteboardType.tiff.rawValue))
-            }
-        }
+        ClipboardWriter.write(item, to: pasteboard, keepsFormatting: Self.keepsFormatting, invert: invertFormatting,
+                              finder: previousApp?.bundleIdentifier == "com.apple.finder")
         // Our own write is not a new copy.
         lastChange = pasteboard.changeCount
         store.touch(id)
@@ -182,23 +181,6 @@ enum ClipboardReader {
         "com.dashlane.Dashlane",
     ]
 
-    /// Puts a text or files item on a cleared pasteboard: the plain text, plus the RTF and HTML
-    /// when `formatted`; files as references.
-    static func write(_ item: ClipItem, formatted: Bool, to pasteboard: NSPasteboard) {
-        switch item.kind {
-        case .text:
-            if formatted {
-                if let rtf = item.rtf { pasteboard.setData(rtf, forType: .rtf) }
-                if let html = item.html { pasteboard.setData(html, forType: .html) }
-            }
-            pasteboard.setString(item.text ?? "", forType: .string)
-        case .files:
-            pasteboard.writeObjects((item.files ?? []) as [NSURL])
-        case .image:
-            break
-        }
-    }
-
     static func read(_ pasteboard: NSPasteboard, frontApp: String?) -> ClipItem? {
         guard let types = pasteboard.types, !types.isEmpty,
               !types.contains(where: { skipped.contains($0.rawValue) }) else { return nil }
@@ -232,5 +214,33 @@ enum ClipboardReader {
             return .image(data, type: imageType.rawValue, source: source)
         }
         return nil
+    }
+}
+
+/// What choosing an item puts on the clipboard (CB-25): text = plain text, plus the RTF and HTML
+/// when the formatting is kept (⇧ inverts it once); files as references; an image as copied, or,
+/// with Finder in front, as a PNG file in Penknife's pastable images so Finder pastes a file.
+enum ClipboardWriter {
+    static func write(_ item: ClipItem, to pasteboard: NSPasteboard, keepsFormatting: Bool, invert: Bool,
+                      finder: Bool, pastableFolder: URL = PastableImage.folder) {
+        pasteboard.clearContents()
+        switch item.kind {
+        case .text:
+            if keepsFormatting != invert {
+                if let rtf = item.rtf { pasteboard.setData(rtf, forType: .rtf) }
+                if let html = item.html { pasteboard.setData(html, forType: .html) }
+            }
+            pasteboard.setString(item.text ?? "", forType: .string)
+        case .files:
+            pasteboard.writeObjects((item.files ?? []) as [NSURL])
+        case .image:
+            guard let data = item.image else { break }
+            if finder, let png = PastableImage.png(from: data, type: item.imageType) {
+                PastableImage.copy(png, named: PastableImage.timestampName { String(localized: "Image \($0) at \($1)") },
+                                   in: pastableFolder, pasteboard: pasteboard)
+            } else {
+                pasteboard.setData(data, forType: NSPasteboard.PasteboardType(item.imageType ?? NSPasteboard.PasteboardType.tiff.rawValue))
+            }
+        }
     }
 }

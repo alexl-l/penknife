@@ -19,6 +19,39 @@ enum ClipboardPosition: String, CaseIterable {
     }
 }
 
+/// What a key does in the panel (CB-22); nil = it goes to the search field.
+enum ClipboardKeyAction: Equatable {
+    case move(Int)
+    case close
+    /// Return: paste (⌥ only copies); ⇧ uses the other formatting once.
+    case choose(paste: Bool, invertFormatting: Bool)
+    case clear
+    case delete
+    case togglePin
+    /// ⌘1–⌘9: paste that visible row (0-based).
+    case row(Int)
+}
+
+enum ClipboardKeys {
+    static func action(keyCode: Int, characters: String?, flags: NSEvent.ModifierFlags) -> ClipboardKeyAction? {
+        let flags = flags.intersection(.deviceIndependentFlagsMask)
+        let command = flags.contains(.command)
+        switch keyCode {
+        case 125: return .move(1)                                   // ↓
+        case 126: return .move(-1)                                  // ↑
+        case 53: return .close                                      // Esc
+        case 36, 76: return .choose(paste: !flags.contains(.option), invertFormatting: flags.contains(.shift))
+        case 51 where command && flags.contains(.shift): return .clear   // ⌘⇧⌫
+        case 51 where command: return .delete                       // ⌘⌫
+        default: break
+        }
+        guard command, let key = characters?.lowercased() else { return nil }
+        if key == "p" { return .togglePin }
+        if let digit = Int(key), (1...9).contains(digit) { return .row(digit - 1) }
+        return nil
+    }
+}
+
 /// State of one open panel: the search, the selected row and small caches (thumbnails, app
 /// icons) that go away with the panel.
 @Observable
@@ -57,6 +90,14 @@ final class ClipboardPanelModel {
     var history: [ClipItem] { store.history.filter(matches) }
     /// Visible rows in order; the first nine get ⌘1–⌘9.
     var rows: [ClipItem] { pinned + history }
+
+    /// Deletes an item; the selection goes to the row now in its place, else the last (CB-22).
+    func remove(_ id: ClipItem.ID) {
+        let index = rows.firstIndex { $0.id == id } ?? 0
+        store.remove(id)
+        let left = rows
+        selection = left.isEmpty ? nil : left[min(index, left.count - 1)].id
+    }
 
     func selectFirst() {
         selection = rows.first?.id
@@ -189,16 +230,21 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         guard let visible = screen?.visibleFrame else { return }
+        setFrameOrigin(Self.origin(position: ClipboardPosition.current, mouse: mouse, visible: visible, size: frame.size))
+    }
+
+    /// Centered with its top 18 % below the top, or by the pointer; 8 pt inside the visible frame (CB-19).
+    static func origin(position: ClipboardPosition, mouse: NSPoint, visible: NSRect, size: NSSize) -> NSPoint {
         var origin: NSPoint
-        switch ClipboardPosition.current {
+        switch position {
         case .center:
-            origin = NSPoint(x: visible.midX - frame.width / 2, y: visible.maxY - visible.height * 0.18 - frame.height)
+            origin = NSPoint(x: visible.midX - size.width / 2, y: visible.maxY - visible.height * 0.18 - size.height)
         case .pointer:
-            origin = NSPoint(x: mouse.x - 24, y: mouse.y - frame.height + 12)
+            origin = NSPoint(x: mouse.x - 24, y: mouse.y - size.height + 12)
         }
-        origin.x = min(max(origin.x, visible.minX + 8), visible.maxX - frame.width - 8)
-        origin.y = min(max(origin.y, visible.minY + 8), visible.maxY - frame.height - 8)
-        setFrameOrigin(origin)
+        origin.x = min(max(origin.x, visible.minX + 8), visible.maxX - size.width - 8)
+        origin.y = min(max(origin.y, visible.minY + 8), visible.maxY - size.height - 8)
+        return origin
     }
 
     // MARK: Keyboard
@@ -209,35 +255,25 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     }
 
     private func handle(_ event: NSEvent) -> Bool {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        let command = flags.contains(.command)
-        switch Int(event.keyCode) {
-        case 125: model.move(1); return true                // ↓
-        case 126: model.move(-1); return true               // ↑
-        case 53: close(); return true                       // Esc
-        case 36, 76:                                        // Return: paste; ⌥Return: copy only; ⇧: other formatting
-            if let id = model.selection {
-                module?.use(id, paste: !flags.contains(.option), invertFormatting: flags.contains(.shift))
-            }
-            return true
-        case 51 where command && flags.contains(.shift):    // ⌘⇧⌫: clear history
-            confirmClear(); return true
-        case 51 where command:                              // ⌘⌫: delete the selected item
+        guard let action = ClipboardKeys.action(keyCode: Int(event.keyCode), characters: event.charactersIgnoringModifiers,
+                                                flags: event.modifierFlags) else { return false }
+        switch action {
+        case .move(let step): model.move(step)
+        case .close: close()
+        case .choose(let paste, let invert):
+            if let id = model.selection { module?.use(id, paste: paste, invertFormatting: invert) }
+        case .clear: confirmClear()
+        case .delete:
             if let id = model.selection { remove(id) }
-            return true
-        default: break
-        }
-        guard command, let key = event.charactersIgnoringModifiers?.lowercased() else { return false }
-        if key == "p", let id = model.selection {
+        case .togglePin:
+            // With nothing selected, ⌘P goes on to the search field.
+            guard let id = model.selection else { return false }
             togglePin(id)
-            return true
-        }
-        if let digit = Int(key), (1...9).contains(digit) {
+        case .row(let index):
             let rows = model.rows
-            if rows.indices.contains(digit - 1) { module?.use(rows[digit - 1].id, paste: true) }
-            return true
+            if rows.indices.contains(index) { module?.use(rows[index].id, paste: true) }
         }
-        return false
+        return true
     }
 
     private func togglePin(_ id: ClipItem.ID) {
@@ -249,11 +285,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     }
 
     private func remove(_ id: ClipItem.ID) {
-        let rows = model.rows
-        let index = rows.firstIndex { $0.id == id } ?? 0
-        model.store.remove(id)
-        let left = model.rows
-        model.selection = left.isEmpty ? nil : left[min(index, left.count - 1)].id
+        model.remove(id)
         model.announce(String(localized: "Deleted"))
     }
 

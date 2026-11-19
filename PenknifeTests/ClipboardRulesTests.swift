@@ -55,6 +55,25 @@ struct ClipboardRulesTests {
 
     static func blob(_ size: Int, _ byte: UInt8 = 1) -> Data { Data(repeating: byte, count: size) }
 
+    /// An empty private pasteboard; release it with `releaseGlobally()`.
+    static func privatePasteboard() -> NSPasteboard {
+        let pasteboard = NSPasteboard(name: .init("PenknifeTests.\(UUID().uuidString)"))
+        pasteboard.clearContents()
+        return pasteboard
+    }
+
+    /// A copy made by another app: a new change count with this text.
+    static func copy(_ text: String, to pasteboard: NSPasteboard) {
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    /// A module on a temp store and a private pasteboard. Tests call `check()` themselves; a test
+    /// that calls `start()` calls `stop()` before it returns, so the timer never fires.
+    static func module(_ temp: TempStore, _ pasteboard: NSPasteboard) -> ClipboardModule {
+        ClipboardModule(store: temp.store, pasteboard: pasteboard, frontApp: { nil })
+    }
+
     // MARK: B. Watching the clipboard
 
     @Test("CB-06 passwords and temporary data are not stored")
@@ -139,6 +158,69 @@ struct ClipboardRulesTests {
         temp.reload()
         temp.store.add(.text("pinned text"))
         #expect(temp.store.history.isEmpty)
+    }
+
+    @Test("CB-03 off empties the history and keeps pins; on skips what was copied while off")
+    func onOff() {
+        let temp = TempStore()
+        let pasteboard = Self.privatePasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let module = Self.module(temp, pasteboard)
+        let store = temp.store!
+        store.add(.text("a")); store.add(.text("b"))
+        store.togglePin(store.history[0].id)          // pin "b"
+
+        module.start()
+        module.stop()
+        #expect(store.history.isEmpty)
+        #expect(store.pinned.map(\.text) == ["b"])
+
+        Self.copy("while off", to: pasteboard)
+        module.start()
+        module.check()
+        #expect(store.history.isEmpty)
+        Self.copy("on", to: pasteboard)
+        module.check()
+        module.stop()
+        #expect(store.pinned.map(\.text) == ["b"])
+        temp.reload()
+        #expect(temp.store.pinned.map(\.text) == ["b"])   // still on disk
+    }
+
+    @Test("CB-05 a copy is read once, when the change count moves")
+    func checkOnce() {
+        let temp = TempStore()
+        let pasteboard = Self.privatePasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let module = Self.module(temp, pasteboard)
+        module.check()
+        #expect(temp.store.history.isEmpty)           // nothing changed since the module was made
+        Self.copy("x", to: pasteboard)
+        module.check()
+        temp.store.remove(temp.store.history[0].id)
+        module.check()                                // same change count: not read again
+        #expect(temp.store.history.isEmpty)
+        Self.copy("y", to: pasteboard)
+        module.check()
+        #expect(temp.store.history.map(\.text) == ["y"])
+    }
+
+    @Test("CB-09 choosing an item is not a new copy")
+    func ownWrite() {
+        let temp = TempStore()
+        let pasteboard = Self.privatePasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let module = Self.module(temp, pasteboard)
+        Self.copy("x", to: pasteboard); module.check()
+        Self.copy("y", to: pasteboard); module.check()
+        let x = temp.store.history[1]
+        let changes = temp.store.history.count
+        module.use(x.id, paste: false)
+        #expect(pasteboard.string(forType: .string) == "x")
+        temp.store.remove(x.id)                       // if it were read again, it would come back
+        module.check()
+        #expect(temp.store.history.count == changes - 1)
+        #expect(temp.store.history.map(\.text) == ["y"])
     }
 
     // MARK: C. The history and its limit
@@ -317,11 +399,9 @@ struct ClipboardRulesTests {
 
         let pasteboard = NSPasteboard(name: .init("PenknifeTests.\(UUID().uuidString)"))
         defer { pasteboard.releaseGlobally() }
-        pasteboard.clearContents()
-        ClipboardReader.write(item, formatted: true, to: pasteboard)
+        ClipboardWriter.write(item, to: pasteboard, keepsFormatting: true, invert: false, finder: false)
         #expect(pasteboard.data(forType: .html) == html && pasteboard.string(forType: .string) == "hi")
-        pasteboard.clearContents()
-        ClipboardReader.write(item, formatted: false, to: pasteboard)
+        ClipboardWriter.write(item, to: pasteboard, keepsFormatting: false, invert: false, finder: false)
         #expect(pasteboard.data(forType: .html) == nil && pasteboard.data(forType: .rtf) == nil)
         #expect(pasteboard.string(forType: .string) == "hi")
     }
@@ -353,7 +433,139 @@ struct ClipboardRulesTests {
         #expect(store.fileURLs == [gone, here])
     }
 
+    @Test("CB-25 what choosing an item puts on the clipboard")
+    func writer() throws {
+        let pasteboard = Self.privatePasteboard()
+        defer { pasteboard.releaseGlobally() }
+        let rtf = Data("{\\rtf1 hi}".utf8)
+        let text = ClipItem.text("hi", rtf: rtf)
+        func write(_ item: ClipItem, keep: Bool = true, invert: Bool = false, finder: Bool = false, folder: URL? = nil) {
+            ClipboardWriter.write(item, to: pasteboard, keepsFormatting: keep, invert: invert, finder: finder,
+                                  pastableFolder: folder ?? FileManager.default.temporaryDirectory)
+        }
+
+        write(text)
+        #expect(pasteboard.data(forType: .rtf) == rtf && pasteboard.string(forType: .string) == "hi")
+        write(text, invert: true)
+        #expect(pasteboard.data(forType: .rtf) == nil && pasteboard.string(forType: .string) == "hi")
+        write(text, keep: false)
+        #expect(pasteboard.data(forType: .rtf) == nil)
+        write(text, keep: false, invert: true)
+        #expect(pasteboard.data(forType: .rtf) == rtf)
+
+        let urls = [URL(filePath: "/tmp/a.txt"), URL(filePath: "/tmp/b.txt")]
+        write(.files(urls))
+        let read = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]
+        #expect(read == urls && pasteboard.string(forType: .string) == nil)
+
+        let bitmap = try #require(NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 2, pixelsHigh: 2, bitsPerSample: 8,
+                                                   samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                                   colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        let tiff = try #require(bitmap.tiffRepresentation)
+        let image = ClipItem.image(tiff, type: NSPasteboard.PasteboardType.tiff.rawValue)
+        write(image)
+        #expect(pasteboard.data(forType: .tiff) == tiff && pasteboard.data(forType: .png) == nil)
+        #expect(pasteboard.string(forType: .fileURL) == nil)
+
+        let folder = FileManager.default.temporaryDirectory
+            .appending(path: "PenknifeTests-Pastable-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        write(image, finder: true, folder: folder)
+        #expect(pasteboard.data(forType: .png) != nil)
+        let file = try #require(pasteboard.string(forType: .fileURL).flatMap(URL.init(string:)))
+        #expect(file.resolvingSymlinksInPath().path.hasPrefix(folder.resolvingSymlinksInPath().path + "/"))
+        #expect(file.pathExtension == "png" && file.lastPathComponent.hasPrefix("Image "))
+        #expect(FileManager.default.fileExists(atPath: file.path))
+    }
+
     // MARK: E. The panel
+
+    @Test("CB-22 what each key does")
+    func keys() {
+        func action(_ code: Int, _ chars: String? = nil, _ flags: NSEvent.ModifierFlags = []) -> ClipboardKeyAction? {
+            ClipboardKeys.action(keyCode: code, characters: chars, flags: flags)
+        }
+        #expect(action(125) == .move(1))
+        #expect(action(126) == .move(-1))
+        #expect(action(53) == .close)
+        #expect(action(36) == .choose(paste: true, invertFormatting: false))
+        #expect(action(76) == .choose(paste: true, invertFormatting: false))      // Enter
+        #expect(action(36, nil, .option) == .choose(paste: false, invertFormatting: false))
+        #expect(action(36, nil, .shift) == .choose(paste: true, invertFormatting: true))
+        #expect(action(36, nil, [.shift, .capsLock]) == .choose(paste: true, invertFormatting: true))
+        #expect(action(51, nil, [.command, .shift]) == .clear)
+        #expect(action(51, nil, .command) == .delete)
+        #expect(action(51) == nil)                                                 // ⌫ edits the search
+        #expect(action(35, "p", .command) == .togglePin)
+        #expect(action(35, "P", [.command, .shift]) == .togglePin)
+        #expect(action(20, "3", .command) == .row(2))
+        #expect(action(18, "1", .command) == .row(0))
+        #expect(action(29, "0", .command) == nil)
+        #expect(action(0, "a", .command) == nil)                                   // ⌘A to the field
+        #expect(action(20, "3") == nil)                                            // typing a digit
+    }
+
+    @Test("CB-19 where the panel opens")
+    func origin() {
+        let visible = NSRect(x: 0, y: 0, width: 1000, height: 800)
+        let size = NSSize(width: 480, height: 460)
+        let center = ClipboardPanel.origin(position: .center, mouse: .zero, visible: visible, size: size)
+        #expect(center == NSPoint(x: 260, y: 800 - 144 - 460))
+        let pointer = ClipboardPanel.origin(position: .pointer, mouse: NSPoint(x: 300, y: 600), visible: visible, size: size)
+        #expect(pointer == NSPoint(x: 276, y: 152))
+        let edge = ClipboardPanel.origin(position: .pointer, mouse: NSPoint(x: 995, y: 100), visible: visible, size: size)
+        #expect(edge == NSPoint(x: 1000 - 480 - 8, y: 8))
+        let corner = ClipboardPanel.origin(position: .pointer, mouse: NSPoint(x: 0, y: 800), visible: visible, size: size)
+        #expect(corner == NSPoint(x: 8, y: 800 - 460 - 8))
+        let offset = NSRect(x: 1000, y: 50, width: 1000, height: 800)                // a second screen
+        #expect(ClipboardPanel.origin(position: .center, mouse: .zero, visible: offset, size: size).x == 1260)
+    }
+
+    @Test("CB-23 search ignores case and accents; the first match is selected")
+    func search() {
+        let temp = TempStore()
+        let store = temp.store!
+        store.add(.image(Self.blob(3), type: "public.png"))
+        store.add(.text("Café con leche"))
+        store.add(.text("té"))
+        let model = ClipboardPanelModel(store: store)
+        #expect(model.selection == store.history[0].id)
+        model.move(1)
+        model.query = "CAFE"
+        #expect(model.rows.map(\.text) == ["Café con leche"])
+        #expect(model.selection == model.rows.first?.id)
+        model.query = "image"
+        #expect(model.rows.map(\.kind) == [.image])
+        model.query = "leche\n"
+        #expect(model.rows.isEmpty && model.selection == nil)
+        model.query = ""
+        #expect(model.rows.count == 3)
+    }
+
+    @Test("CB-22 ↑↓ stop at the ends; delete keeps the place")
+    func selection() {
+        let temp = TempStore()
+        let store = temp.store!
+        for text in ["d", "c", "b", "a"] { store.add(.text(text)) }      // history: a b c d
+        store.togglePin(store.history[3].id)                             // pin "d": d | a b c
+        let model = ClipboardPanelModel(store: store)
+        func selected() -> String? { model.rows.first { $0.id == model.selection }?.text }
+        #expect(selected() == "d")
+        model.move(-1)
+        #expect(selected() == "d")
+        model.move(2)
+        #expect(selected() == "b")
+        model.move(-1)
+        model.remove(model.selection!)                                   // "a" (middle): the row in its place
+        #expect(selected() == "b")
+        model.move(9)
+        #expect(selected() == "c")
+        model.remove(model.selection!)                                   // the last: goes to the new last
+        #expect(selected() == "b")
+        model.remove(model.selection!)
+        model.remove(model.selection!)
+        #expect(model.rows.isEmpty && model.selection == nil)
+    }
 
     @Test("CB-21 a row's line")
     func titles() {
