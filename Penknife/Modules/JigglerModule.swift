@@ -53,6 +53,26 @@ enum JigglerMotion {
     static func steps(from origin: CGPoint) -> [CGPoint] {
         [(3, 0), (0, 3), (-3, 0), (0, -3), (0, 0)].map { CGPoint(x: origin.x + $0.0, y: origin.y + $0.1) }
     }
+
+    /// The user moved the mouse if the pointer is more than 3 px (one step) from where the last
+    /// move put it. A step clamped at a screen edge lands at most 3 px off, so it doesn't count.
+    static func userMoved(expected: CGPoint, actual: CGPoint) -> Bool {
+        abs(actual.x - expected.x) > 3 || abs(actual.y - expected.y) > 3
+    }
+
+    /// Posts the square from `origin`, waiting `pause` before each next move; stops as soon as the
+    /// user moves the mouse (B-19), so the pointer is never pulled back. Returns whether it finished.
+    static func perform(from origin: CGPoint, location: () -> CGPoint, move: (CGPoint) -> Void,
+                        pause: () async -> Void) async -> Bool {
+        var last = origin
+        for step in steps(from: origin) {
+            if userMoved(expected: last, actual: location()) { return false }
+            move(step)
+            last = step
+            await pause()
+        }
+        return true
+    }
 }
 
 /// Everything the jiggler touches outside itself (S3): `live` is the real Mac; tests pass fakes.
@@ -232,14 +252,14 @@ final class JigglerModule: Module {
     private func jiggle() {
         guard !isJiggling else { return }
         isJiggling = true
-        let steps = JigglerMotion.steps(from: env.mouseLocation())
+        let origin = env.mouseLocation()
         let key = JigglerKey.current(in: env.defaults)
         Task {
-            for step in steps {
-                env.moveMouse(step)
-                try? await Task.sleep(for: .milliseconds(80))
-            }
-            if let code = key.keyCode {
+            let finished = await JigglerMotion.perform(from: origin, location: env.mouseLocation,
+                                                       move: env.moveMouse,
+                                                       pause: { try? await Task.sleep(for: .milliseconds(80)) })
+            // The user took the mouse: they are active, so no key either.
+            if finished, let code = key.keyCode {
                 for press in 0..<key.presses {
                     if press > 0 { try? await Task.sleep(for: .milliseconds(100)) }
                     env.key(code)

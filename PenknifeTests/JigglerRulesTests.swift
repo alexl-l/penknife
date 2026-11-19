@@ -37,6 +37,7 @@ struct JigglerRulesTests {
         private(set) var lockHandlers: (locked: @MainActor () -> Void, unlocked: @MainActor () -> Void)?
         private(set) var timers: [(seconds: TimeInterval, fire: @MainActor () -> Void)] = []
         var idle: TimeInterval = 0
+        var pointer = CGPoint(x: 100, y: 100)
         private(set) var posted: [String] = []
 
         init(_ values: [String: Any] = [:]) { defaults = MemoryDefaults(values) }
@@ -56,8 +57,8 @@ struct JigglerRulesTests {
                     return { [self] in cancelled.insert(index) }
                 },
                 idleSeconds: { [self] in idle },
-                mouseLocation: { CGPoint(x: 100, y: 100) },
-                moveMouse: { [self] in posted.append("move \(Int($0.x)),\(Int($0.y))") },
+                mouseLocation: { [self] in pointer },
+                moveMouse: { [self] in pointer = $0; posted.append("move \(Int($0.x)),\(Int($0.y))") },
                 key: { [self] in posted.append("key \($0)") })
         }
 
@@ -86,6 +87,31 @@ struct JigglerRulesTests {
         #expect(JigglerMotion.steps(from: CGPoint(x: 100, y: 100)) ==
                 [CGPoint(x: 103, y: 100), CGPoint(x: 100, y: 103), CGPoint(x: 97, y: 100),
                  CGPoint(x: 100, y: 97), CGPoint(x: 100, y: 100)])
+    }
+
+    @Test("B-19 the square stops as soon as the user moves the mouse")
+    func motionStopsWhenUserMoves() async {
+        var pointer = CGPoint(x: 100, y: 100)
+        var moves: [CGPoint] = []
+        let untouched = await JigglerMotion.perform(from: pointer, location: { pointer },
+                                                    move: { pointer = $0; moves.append($0) }, pause: {})
+        #expect(untouched && moves == JigglerMotion.steps(from: CGPoint(x: 100, y: 100)))
+
+        pointer = CGPoint(x: 100, y: 100)
+        moves = []
+        let grabbed = await JigglerMotion.perform(from: pointer, location: { pointer },
+                                                  move: { moves.append($0); pointer = CGPoint(x: 300, y: 250) },
+                                                  pause: {})
+        #expect(!grabbed && moves == [CGPoint(x: 103, y: 100)])
+        #expect(!JigglerMotion.userMoved(expected: CGPoint(x: 103, y: 100), actual: CGPoint(x: 103.6, y: 99.5)))
+
+        // At the right edge every step right is clamped: still the whole square.
+        pointer = CGPoint(x: 1919, y: 500)
+        moves = []
+        let edge = await JigglerMotion.perform(from: pointer, location: { pointer },
+                                               move: { moves.append($0); pointer = CGPoint(x: min($0.x, 1919), y: $0.y) },
+                                               pause: {})
+        #expect(edge && moves.count == 5)
     }
 
     @Test("JG-07 keys that type nothing, Caps Lock by default and pressed twice")
