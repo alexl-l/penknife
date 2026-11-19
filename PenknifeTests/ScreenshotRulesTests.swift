@@ -1059,4 +1059,174 @@ struct ScreenshotRulesTests {
         #expect(pasteboard.pasteboardItems?.first?.string(forType: .fileURL) == nil)
         #expect(PastableImage.used(in: folder) == 800)
     }
+
+    // MARK: S4 mark editor
+
+    static func labels(_ steps: [MarkEditor.Step]) -> [String] { steps.map(\.label) }
+
+    @Test("SS-40 every change is one undo step; a new change empties Redo; undo and redo drop the selection")
+    func undoRedo() {
+        var editor = MarkEditor()
+        let nothing = (editor.undo(), editor.redo())
+        #expect(!editor.canUndo && !editor.canRedo && nothing.0 == nil && nothing.1 == nil)
+        let arrow = Self.mark(.arrow, [Self.p(0, 0), Self.p(50, 50)])
+        let box = Self.mark(.rectangle, [Self.p(10, 10), Self.p(40, 40)])
+        editor.add(arrow)
+        editor.add(box)
+        #expect(editor.marks.count == 2 && editor.undoStack.count == 2)
+        expectText(editor.undoStack[0].label, english: "Arrow", es: "Flecha")
+        editor.selected = 1
+        let undone = editor.undo()
+        #expect(undone == editor.redoStack.last?.label && editor.marks.count == 1 && editor.selected == nil)
+        editor.selected = 0
+        let redone = editor.redo()
+        #expect(redone != nil && editor.marks.count == 2 && editor.selected == nil && !editor.canRedo)
+        _ = editor.undo()
+        #expect(editor.canRedo)
+        editor.add(box)
+        #expect(!editor.canRedo)
+
+        // Delete and straighten are steps too.
+        var bent = arrow
+        bent.bend = Self.p(30, 0)
+        var other = MarkEditor()
+        other.add(bent)
+        other.straighten(at: 0)
+        #expect(other.marks[0].bend == nil)
+        expectText(other.undoStack.last!.label, english: "Straighten", es: "Enderezar")
+        other.selected = 0
+        let removed = other.remove(at: 0)
+        #expect(removed != nil && other.marks.isEmpty && other.selected == nil)
+        expectText(other.undoStack.last!.label, english: "Delete", es: "Eliminar")
+        let missing = other.remove(at: 0)
+        #expect(missing == nil && other.undoStack.count == 3)
+        _ = other.undo()
+        _ = other.undo()
+        #expect(other.marks[0].bend == Self.p(30, 0))
+    }
+
+    @Test("SS-38 SS-40 a drag that moves a mark is one step; one that ends where it began is none")
+    func dragSteps() {
+        var editor = MarkEditor()
+        editor.add(Self.mark(.rectangle, [Self.p(10, 10), Self.p(40, 40)]))
+        editor.selected = 0
+        editor.beginDrag()
+        for _ in 0..<5 { editor.change(0) { $0.move(by: CGVector(dx: 2, dy: 0)) } }
+        editor.finishEditing(moved: true)
+        #expect(editor.undoStack.count == 2 && editor.marks[0].points[0] == Self.p(20, 10))
+        expectText(editor.undoStack.last!.label, english: "Move", es: "Mover")
+        editor.beginDrag()
+        editor.change(0) { $0.move(by: CGVector(dx: 3, dy: 0)) }
+        editor.change(0) { $0.move(by: CGVector(dx: -3, dy: 0)) }
+        editor.finishEditing(moved: false)
+        #expect(editor.undoStack.count == 2)
+        editor.finishEditing(moved: true)          // no drag running: nothing
+        #expect(editor.undoStack.count == 2)
+        _ = editor.undo()
+        #expect(editor.marks[0].points[0] == Self.p(10, 10))
+    }
+
+    @Test("SS-38 arrows repeated within 1 s are one undo step; a pause, the other kind or another change starts a new one")
+    func nudgeSteps() {
+        var editor = MarkEditor()
+        editor.add(Self.mark(.rectangle, [Self.p(10, 10), Self.p(40, 40)]))
+        let t = Date(timeIntervalSinceReferenceDate: 1_000)
+        let move = String(localized: "Move"), resize = String(localized: "Resize")
+        for step in 0..<4 { editor.nudge(0, label: move, now: t + Double(step) * 0.5) { $0.move(by: CGVector(dx: 1, dy: 0)) } }
+        #expect(editor.undoStack.count == 2 && editor.marks[0].points[0] == Self.p(14, 10))
+        editor.nudge(0, label: move, now: t + 2.6) { $0.move(by: CGVector(dx: 1, dy: 0)) }   // 1.1 s later
+        #expect(editor.undoStack.count == 3)
+        editor.nudge(0, label: resize, now: t + 2.7) { $0.move(by: CGVector(dx: 1, dy: 0)) }
+        #expect(editor.undoStack.count == 4)
+        editor.nudge(0, label: move, now: t + 2.8) { _ in }
+        #expect(editor.undoStack.count == 5)
+        editor.add(Self.mark(.arrow, [Self.p(0, 0), Self.p(5, 5)]))
+        editor.nudge(0, label: move, now: t + 2.9) { _ in }
+        #expect(editor.undoStack.count == 7)        // the new mark closed the arrow step
+        _ = editor.undo()
+        editor.nudge(0, label: move, now: t + 3.0) { _ in }
+        #expect(editor.undoStack.count == 7)        // undo closed it too: a new step
+        for _ in 0..<5 { _ = editor.undo() }       // back to the end of the first held arrows
+        #expect(editor.marks[0].points[0] == Self.p(14, 10))
+        // A drag move between two arrows (same label "Move") closes the arrow step too.
+        var dragged = MarkEditor()
+        dragged.add(Self.mark(.rectangle, [Self.p(10, 10), Self.p(40, 40)]))
+        dragged.selected = 0
+        dragged.nudge(0, label: move, now: t) { $0.move(by: CGVector(dx: 1, dy: 0)) }
+        dragged.beginDrag()
+        dragged.change(0) { $0.move(by: CGVector(dx: 5, dy: 0)) }
+        dragged.finishEditing(moved: true)
+        dragged.nudge(0, label: move, now: t + 0.2) { $0.move(by: CGVector(dx: 1, dy: 0)) }
+        #expect(dragged.undoStack.count == 4)
+    }
+
+    @Test("SS-39 a color or size change on the selected mark is one step; none without a mark it applies to")
+    func restyleSteps() {
+        var editor = MarkEditor()
+        editor.add(Self.mark(.rectangle, [Self.p(10, 10), Self.p(40, 40)], color: .systemRed))
+        let none = editor.restyleSelected(label: "Color", applies: { _ in true }) { $0.color = .systemBlue }
+        #expect(!none)
+        editor.selected = 0
+        let notApplying = editor.restyleSelected(label: "Color", applies: { _ in false }) { $0.color = .systemBlue }
+        #expect(!notApplying)
+        #expect(editor.undoStack.count == 1)
+        let applied = editor.restyleSelected(label: "Color", applies: { _ in true }) { $0.color = .systemBlue }
+        #expect(applied)
+        #expect(editor.marks[0].color == .systemBlue && editor.undoStack.count == 2 && editor.undoStack.last?.label == "Color")
+        _ = editor.undo()
+        #expect(editor.marks[0].color == .systemRed)
+    }
+
+    @Test("SS-41 one eraser drag is one step, marks erased completely go, a drag that touched nothing is none")
+    func eraserSteps() {
+        var editor = MarkEditor()
+        editor.add(Self.mark(.pen, [Self.p(10, 10), Self.p(12, 10)]))
+        editor.add(Self.mark(.rectangle, [Self.p(100, 100), Self.p(200, 200)]))
+        editor.beginDrag()
+        let missed = editor.erase(from: nil, to: Self.p(400, 400), width: 20, stroke: 1)
+        #expect(!missed)
+        let none = editor.finishErasing()
+        #expect(none.isEmpty && editor.undoStack.count == 2)
+        editor.beginDrag()
+        let hit = editor.erase(from: Self.p(0, 10), to: Self.p(30, 10), width: 30, stroke: 2)
+        #expect(hit)
+        let gone = editor.finishErasing()
+        #expect(gone.count == 1 && gone[0].tool == .pen)
+        #expect(editor.marks.count == 1 && editor.marks[0].tool == .rectangle && editor.undoStack.count == 3)
+        expectText(editor.undoStack.last!.label, english: "Eraser", es: "Borrador")
+        _ = editor.undo()
+        #expect(editor.marks.count == 2 && editor.marks[0].erasures.isEmpty)
+    }
+
+    @Test("SS-31 a text typed again goes back to its depth; unchanged = no step, changed or emptied = one step")
+    func textEditSteps() {
+        var editor = MarkEditor()
+        editor.add(Self.mark(.arrow, [Self.p(0, 0), Self.p(5, 5)]))
+        editor.add(Self.mark(.text, [Self.p(20, 20)], text: "Hola"))
+        editor.add(Self.mark(.rectangle, [Self.p(10, 10), Self.p(40, 40)]))
+        editor.selected = 1
+        let old = editor.beginTextEdit(1)
+        #expect(old.text == "Hola" && editor.marks.count == 2 && editor.selected == nil)
+        editor.endText(old)
+        #expect(editor.marks.map(\.tool) == [.arrow, .text, .rectangle] && editor.undoStack.count == 3)
+
+        var changed = editor.beginTextEdit(1)
+        changed.text = "Hola mundo"
+        editor.endText(changed)
+        #expect(editor.marks[1].text == "Hola mundo" && editor.undoStack.count == 4)
+        expectText(editor.undoStack.last!.label, english: "Text", es: "Texto")
+
+        var blank = editor.beginTextEdit(1)
+        blank.text = "   "
+        editor.endText(blank)
+        #expect(editor.marks.map(\.tool) == [.arrow, .rectangle] && editor.undoStack.count == 5)
+        _ = editor.undo()
+        #expect(editor.marks[1].text == "Hola mundo")
+
+        // A new text: added when it has something in it.
+        editor.endText(Self.mark(.text, [Self.p(1, 1)], text: ""))
+        #expect(editor.marks.count == 3)
+        editor.endText(Self.mark(.text, [Self.p(1, 1)], text: "Nuevo"))
+        #expect(editor.marks.count == 4 && editor.marks.last?.text == "Nuevo")
+    }
 }

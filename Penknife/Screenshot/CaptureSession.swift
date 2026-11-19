@@ -203,23 +203,16 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var fixedSelection: Bool { targetImage != nil }
     /// The selection's background blurred once, so the blur tool shows real pixels while dragging.
     private var blurred: (selection: CGRect, image: CGImage, scale: CGFloat)?
-    private var annotations: [Annotation] = []
-    /// Undo and redo keep the marks as they were before each change, with what the change was.
-    private var undoStack: [(marks: [Annotation], label: String)] = []
-    private var redoStack: [(marks: [Annotation], label: String)] = []
-    /// R-32: the mark selected for changes, the one under the pointer, the marks before a drag
-    /// changed them, and the eraser drags made so far.
-    private var selectedMark: Int?
+    /// The marks, the selected one and the undo history (S4).
+    private var editor = MarkEditor()
+    private var annotations: [Annotation] { editor.marks }
+    private var selectedMark: Int? {
+        get { editor.selected }
+        set { editor.selected = newValue }
+    }
+    /// R-32: the mark under the pointer, and the eraser drags made so far.
     private var hoveredMark: Int?
-    private var marksBefore: [Annotation]?
     private var eraserStrokes = 0
-    private var lastNudge = Date.distantPast
-    /// The newest undo step was made by arrow keys (another change or an undo closes it).
-    private var nudgeStepOpen = false
-    /// A text being typed again (double-click): the marks before, for one undo step.
-    private var textEditBefore: [Annotation]?
-    /// The text being typed again, and where it was (it goes back there, at the same depth).
-    private var textEditOriginal: (mark: Annotation, index: Int)?
     private var current: Annotation?
     private var drag: Drag = .none
     private var capturing = false
@@ -280,10 +273,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     func reset() {
         endText()
         selection = nil
-        annotations.removeAll()
-        undoStack.removeAll()
-        redoStack.removeAll()
-        selectedMark = nil
+        editor = MarkEditor()
+        updateUndoState()
         hoveredMark = nil
         hovered = nil
         windowMode = false
@@ -300,10 +291,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     func tearDown() {
         hintWork?.cancel()
         hintDone = true
-        annotations.removeAll()
-        undoStack.removeAll()
-        redoStack.removeAll()
-        selectedMark = nil
+        editor = MarkEditor()
         hoveredMark = nil
         current = nil
         textView?.removeFromSuperview()
@@ -535,14 +523,13 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             if let handle = MarkEditing.handle(at: point, of: mark) {
                 if clicks == 2, mark.bends, handle == 2, mark.bend != nil {
                     // Double-click the bend handle: straight again.
-                    let before = annotations
                     redrawMark(index)
-                    annotations[index].bend = nil
+                    editor.straighten(at: index)
                     redrawMark(index)
-                    commit(before, label: String(localized: "Straighten"))
+                    updateUndoState()
                     return true
                 }
-                marksBefore = annotations
+                editor.beginDrag()
                 if mark.tool == .blur { prepareBlur() }
                 drag = .resizingMark(handle: handle, original: mark)
                 return true
@@ -554,7 +541,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         }
         if state.tool == .eraser {
             selectMark(nil)
-            marksBefore = annotations
+            editor.beginDrag()
             eraserStrokes += 1
             drag = .erasing(last: point, stroke: eraserStrokes)
             erase(from: nil, to: point, stroke: eraserStrokes)
@@ -569,7 +556,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             return true
         }
         selectMark(index)
-        marksBefore = annotations
+        editor.beginDrag()
         if annotations[index].tool == .blur { prepareBlur() }
         drag = .movingMark(last: point)
         NSCursor.closedHand.set()
@@ -592,23 +579,17 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     private func removeMark(_ index: Int) {
         guard annotations.indices.contains(index) else { return }
-        let before = annotations
         redrawMark(index)
-        let mark = annotations.remove(at: index)
-        selectedMark = nil
+        guard let mark = editor.remove(at: index) else { return }
         hoveredMark = nil
-        commit(before, label: String(localized: "Delete"))
+        updateUndoState()
         announce(String(localized: "Removed: \(mark.tool.title)"))
     }
 
     /// One step of the eraser: only the marks it goes over lose what it covers.
     private func erase(from: CGPoint?, to: CGPoint, stroke: Int) {
         let width = MarkEditing.eraserSizes[state.sizeIndex]
-        var touched = false
-        for index in annotations.indices where annotations[index].erase(from: from, to: to, width: width, stroke: stroke) {
-            touched = true
-        }
-        guard touched else { return }
+        guard editor.erase(from: from, to: to, width: width, stroke: stroke) else { return }
         let start = from ?? to
         setNeedsDisplay(CGRect(x: min(start.x, to.x), y: min(start.y, to.y), width: abs(to.x - start.x), height: abs(to.y - start.y))
             .insetBy(dx: -width / 2 - 2, dy: -width / 2 - 2))
@@ -616,42 +597,29 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     /// The drag ended: marks erased completely go away; the whole drag is one undo step.
     private func finishErasing() {
-        guard let before = marksBefore else { return }
-        marksBefore = nil
-        for index in annotations.indices where annotations[index].isFullyErased { redrawMark(index) }
-        annotations.removeAll { $0.isFullyErased }
-        let changed = annotations.count != before.count || zip(annotations, before).contains { $0.erasures.count != $1.erasures.count }
-        if changed { commit(before, label: CaptureTool.eraser.title) }
+        for mark in editor.finishErasing() { setNeedsDisplay(MarkEditing.area(mark)) }
+        updateUndoState()
     }
 
     /// The selected mark moved or resized: one undo step.
     private func finishEditing(moved: Bool) {
-        guard let before = marksBefore else { return }
-        marksBefore = nil
-        guard let index = selectedMark, before.indices.contains(index), annotations.indices.contains(index),
-              before[index].points != annotations[index].points || before[index].scale != annotations[index].scale
-                || before[index].bend != annotations[index].bend else { return }
-        commit(before, label: moved ? String(localized: "Move") : String(localized: "Resize"))
+        editor.finishEditing(moved: moved)
+        updateUndoState()
     }
 
     /// Color and size changes go to the selected mark too.
     private func restyleSelectedMark(label: String, applies: (Annotation) -> Bool, _ change: (inout Annotation) -> Void) {
         guard let index = selectedMark, annotations.indices.contains(index), applies(annotations[index]) else { return }
-        let before = annotations
         redrawMark(index)
-        change(&annotations[index])
+        _ = editor.restyleSelected(label: label, applies: applies, change)
         redrawMark(index)
-        commit(before, label: label)
+        updateUndoState()
     }
 
     /// Double-click on a text: it is typed again in place.
     private func editText(_ index: Int) {
-        let mark = annotations[index]
-        textEditBefore = annotations
-        textEditOriginal = (mark, index)
         redrawMark(index)
-        annotations.remove(at: index)
-        selectedMark = nil
+        let mark = editor.beginTextEdit(index)
         hoveredMark = nil
         if let color = MarkEditing.colorIndex(of: mark) { state.colorIndex = color }
         state.sizeIndex = mark.size
@@ -661,17 +629,15 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// Arrows on the selected mark: move it, or (⌥) make it bigger or smaller.
     private func nudgeMark(_ index: Int, by delta: CGVector, grow: Bool) {
         let label = grow ? String(localized: "Resize") : String(localized: "Move")
-        // Held or repeated arrows make one undo step.
-        if !(nudgeStepOpen && undoStack.last?.label == label && Date().timeIntervalSince(lastNudge) < 1) {
-            commit(annotations, label: label)
-            nudgeStepOpen = true
-        }
-        lastNudge = Date()
         redrawMark(index)
-        if grow { annotations[index] = MarkEditing.grown(annotations[index], by: delta) } else { annotations[index].move(by: delta) }
+        editor.nudge(index, label: label, now: Date()) { mark in
+            if grow { mark = MarkEditing.grown(mark, by: delta) } else { mark.move(by: delta) }
+        }
+        updateUndoState()
         if annotations[index].tool == .blur {
             prepareBlur()
-            annotations[index].image = blurredPart(annotations[index].rect)
+            let image = blurredPart(annotations[index].rect)
+            editor.change(index) { $0.image = image }
         }
         redrawMark(index)
         announceSoon(grow ? String(localized: "Resized") : String(localized: "Moved"))
@@ -717,15 +683,16 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .movingMark(let last):
             guard let index = selectedMark, annotations.indices.contains(index) else { return }
             redrawMark(index)
-            annotations[index].move(by: CGVector(dx: point.x - last.x, dy: point.y - last.y))
-            if annotations[index].tool == .blur { annotations[index].image = blurredPart(annotations[index].rect) }
+            editor.change(index) { $0.move(by: CGVector(dx: point.x - last.x, dy: point.y - last.y)) }
+            refreshBlur(index)
             redrawMark(index)
             drag = .movingMark(last: point)
         case .resizingMark(let handle, let original):
             guard let index = selectedMark, annotations.indices.contains(index) else { return }
             redrawMark(index)
-            annotations[index] = MarkEditing.resized(original, handle: handle, to: point, keepRatio: event.modifierFlags.contains(.shift))
-            if annotations[index].tool == .blur { annotations[index].image = blurredPart(annotations[index].rect) }
+            let resized = MarkEditing.resized(original, handle: handle, to: point, keepRatio: event.modifierFlags.contains(.shift))
+            editor.change(index) { $0 = resized }
+            refreshBlur(index)
             redrawMark(index)
         case .erasing(let last, let stroke):
             erase(from: last, to: point, stroke: stroke)
@@ -1244,23 +1211,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         let annotation = Annotation(tool: .text, color: color, size: textSize, points: [textOrigin], text: view.string, scale: textScale)
         view.removeFromSuperview()
         window?.makeFirstResponder(self)
-        if let before = textEditBefore {
-            // A text typed again goes back to its place and depth; one undo step brings back the
-            // old one, and nothing changes when it wasn't changed (QA, 2026-11-17).
-            let original = textEditOriginal
-            textEditBefore = nil
-            textEditOriginal = nil
-            let index = min(original?.index ?? annotations.count, annotations.count)
-            if let old = original?.mark, annotation.text == old.text, annotation.color == old.color,
-               annotation.size == old.size, annotation.scale == old.scale {
-                annotations.insert(old, at: index)
-            } else {
-                if annotation.isMeaningful { annotations.insert(annotation, at: index) }
-                commit(before, label: CaptureTool.text.title)
-            }
-        } else if annotation.isMeaningful {
-            add(annotation)
-        }
+        // A text typed again goes back to its place and depth; one undo step brings back the old
+        // one, and nothing changes when it wasn't changed (QA, 2026-11-17).
+        editor.endText(annotation)
+        updateUndoState()
         textScale = 1
         needsDisplay = true
     }
@@ -1268,46 +1222,36 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     // MARK: Undo
 
     private func add(_ annotation: Annotation) {
-        let before = annotations
-        annotations.append(annotation)
-        commit(before, label: annotation.tool.title)
+        editor.add(annotation)
+        updateUndoState()
     }
 
-    /// A change was made: `before` is what undo brings back.
-    private func commit(_ before: [Annotation], label: String) {
-        nudgeStepOpen = false
-        undoStack.append((before, label))
-        redoStack.removeAll()
-        updateUndoState()
+    /// A blur mark that moved or changed size shows the blurred screen under its new place.
+    private func refreshBlur(_ index: Int) {
+        guard annotations[index].tool == .blur else { return }
+        let image = blurredPart(annotations[index].rect)
+        editor.change(index) { $0.image = image }
     }
 
     private func undo() {
-        guard let last = undoStack.popLast() else { return }
-        nudgeStepOpen = false
-        redoStack.append((annotations, last.label))
-        annotations = last.marks
-        selectedMark = nil
+        guard let label = editor.undo() else { return }
         hoveredMark = nil
         updateUndoState()
         needsDisplay = true
-        announce(String(localized: "Undone: \(last.label)"))
+        announce(String(localized: "Undone: \(label)"))
     }
 
     private func redo() {
-        guard let next = redoStack.popLast() else { return }
-        nudgeStepOpen = false
-        undoStack.append((annotations, next.label))
-        annotations = next.marks
-        selectedMark = nil
+        guard let label = editor.redo() else { return }
         hoveredMark = nil
         updateUndoState()
         needsDisplay = true
-        announce(String(localized: "Redone: \(next.label)"))
+        announce(String(localized: "Redone: \(label)"))
     }
 
     private func updateUndoState() {
-        state.canUndo = !undoStack.isEmpty
-        state.canRedo = !redoStack.isEmpty
+        state.canUndo = editor.canUndo
+        state.canRedo = editor.canRedo
     }
 
     // MARK: Output
