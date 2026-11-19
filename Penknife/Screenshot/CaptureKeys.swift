@@ -83,7 +83,9 @@ enum CaptureKeys {
             case "z": return flags.contains(.shift) ? .redo : .undo
             case "c": return .copy
             case "s": return .save
-            default: return nil
+            // No other ⌘ key leaves the editor: ⌘, would open Settings under the overlay and
+            // take the keyboard, ⌘Q would quit and lose the screenshot (B-9).
+            default: return .swallow
             }
         }
         guard c.hasSelection, flags.isDisjoint(with: [.control, .option]) else { return nil }
@@ -92,6 +94,13 @@ enum CaptureKeys {
         if key == "-" { return .size(max(c.sizeIndex - 1, 0)) }
         if key == "+" || key == "=" { return .size(min(c.sizeIndex + 1, CaptureSize.count - 1)) }
         return nil
+    }
+
+    /// While a text is typed the key table isn't asked; only the Edit menu's keys (⌘Z, ⇧⌘Z,
+    /// ⌘X, ⌘C, ⌘V, ⌘A) go on to the app's menu, for the text (B-9).
+    static func reachesMenuWhileTyping(characters: String?, flags: NSEvent.ModifierFlags) -> Bool {
+        guard flags.intersection(.deviceIndependentFlagsMask).contains(.command) else { return true }
+        return ["z", "x", "c", "v", "a"].contains(characters?.lowercased() ?? "")
     }
 
     /// Keys for marks: Tab selects the next one (⇧ the previous); with one selected, Esc lets it

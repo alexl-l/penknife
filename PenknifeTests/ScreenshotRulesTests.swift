@@ -739,7 +739,7 @@ struct ScreenshotRulesTests {
         #expect(key(53, "", isRepeat: true, selected) == .swallow)
     }
 
-    @Test("SS-44 ⌘ keys in the editor: C, S, Z, ⇧Z, ⇧R; any other goes on to the app")
+    @Test("SS-44 ⌘ keys in the editor: C, S, Z, ⇧Z, ⇧R; any other stays in the overlay (B-9)")
     func commandKeys() {
         let c = Self.editing
         #expect(key(8, "c", [.command], c) == .copy)
@@ -747,9 +747,11 @@ struct ScreenshotRulesTests {
         #expect(key(6, "z", [.command], c) == .undo)
         #expect(key(6, "Z", [.command, .shift], c) == .redo)
         #expect(key(15, "R", [.command, .shift], c) == .record)
-        #expect(key(15, "r", [.command], c) == nil)
-        #expect(key(43, ",", [.command], c) == nil)   // B-9: Settings opens under the overlay
-        #expect(key(12, "q", [.command], c) == nil)
+        #expect(key(15, "r", [.command], c) == .swallow)
+        #expect(key(43, ",", [.command], c) == .swallow)   // Settings would open under the overlay
+        #expect(key(12, "q", [.command], c) == .swallow)   // quitting would lose the screenshot
+        #expect(key(13, "w", [.command], c) == .swallow)
+        #expect(key(43, ",", [.command]) == .swallow)
         // Also before a selection.
         #expect(key(8, "c", [.command]) == .copy)
     }
@@ -769,6 +771,18 @@ struct ScreenshotRulesTests {
     }
 
     // MARK: Bugs fixed after S2 and S3
+
+    @Test("B-9 while typing a text only the Edit menu's keys reach the app's menu")
+    func typingMenuKeys() {
+        for character in ["z", "Z", "x", "c", "v", "a"] {
+            #expect(CaptureKeys.reachesMenuWhileTyping(characters: character, flags: [.command]))
+        }
+        #expect(CaptureKeys.reachesMenuWhileTyping(characters: "z", flags: [.command, .shift]))
+        #expect(!CaptureKeys.reachesMenuWhileTyping(characters: ",", flags: [.command]))
+        #expect(!CaptureKeys.reachesMenuWhileTyping(characters: "q", flags: [.command]))
+        #expect(!CaptureKeys.reachesMenuWhileTyping(characters: "w", flags: [.command]))
+        #expect(CaptureKeys.reachesMenuWhileTyping(characters: "a", flags: []))
+    }
 
     @Test("B-8 the toolbar stays on the screen for a window past the screen's bottom")
     func toolbarForTallWindow() {

@@ -156,7 +156,12 @@ final class CaptureWindow: NSPanel {
     /// ⌘ keys reach the window before the app's menu, whose Undo/Copy would otherwise take ⌘Z and
     /// ⌘C (e.g. after typing text, Undo was enabled for the text view and swallowed ⌘Z).
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if !(firstResponder is NSTextView), canvas.handleKey(event) { return true }
+        if firstResponder is NSTextView {
+            guard CaptureKeys.reachesMenuWhileTyping(characters: event.charactersIgnoringModifiers,
+                                                     flags: event.modifierFlags) else { return true }
+        } else if canvas.handleKey(event) {
+            return true
+        }
         return super.performKeyEquivalent(with: event)
     }
 }
