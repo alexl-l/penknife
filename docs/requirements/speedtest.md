@@ -47,7 +47,7 @@ For the user:
 - DONE 2026-11-19 (user: "go" = the recommendation; ST-03, `run(repeatAlert:)`, the Touch Bar passes false): **O-29 A start while testing gives no feedback from the menu or the shortcut.** The Touch Bar and the menu bar item show the needle, but on a Mac without either shown, pressing the shortcut again looks like nothing happened. [Recommended: show the "Testing internet speed…" alert again, no second test.]
 
 Suspected, found reading the code, NOT seen live:
-- **B-22 A tool killed by a signal we didn't send counts as cancelled (breaks ST-07).** `runTool` maps any `uncaughtSignal` end to SIGTERM, so a networkQuality crash ends with no alert and no failure line: the needle stops and the item goes idle. [Fix: count only Penknife's own cancel as silent.] Low priority; fix without asking per the routine-work rule when touched next.
+- **B-22 (fixed 2026-11-19, build 203; live check pending) A tool killed by a signal we didn't send counted as cancelled (broke ST-07).** **Fix:** a `cancelled` flag set only by Penknife's own cancel; `SpeedTestModule.outcome(of:cancelled:)` decides cancelled / success / failure; a signal end keeps its signal number as the status (test `ST-07 B-22` in SpeedTestRulesTests). Was: `runTool` maps any `uncaughtSignal` end to SIGTERM, so a networkQuality crash ends with no alert and no failure line: the needle stops and the item goes idle. [Fix: count only Penknife's own cancel as silent.] Low priority; fix without asking per the routine-work rule when touched next.
 
 Not measured (check live; nothing to decide yet):
 - No timeout of our own: if networkQuality never ends (a stalled network, a captive portal), "testing…" stays until the module is turned off or Penknife quits. Whether networkQuality has its own limit is not measured.
@@ -68,4 +68,4 @@ Not measured (check live; nothing to decide yet):
 - **S2 Menu lines** (ST, SM, MR). `SpeedTestModule.menuLines(isRunning:failed:result:isToday:)`, used by both menus (they had the same code twice). Covers ST-08.
 - **S3 Menu bar sequence and looks** (MR). `MenuBarReadings.speedSteps(isRunning:failed:hasResult:wasTesting:)` on top of `BarLooks.speedSteps` (the item had its own copy of the Touch Bar's sequence and needles), `speedLook(phase:needleStep:result:)`. Covers ST-09.
 
-Manual only (no seam worth it): ST-02, ST-03, ST-07, ST-11 (the tool, alerts and observers).
+How a test ends (ST-07) is tested through `outcome(of:cancelled:)`. Manual only (no seam worth it): ST-02, ST-03, the ST-07 alerts, ST-11 (the tool, alerts and observers).
