@@ -12,13 +12,13 @@ cd "$(dirname "$0")/.."
 BUILD=$(git rev-list --count HEAD)
 VERSION=$(sed -n 's/.*MARKETING_VERSION = \(.*\);/\1/p' Penknife.xcodeproj/project.pbxproj | head -1)
 TAG="v$VERSION"
-OUT=build/release/$TAG
-APP=build/Build/Products/Release/Penknife.app
-SPARKLE_BIN=build/SourcePackages/artifacts/sparkle/Sparkle/bin
+OUT=build.noindex/release/$TAG
+APP=build.noindex/Build/Products/Release/Penknife.app
+SPARKLE_BIN=build.noindex/SourcePackages/artifacts/sparkle/Sparkle/bin
 grep -q "^## $VERSION " CHANGELOG.md || { echo "No CHANGELOG section for $VERSION"; exit 1; }
 
 xcodebuild -quiet -project Penknife.xcodeproj -scheme Penknife -configuration Release \
-  -derivedDataPath build -destination 'generic/platform=macOS' ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
+  -derivedDataPath build.noindex -destination 'generic/platform=macOS' ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
   CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= CURRENT_PROJECT_VERSION="$BUILD" build
 scripts/sign-app.sh "$APP"
 

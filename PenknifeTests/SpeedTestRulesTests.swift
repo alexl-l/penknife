@@ -9,12 +9,7 @@ import Testing
 @Suite("Speed test rules")
 struct SpeedTestRulesTests {
 
-    private func defaults() -> UserDefaults {
-        let name = "penknife.tests.speed.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: name)!
-        defaults.removePersistentDomain(forName: name)
-        return defaults
-    }
+    private func defaults() -> UserDefaults { InMemoryDefaults() }
 
     private let result = SpeedTestModule.Result(download: 87.6, upload: 196.5, latency: 106.8, rpm: 82,
                                                 date: Date(timeIntervalSince1970: 1_800_000_000))

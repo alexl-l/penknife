@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 result="${TMPDIR:-/tmp}/penknife-tests.xcresult"
 rm -rf "$result"
 xcodebuild test -quiet -project Penknife.xcodeproj -scheme Penknife \
-    -destination 'platform=macOS,arch=arm64' -derivedDataPath build \
+    -destination 'platform=macOS,arch=arm64' -derivedDataPath build.noindex \
     CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
     -only-testing:PenknifeTests -resultBundlePath "$result" > "${result%.xcresult}.log" 2>&1
 code=$?
