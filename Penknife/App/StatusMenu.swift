@@ -236,15 +236,8 @@ final class StatusMenu: NSObject, NSMenuDelegate {
                                     symbol: "thermometer.medium"))
         }
         if manager.isEnabled(.speedTest), let speed = manager.module(.speedTest) as? SpeedTestModule {
-            if speed.isRunning {
-                readings.append(reading(String(localized: "Speed test: testing…"), symbol: "speedometer"))
-            } else if speed.failed {
-                readings.append(reading(String(localized: "Speed test failed. Check the internet connection."), symbol: "wifi.exclamationmark"))
-            }
-            if !speed.isRunning, let result = speed.result {
-                let time = result.date.formatted(date: Calendar.current.isDateInToday(result.date) ? .omitted : .abbreviated, time: .shortened)
-                readings.append(reading(String(localized: "Speed (\(time)): \(result.speeds)"), symbol: "speedometer"))
-                readings.append(reading(result.details, symbol: "timer"))
+            for line in SpeedTestModule.menuLines(isRunning: speed.isRunning, failed: speed.failed, result: speed.result) {
+                readings.append(reading(line.title, symbol: line.symbol))
             }
         }
         if !readings.isEmpty {

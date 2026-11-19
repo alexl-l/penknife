@@ -76,11 +76,8 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
     private var screensAsleep = false
     private var cpuTimer: Timer?
     private var speedTimer: Timer?
-    private enum SpeedPhase { case normal, testing, download, upload, failed }
-    private var speedPhase = SpeedPhase.normal
+    private var speedPhase = BarLooks.SpeedPhase.idle
     private var needleStep = 0
-    private static let needles = ["gauge.with.dots.needle.0percent", "gauge.with.dots.needle.33percent",
-                                  "gauge.with.dots.needle.67percent", "gauge.with.dots.needle.100percent"]
 
     private var weather: WeatherModule? { manager.module(.weather) as? WeatherModule }
     private var cpu: CPUTemperatureModule? { manager.module(.cpuTemperature) as? CPUTemperatureModule }
@@ -216,62 +213,72 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
 
     // MARK: Speed test
 
-    /// As on the Touch Bar (R-10): the needle sweeps while testing (one change every 0.6 s),
-    /// then download for 3 s, upload for 3 s, and back to the plain symbol.
+    /// As on the Touch Bar (R-10, TB-27), but a result or a failure plays only right after a
+    /// test this item saw running (a new item shows the plain symbol).
+    static func speedSteps(isRunning: Bool, failed: Bool, hasResult: Bool, wasTesting: Bool) -> [BarLooks.SpeedStep] {
+        guard isRunning || wasTesting else { return [BarLooks.SpeedStep(at: 0, phase: .idle)] }
+        return BarLooks.speedSteps(isRunning: isRunning, failed: failed, hasResult: hasResult)
+    }
+
+    /// The item's symbol, text ("245 Mbps", on one line) and VoiceOver label for each phase.
+    static func speedLook(phase: BarLooks.SpeedPhase, needleStep: Int,
+                          result: SpeedTestModule.Result?) -> (symbol: String, text: String?, label: String) {
+        switch phase {
+        case .testing:
+            return (BarLooks.needle(step: needleStep), nil, String(localized: "Speed test: testing…"))
+        case .download where result != nil:
+            let speed = SpeedText(mbps: result!.download)
+            return ("arrow.down", "\(speed.number) \(speed.unit)", String(localized: "Download \(speed.spoken)"))
+        case .upload where result != nil:
+            let speed = SpeedText(mbps: result!.upload)
+            return ("arrow.up", "\(speed.number) \(speed.unit)", String(localized: "Upload \(speed.spoken)"))
+        case .failed:
+            return ("wifi.exclamationmark", nil, String(localized: "Speed test failed"))
+        default:
+            return ("speedometer", nil, String(localized: "Speed Test"))
+        }
+    }
+
+    /// The needle sweeps while testing (one change every 0.6 s), then download for 3 s, upload
+    /// for 3 s, and back to the plain symbol.
     private func speedTestChanged() {
         speedTimer?.invalidate()
         speedTimer = nil
         guard items[.speedTest] != nil, let speedTest else { return }
-        if speedTest.isRunning {
-            needleStep = 0
-            setSpeedPhase(.testing)
-            speedTimer = Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard let self else { return }
-                    self.needleStep = (self.needleStep + 1) % Self.needles.count
-                    self.drawSpeedTest()
-                }
+        let steps = Self.speedSteps(isRunning: speedTest.isRunning, failed: speedTest.failed,
+                                    hasResult: speedTest.result != nil, wasTesting: speedPhase == .testing)
+        guard steps[0].phase == .testing else {
+            setSpeedPhase(steps[0].phase, then: Array(steps.dropFirst()))
+            return
+        }
+        needleStep = 0
+        setSpeedPhase(.testing)
+        speedTimer = Timer.scheduledTimer(withTimeInterval: BarLooks.needleInterval, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.needleStep = (self.needleStep + 1) % BarLooks.needles.count
+                self.drawSpeedTest()
             }
-        } else if speedTest.failed, speedPhase == .testing {
-            setSpeedPhase(.failed, then: [(6, .normal)])
-        } else if speedTest.result != nil, speedPhase == .testing {
-            setSpeedPhase(.download, then: [(3, .upload), (6, .normal)])
-        } else {
-            setSpeedPhase(.normal)
         }
     }
 
-    private func setSpeedPhase(_ phase: SpeedPhase, then steps: [(TimeInterval, SpeedPhase)] = []) {
+    /// Shows `phase` now and the next ones at their times (counted from now).
+    private func setSpeedPhase(_ phase: BarLooks.SpeedPhase, then steps: [BarLooks.SpeedStep] = []) {
         speedPhase = phase
         drawSpeedTest()
-        guard let (delay, next) = steps.first else { return }
-        let rest = steps.dropFirst().map { ($0.0 - delay, $0.1) }
-        speedTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+        guard let next = steps.first else { return }
+        let rest = steps.dropFirst().map { BarLooks.SpeedStep(at: $0.at - next.at, phase: $0.phase) }
+        speedTimer = Timer.scheduledTimer(withTimeInterval: next.at, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.speedTimer = nil
-                self?.setSpeedPhase(next, then: rest)
+                self?.setSpeedPhase(next.phase, then: rest)
             }
         }
     }
 
     private func drawSpeedTest() {
-        let result = speedTest?.result
-        switch speedPhase {
-        case .testing:
-            draw(.speedTest, symbol: Self.needles[needleStep], text: nil, label: String(localized: "Speed test: testing…"))
-        case .download where result != nil:
-            let speed = SpeedText(mbps: result!.download)
-            draw(.speedTest, symbol: "arrow.down", text: "\(speed.number) \(speed.unit)",
-                 label: String(localized: "Download \(speed.spoken)"))
-        case .upload where result != nil:
-            let speed = SpeedText(mbps: result!.upload)
-            draw(.speedTest, symbol: "arrow.up", text: "\(speed.number) \(speed.unit)",
-                 label: String(localized: "Upload \(speed.spoken)"))
-        case .failed:
-            draw(.speedTest, symbol: "wifi.exclamationmark", text: nil, label: String(localized: "Speed test failed"))
-        default:
-            draw(.speedTest, symbol: "speedometer", text: nil, label: String(localized: "Speed Test"))
-        }
+        let look = Self.speedLook(phase: speedPhase, needleStep: needleStep, result: speedTest?.result)
+        draw(.speedTest, symbol: look.symbol, text: look.text, label: look.label)
     }
 
     // MARK: Menus
@@ -300,18 +307,11 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
             }
         case .speedTest:
             guard let speedTest else { return }
-            if speedTest.isRunning {
-                menu.addItem(reading(String(localized: "Speed test: testing…"), symbol: "speedometer"))
-            } else {
-                if speedTest.failed {
-                    menu.addItem(reading(String(localized: "Speed test failed. Check the internet connection."), symbol: "wifi.exclamationmark"))
-                }
-                if let result = speedTest.result {
-                    let time = result.date.formatted(date: Calendar.current.isDateInToday(result.date) ? .omitted : .abbreviated, time: .shortened)
-                    menu.addItem(reading(String(localized: "Speed (\(time)): \(result.speeds)"), symbol: "speedometer"))
-                    menu.addItem(reading(result.details, symbol: "timer"))
-                    menu.addItem(.separator())
-                }
+            for line in SpeedTestModule.menuLines(isRunning: speedTest.isRunning, failed: speedTest.failed, result: speedTest.result) {
+                menu.addItem(reading(line.title, symbol: line.symbol))
+            }
+            if !speedTest.isRunning {
+                if speedTest.result != nil { menu.addItem(.separator()) }
                 menu.addItem(button(String(localized: "Test Speed Now"), #selector(runSpeedTest)))
             }
         }

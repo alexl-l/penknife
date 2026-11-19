@@ -58,10 +58,38 @@ final class SpeedTestModule: Module {
     private var quitObserver: NSObjectProtocol?
     private let log = Logger(subsystem: "Penknife", category: "SpeedTest")
 
-    init() {
-        if let data = UserDefaults.standard.data(forKey: Self.resultKey) {
-            result = try? JSONDecoder().decode(Result.self, from: data)
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        result = Self.load(from: defaults)
+    }
+
+    /// The last result survives a relaunch (R-10); unreadable data counts as none.
+    static func load(from defaults: UserDefaults) -> Result? {
+        defaults.data(forKey: resultKey).flatMap { try? JSONDecoder().decode(Result.self, from: $0) }
+    }
+
+    static func save(_ result: Result, to defaults: UserDefaults) {
+        if let data = try? JSONEncoder().encode(result) { defaults.set(data, forKey: resultKey) }
+    }
+
+    /// The lines Penknife's menu and the menu bar item's menu show (R-10, R-30): "testing…" while
+    /// a test runs; otherwise the failure (if the last test failed) and the last result with its
+    /// time (with the date when it isn't from today).
+    static func menuLines(isRunning: Bool, failed: Bool, result: Result?,
+                          isToday: (Date) -> Bool = Calendar.current.isDateInToday) -> [(title: String, symbol: String)] {
+        if isRunning { return [(String(localized: "Speed test: testing…"), "speedometer")] }
+        var lines: [(title: String, symbol: String)] = []
+        if failed {
+            lines.append((String(localized: "Speed test failed. Check the internet connection."), "wifi.exclamationmark"))
         }
+        if let result {
+            let time = result.date.formatted(date: isToday(result.date) ? .omitted : .abbreviated, time: .shortened)
+            lines.append((String(localized: "Speed (\(time)): \(result.speeds)"), "speedometer"))
+            lines.append((result.details, "timer"))
+        }
+        return lines
     }
 
     var actions: [ModuleAction] {
@@ -119,9 +147,7 @@ final class SpeedTestModule: Module {
         if let output, output.status == 0, let parsed = Self.parse(output.data) {
             result = parsed
             failed = false
-            if let data = try? JSONEncoder().encode(parsed) {
-                UserDefaults.standard.set(data, forKey: Self.resultKey)
-            }
+            Self.save(parsed, to: defaults)
             HUD.shared.show(parsed.speeds, detail: parsed.details, symbol: "speedometer", kind: .on, category: .speedTest)
         } else {
             failed = true
@@ -162,7 +188,8 @@ final class SpeedTestModule: Module {
     }
 
     /// Keys of `networkQuality -c`: throughputs in bits/s, `base_rtt` in ms, `responsiveness` in RPM.
-    nonisolated private static func parse(_ data: Data) -> Result? {
+    /// An error run still exits 0, with only `error_code` (D: Speed test): no throughput = no result.
+    nonisolated static func parse(_ data: Data, now: Date = Date()) -> Result? {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let down = (json["dl_throughput"] as? NSNumber)?.doubleValue,
               let up = (json["ul_throughput"] as? NSNumber)?.doubleValue,
@@ -170,7 +197,7 @@ final class SpeedTestModule: Module {
         let latency = (json["base_rtt"] as? NSNumber)?.doubleValue ?? 0
         let rpm = (json["responsiveness"] as? NSNumber)?.doubleValue ?? 0
         return Result(download: down / 1_000_000, upload: up / 1_000_000, latency: latency,
-                      rpm: Int(rpm.rounded()), date: Date())
+                      rpm: Int(rpm.rounded()), date: now)
     }
 }
 
