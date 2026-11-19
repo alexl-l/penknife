@@ -31,13 +31,13 @@ enum PastableImage {
 
     /// Clears the clipboard and puts `png` on it, as image data and, if it can be written, as a
     /// file named `name` (".png" is added).
-    static func copy(_ png: Data, named name: String) {
+    static func copy(_ png: Data, named name: String, in folder: URL = folder,
+                     limit: Int64 = Int64(limitMB) * 1_000_000, pasteboard: NSPasteboard = .general) {
         let item = NSPasteboardItem()
         item.setData(png, forType: .png)
-        if let url = write(png, named: name) {
+        if let url = write(png, named: name, in: folder, limit: limit) {
             item.setString(url.absoluteString, forType: .fileURL)
         }
-        let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.writeObjects([item])
     }

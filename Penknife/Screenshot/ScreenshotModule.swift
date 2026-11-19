@@ -19,6 +19,49 @@ enum ScreenshotMode: String, CaseIterable {
     }
 }
 
+/// The overlay and the recording as the module drives them (tests pass fakes).
+protocol CaptureOverlay: AnyObject {
+    func show()
+    func cancel()
+    func enterRecordMode()
+}
+
+protocol CaptureRecording: AnyObject {
+    func start()
+    func stop()
+    func cancel()
+}
+
+extension CaptureSession: CaptureOverlay {}
+extension RecordingSession: CaptureRecording {}
+
+/// Everything the module touches outside itself (S6): `live` is the real Mac; tests pass fakes.
+struct CaptureEnvironment {
+    var defaults: UserDefaults
+    var hasPermission: () -> Bool
+    var requestPermission: () -> Void
+    var open: (URL) -> Void
+    var frontApp: () -> NSRunningApplication?
+    var grabAll: () async throws -> [CGDirectDisplayID: CGImage]
+    var hud: (_ title: String, _ detail: String?, _ symbol: String, _ kind: AlertKind) -> Void
+    var makeOverlay: (_ mode: ScreenshotMode, _ images: [CGDirectDisplayID: CGImage], _ previous: NSRunningApplication?,
+                      _ recordOnly: Bool, _ onRecord: @escaping (RecordingRequest) -> Void,
+                      _ onFinish: @escaping () -> Void) -> CaptureOverlay
+    var makeRecording: (_ request: RecordingRequest, _ onFinish: @escaping () -> Void) -> CaptureRecording
+
+    static var live: Self {
+        Self(defaults: .standard,
+             hasPermission: { CGPreflightScreenCaptureAccess() },
+             requestPermission: { CGRequestScreenCaptureAccess() },
+             open: { NSWorkspace.shared.open($0) },
+             frontApp: { NSWorkspace.shared.frontmostApplication },
+             grabAll: { try await ScreenGrabber.captureAll() },
+             hud: { HUD.shared.show($0, detail: $1, symbol: $2, kind: $3, category: .screenshot) },
+             makeOverlay: { CaptureSession(mode: $0, images: $1, previousApp: $2, recordOnly: $3, onRecord: $4, onFinish: $5) },
+             makeRecording: { RecordingSession(request: $0, onFinish: $1) })
+    }
+}
+
 /// Screenshots with annotations (R-8, replaces Lightshot). Nothing runs until the shortcut is
 /// pressed; the session's windows and images are released when it closes. Nothing is uploaded.
 final class ScreenshotModule: Module {
@@ -35,12 +78,18 @@ final class ScreenshotModule: Module {
     /// Scrolling up makes lines and text thicker (default) or thinner (setting).
     static var scrollUpThinner: Bool { scrollUpThinner(in: .standard) }
     static func scrollUpThinner(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: scrollKey) }
-    private static let askedKey = "screenshot.askedPermission"
+    static let askedKey = "screenshot.askedPermission"
+    static let screenRecordingSettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
 
-    private var session: CaptureSession?
-    private var starting = false
+    private let environment: CaptureEnvironment
+    private(set) var session: CaptureOverlay?
+    private(set) var starting = false
     /// A recording from its countdown until it stops (R-29); its end window lives on its own.
-    private var recording: RecordingSession?
+    private(set) var recording: CaptureRecording?
+
+    init(environment: CaptureEnvironment = .live) {
+        self.environment = environment
+    }
 
     var actions: [ModuleAction] {
         [
@@ -62,7 +111,7 @@ final class ScreenshotModule: Module {
 
     /// The record shortcut: stops a recording; with the overlay open, switches it to record mode;
     /// otherwise opens it in record mode.
-    private func toggleRecording() {
+    func toggleRecording() {
         if let recording {
             recording.stop()
         } else if let session {
@@ -73,7 +122,7 @@ final class ScreenshotModule: Module {
     }
 
     private func startRecording(_ request: RecordingRequest) {
-        let recording = RecordingSession(request: request) { [weak self] in self?.recording = nil }
+        let recording = environment.makeRecording(request) { [weak self] in self?.recording = nil }
         self.recording = recording
         recording.start()
     }
@@ -105,31 +154,33 @@ final class ScreenshotModule: Module {
     }
 
     /// `record`: straight in record mode, over the live screen.
-    private func begin(record: Bool = false) {
-        guard session == nil, !starting, recording == nil else { return }
-        guard CGPreflightScreenCaptureAccess() else {
+    /// Returns the task that grabs the screen and opens the overlay (nil when nothing starts).
+    @discardableResult
+    func begin(record: Bool = false) -> Task<Void, Never>? {
+        guard session == nil, !starting, recording == nil else { return nil }
+        guard environment.hasPermission() else {
             requestPermission()
-            return
+            return nil
         }
         starting = true
-        let mode = record ? .live : ScreenshotMode.current
-        let previous = NSWorkspace.shared.frontmostApplication
-        Task { [weak self] in
+        let mode = record ? .live : ScreenshotMode.current(in: environment.defaults)
+        let previous = environment.frontApp()
+        let environment = environment
+        return Task { [weak self] in
             defer { self?.starting = false }
             var images: [CGDirectDisplayID: CGImage] = [:]
             if mode == .frozen {
                 do {
-                    images = try await ScreenGrabber.captureAll()
+                    images = try await environment.grabAll()
                 } catch {
-                    HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
-                                    kind: .error, category: .screenshot)
+                    environment.hud(String(localized: "Couldn't take the screenshot"), nil, "exclamationmark.triangle.fill", .error)
                     return
                 }
             }
             guard let self else { return }
-            let session = CaptureSession(mode: mode, images: images, previousApp: previous, recordOnly: record,
-                                         onRecord: { [weak self] in self?.startRecording($0) },
-                                         onFinish: { [weak self] in self?.session = nil })
+            let session = environment.makeOverlay(mode, images, previous, record,
+                                                  { [weak self] in self?.startRecording($0) },
+                                                  { [weak self] in self?.session = nil })
             self.session = session
             session.show()
         }
@@ -137,17 +188,14 @@ final class ScreenshotModule: Module {
 
     /// The first time, macOS shows its own prompt; after that, System Settings is opened.
     private func requestPermission() {
-        let defaults = UserDefaults.standard
+        let defaults = environment.defaults
         if defaults.bool(forKey: Self.askedKey) {
-            HUD.shared.show(String(localized: "Screen Recording needed"),
-                            detail: String(localized: "Allow Penknife, then reopen it"),
-                            symbol: "lock.fill", kind: .permission, category: .screenshot)
-            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-                NSWorkspace.shared.open(url)
-            }
+            environment.hud(String(localized: "Screen Recording needed"), String(localized: "Allow Penknife, then reopen it"),
+                            "lock.fill", .permission)
+            environment.open(Self.screenRecordingSettings)
         } else {
             defaults.set(true, forKey: Self.askedKey)
-            CGRequestScreenCaptureAccess()
+            environment.requestPermission()
         }
     }
 }

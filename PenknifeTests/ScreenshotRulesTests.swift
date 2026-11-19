@@ -15,7 +15,7 @@ struct ScreenshotRulesTests {
     // MARK: Helpers
 
     /// Settings that only live in memory: nothing is written to disk or to the user's settings.
-    final class MemoryDefaults: UserDefaults {
+    class MemoryDefaults: UserDefaults {
         var values: [String: Any] = [:]
 
         convenience init(_ values: [String: Any] = [:]) {
@@ -859,5 +859,204 @@ struct ScreenshotRulesTests {
         #expect(inside.0 > 250 && inside.1 > 250 && inside.2 > 250, "\(inside)")
         let corner = rgb(2, 2)        // where the outside mark would be if it weren't clipped
         #expect(corner.0 > 250 && corner.1 > 250 && corner.2 > 250, "\(corner)")
+    }
+
+    // MARK: S6 module seams
+
+    @MainActor final class FakeOverlay: CaptureOverlay {
+        var calls: [String] = []
+        let onFinish: () -> Void
+        let onRecord: (RecordingRequest) -> Void
+        init(onRecord: @escaping (RecordingRequest) -> Void, onFinish: @escaping () -> Void) {
+            self.onRecord = onRecord
+            self.onFinish = onFinish
+        }
+        func show() { calls.append("show") }
+        func cancel() { calls.append("cancel") }
+        func enterRecordMode() { calls.append("record mode") }
+    }
+
+    @MainActor final class FakeRecording: CaptureRecording {
+        var calls: [String] = []
+        func start() { calls.append("start") }
+        func stop() { calls.append("stop") }
+        func cancel() { calls.append("cancel") }
+    }
+
+    /// A fake Mac for `ScreenshotModule`: records what the module asks of it.
+    @MainActor final class FakeMac {
+        let defaults = WritableDefaults()
+        var written: [String: Any] { defaults.values }
+        var permission = true
+        var requested = 0
+        var opened: [URL] = []
+        var huds: [(title: String, detail: String?, symbol: String, kind: AlertKind)] = []
+        var grab: () async throws -> [CGDirectDisplayID: CGImage] = { [:] }
+        var overlays: [(mode: ScreenshotMode, recordOnly: Bool, overlay: FakeOverlay)] = []
+        var recordings: [FakeRecording] = []
+
+        var environment: CaptureEnvironment {
+            CaptureEnvironment(
+                defaults: defaults,
+                hasPermission: { self.permission },
+                requestPermission: { self.requested += 1 },
+                open: { self.opened.append($0) },
+                frontApp: { nil },
+                grabAll: { try await self.grab() },
+                hud: { self.huds.append(($0, $1, $2, $3)) },
+                makeOverlay: { mode, _, _, recordOnly, onRecord, onFinish in
+                    let overlay = FakeOverlay(onRecord: onRecord, onFinish: onFinish)
+                    self.overlays.append((mode, recordOnly, overlay))
+                    return overlay
+                },
+                makeRecording: { _, _ in
+                    let recording = FakeRecording()
+                    self.recordings.append(recording)
+                    return recording
+                })
+        }
+    }
+
+    /// Settings in memory that the module may write (the permission key).
+    final class WritableDefaults: MemoryDefaults {
+        override func set(_ value: Any?, forKey key: String) { values[key] = value }
+    }
+
+    static func request() -> RecordingRequest {
+        RecordingRequest(screen: NSScreen.screens[0], rect: CGRect(x: 0, y: 0, width: 100, height: 100), fullScreen: false,
+                         window: nil, marks: [], microphone: false, macSound: false, previousApp: nil)
+    }
+
+    @Test("SS-04 without Screen Recording: macOS's prompt the first time, then the alert and System Settings; no overlay")
+    func permissionFlow() async {
+        let mac = FakeMac()
+        mac.permission = false
+        let module = ScreenshotModule(environment: mac.environment)
+        #expect(module.begin() == nil)
+        #expect(mac.requested == 1 && mac.huds.isEmpty && mac.opened.isEmpty)
+        #expect(mac.written[ScreenshotModule.askedKey] as? Bool == true)
+        #expect(module.begin(record: true) == nil)
+        #expect(mac.requested == 1)
+        #expect(mac.huds.count == 1)
+        expectText(mac.huds[0].title, english: "Screen Recording needed", es: "Falta permiso de Grabación de pantalla")
+        expectText(mac.huds[0].detail ?? "", english: "Allow Penknife, then reopen it", es: "Permite Penknife y vuelve a abrirlo")
+        #expect(mac.huds[0].symbol == "lock.fill" && mac.huds[0].kind == .permission)
+        #expect(mac.opened == [URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!])
+        #expect(mac.overlays.isEmpty)
+        // Granted later: the next press opens the overlay (checked at every press).
+        mac.permission = true
+        await module.begin()?.value
+        #expect(mac.overlays.count == 1)
+    }
+
+    @Test("SS-05 a failed frozen grab shows the alert and opens no overlay")
+    func grabFailure() async {
+        let mac = FakeMac()
+        mac.grab = { throw ScreenGrabber.Failure() }
+        let module = ScreenshotModule(environment: mac.environment)
+        await module.begin()?.value
+        #expect(mac.overlays.isEmpty)
+        #expect(mac.huds.count == 1)
+        expectText(mac.huds.first?.title ?? "", english: "Couldn't take the screenshot", es: "No se pudo hacer la captura")
+        #expect(mac.huds.first?.symbol == "exclamationmark.triangle.fill" && mac.huds.first?.kind == .error)
+        #expect(!module.starting)
+        // The next press tries again.
+        mac.grab = { [:] }
+        await module.begin()?.value
+        #expect(mac.overlays.count == 1)
+    }
+
+    @Test("SS-02 a press does nothing while the overlay is starting, open, or a recording runs")
+    func pressesIgnored() async throws {
+        let mac = FakeMac()
+        var release: CheckedContinuation<Void, Never>?
+        mac.grab = {
+            await withCheckedContinuation { release = $0 }
+            return [:]
+        }
+        let module = ScreenshotModule(environment: mac.environment)
+        let task = try #require(module.begin())
+        while release == nil { await Task.yield() }
+        #expect(module.starting)
+        #expect(module.begin() == nil)              // starting: the frozen grab runs
+        release?.resume()
+        await task.value
+        #expect(mac.overlays.count == 1 && mac.overlays[0].overlay.calls == ["show"])
+        #expect(mac.overlays[0].mode == .frozen && !mac.overlays[0].recordOnly)
+        #expect(module.begin() == nil)              // open
+        // Record Screen with the overlay open switches it to record mode.
+        module.toggleRecording()
+        #expect(mac.overlays[0].overlay.calls == ["show", "record mode"])
+        // The overlay starts a recording and closes: presses do nothing while it runs.
+        mac.overlays[0].overlay.onRecord(Self.request())
+        mac.overlays[0].overlay.onFinish()
+        #expect(mac.recordings.count == 1 && mac.recordings[0].calls == ["start"])
+        #expect(module.begin() == nil)
+        // Record Screen while recording stops it.
+        module.toggleRecording()
+        #expect(mac.recordings[0].calls == ["start", "stop"])
+        #expect(mac.overlays.count == 1)
+    }
+
+    @Test("SS-52 Record Screen with nothing open opens the overlay in record mode over the live screen")
+    func recordShortcut() async {
+        let mac = FakeMac()
+        var grabbed = false
+        mac.grab = { grabbed = true; return [:] }
+        let module = ScreenshotModule(environment: mac.environment)
+        module.toggleRecording()
+        while mac.overlays.isEmpty { await Task.yield() }
+        #expect(mac.overlays[0].mode == .live && mac.overlays[0].recordOnly)
+        #expect(!grabbed)
+    }
+
+    @Test("SS-03 module off cancels an open overlay and a running recording")
+    func moduleOffCancels() async {
+        let mac = FakeMac()
+        let module = ScreenshotModule(environment: mac.environment)
+        await module.begin()?.value
+        mac.overlays[0].overlay.onRecord(Self.request())
+        module.stop()
+        #expect(mac.overlays[0].overlay.calls == ["show", "cancel"])
+        #expect(mac.recordings[0].calls == ["start", "cancel"])
+        #expect(module.session == nil && module.recording == nil)
+        module.start()
+        #expect(mac.overlays.count == 1 && mac.recordings.count == 1 && mac.huds.isEmpty)
+    }
+
+    @Test("SS-46 SS-47 Copy puts the PNG and a private file on the clipboard; when the space is full the oldest go first")
+    func copyAsFile() throws {
+        let manager = FileManager.default
+        let folder = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let pasteboard = NSPasteboard(name: .init("PenknifeTests.\(UUID().uuidString)"))
+        defer {
+            try? manager.removeItem(at: folder)
+            pasteboard.releaseGlobally()
+        }
+        let png = Data(repeating: 7, count: 400)
+        PastableImage.copy(png, named: "Screenshot 2026-11-19 at 10.00.00", in: folder, limit: 1_000, pasteboard: pasteboard)
+        let item = try #require(pasteboard.pasteboardItems?.first)
+        #expect(pasteboard.pasteboardItems?.count == 1)
+        #expect(item.data(forType: .png) == png)
+        let url = try #require(item.string(forType: .fileURL).flatMap(URL.init(string:)))
+        #expect(url.lastPathComponent == "Screenshot 2026-11-19 at 10.00.00.png")
+        #expect(url.deletingLastPathComponent().deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL)
+        #expect(try Data(contentsOf: url) == png)
+        func mode(_ path: String) throws -> Int { try #require(manager.attributesOfItem(atPath: path)[.posixPermissions] as? Int) }
+        #expect(try mode(url.path) == 0o600)
+        #expect(try mode(url.deletingLastPathComponent().path) == 0o700)
+        #expect(try mode(folder.path) == 0o700)
+
+        // Two more copies of 400 bytes in 1,000: the first one goes.
+        PastableImage.copy(png, named: "b", in: folder, limit: 1_000, pasteboard: pasteboard)
+        PastableImage.copy(png, named: "c", in: folder, limit: 1_000, pasteboard: pasteboard)
+        #expect(!manager.fileExists(atPath: url.path))
+        #expect(PastableImage.used(in: folder) == 800)
+
+        // Bigger than the whole space: the image only, no file, nothing deleted.
+        PastableImage.copy(Data(count: 2_000), named: "big", in: folder, limit: 1_000, pasteboard: pasteboard)
+        #expect(pasteboard.pasteboardItems?.first?.data(forType: .png)?.count == 2_000)
+        #expect(pasteboard.pasteboardItems?.first?.string(forType: .fileURL) == nil)
+        #expect(PastableImage.used(in: folder) == 800)
     }
 }
