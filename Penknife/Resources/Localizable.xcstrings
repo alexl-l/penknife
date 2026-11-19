@@ -2591,16 +2591,6 @@
         }
       }
     },
-    "Needed for the mouse jiggler, the meeting mute shortcuts and dialog detection.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Necesario para mover el ratón, los atajos para silenciar reuniones y la detección de diálogos."
-          }
-        }
-      }
-    },
     "Needs the Accessibility permission": {
       "localizations": {
         "es": {
@@ -4119,6 +4109,116 @@
           "stringUnit": {
             "state": "translated",
             "value": "En las reuniones que piden consentimiento, Teams muestra un aviso al activar el micro. Si lo activas, Penknife lo acepta por ti, solo cuando activas el micro con el atajo de Penknife. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa."
+          }
+        }
+      }
+    },
+    "Device Control and Data Access": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Control de dispositivos y acceso a datos"
+          }
+        }
+      }
+    },
+    "Screen & System Audio Recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabación de pantalla y del audio del sistema"
+          }
+        }
+      }
+    },
+    "Location Services": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Localización"
+          }
+        }
+      }
+    },
+    "Automation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Automatización"
+          }
+        }
+      }
+    },
+    "To press keys and detect dialogs: mouse jiggler, meeting mute and Siri watch, pasting from history, music keys, Touch Bar dialogs and lock screen.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para pulsar teclas y detectar diálogos: mover el ratón, silenciar reuniones y vigilar a Siri, pegar desde el historial, teclas de música, diálogos en la Touch Bar y bloquear pantalla."
+          }
+        }
+      }
+    },
+    "For screenshots and screen recordings.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para capturas y grabaciones de pantalla."
+          }
+        }
+      }
+    },
+    "Adds your voice to recordings, only when you turn the microphone on.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade tu voz a las grabaciones, solo si activas el micrófono."
+          }
+        }
+      }
+    },
+    "For the weather. Approximate location only (about 11 km).": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para el tiempo. Solo ubicación aproximada (unos 11 km)."
+          }
+        }
+      }
+    },
+    "Controls Spotify and Music, and reads the active Safari or Chrome tab to find your meeting.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controla Spotify y Música, y lee la pestaña activa de Safari o Chrome para encontrar tu reunión."
+          }
+        }
+      }
+    },
+    "Each permission is asked for only the first time you use its feature.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada permiso se pide solo la primera vez que usas su función."
+          }
+        }
+      }
+    },
+    "Allow…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir…"
           }
         }
       }

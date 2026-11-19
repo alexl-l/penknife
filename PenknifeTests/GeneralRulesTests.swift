@@ -1,4 +1,6 @@
 import AppKit
+import AVFoundation
+import CoreLocation
 import KeyboardShortcuts
 import Testing
 @testable import Penknife
@@ -141,6 +143,31 @@ struct GeneralRulesTests {
             #expect(category.isShown(in: empty), "\(category)")
         }
         #expect(!AlertCategory.music.isShown(in: JigglerRulesTests.MemoryDefaults(["alerts.music": false])))
+    }
+
+    @Test("GN-21 O-31 the five permissions with macOS's names; a state only when it can be read")
+    func permissions() {
+        typealias P = PrivacyPermission
+        #expect(P.allCases == [.deviceControl, .screenRecording, .microphone, .location, .automation])
+        #expect(P.allCases.map(\.title) == ["Device Control and Data Access", "Screen & System Audio Recording",
+                                            "Microphone", "Location Services", "Automation"])
+        #expect(P.allCases.map { $0.settingsURL.query ?? "" } == ["Privacy_Accessibility", "Privacy_ScreenCapture",
+                                                                 "Privacy_Microphone", "Privacy_LocationServices", "Privacy_Automation"])
+        #expect(P.control(for: .granted) == .granted)
+        #expect(P.control(for: .notAsked) == .allow)
+        #expect(P.control(for: .denied) == .openSettings)
+        #expect(P.control(for: .unknown) == .openSettings)
+        // Automation can't be read: never shown as granted.
+        #expect(P.automation.access == .unknown)
+        #expect(P.microphoneAccess(.authorized) == .granted)
+        #expect(P.microphoneAccess(.notDetermined) == .notAsked)
+        #expect(P.microphoneAccess(.denied) == .denied && P.microphoneAccess(.restricted) == .denied)
+        #expect(P.locationAccess(.authorizedAlways) == .granted)
+        #expect(P.locationAccess(.notDetermined) == .notAsked)
+        #expect(P.locationAccess(.denied) == .denied && P.locationAccess(.restricted) == .denied)
+        #expect(P.screenAccess(granted: true, asked: false) == .granted)
+        #expect(P.screenAccess(granted: false, asked: false) == .notAsked)
+        #expect(P.screenAccess(granted: false, asked: true) == .denied)
     }
 
     @Test("GN-23 the login item: only from /Applications, registered once per path, removed when off")

@@ -41,35 +41,56 @@ struct GeneralPage: View {
     }
 }
 
-/// Permissions Penknife asks for, and their state.
+/// Permissions Penknife asks for, and their state (GN-21, O-31 variant A): the five macOS
+/// permissions with the system's own names, what each is for, and its state. Read when the page
+/// shows, when Penknife's window comes back to the front, and when Device Control changes.
 struct PermissionsPage: View {
     private var permissions = Permissions.shared
+    @State private var access: [PrivacyPermission: PrivacyPermission.Access] = [:]
 
     var body: some View {
         Form {
             Section {
-                LabeledContent {
-                    if permissions.accessibilityGranted {
-                        Label {
-                            Text("Granted")
-                        } icon: {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                        }
-                        .labelStyle(.titleAndIcon)
-                    } else {
-                        Button("Open System Settings") {
-                            permissions.requestAccessibility()
-                            permissions.openAccessibilitySettings()
-                        }
+                ForEach(PrivacyPermission.allCases) { permission in
+                    LabeledContent {
+                        control(for: permission)
+                    } label: {
+                        Text(permission.title)
+                        Text(permission.detail)
                     }
-                } label: {
-                    Text("Accessibility")
-                    Text("Needed for the mouse jiggler, the meeting mute shortcuts and dialog detection.")
                 }
+            } footer: {
+                Text("Each permission is asked for only the first time you use its feature.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        .onAppear(perform: read)
+        .onChange(of: permissions.accessibilityGranted) { read() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in read() }
+    }
+
+    @ViewBuilder private func control(for permission: PrivacyPermission) -> some View {
+        switch PrivacyPermission.control(for: access[permission] ?? .unknown) {
+        case .granted:
+            Label {
+                Text("Granted")
+            } icon: {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            }
+            .labelStyle(.titleAndIcon)
+        case .allow:
+            Button("Allow…") { permission.ask { read() } }
+        case .openSettings:
+            Button("Open System Settings") { permission.openSettings() }
+        }
+    }
+
+    private func read() {
+        var states: [PrivacyPermission: PrivacyPermission.Access] = [:]
+        for permission in PrivacyPermission.allCases { states[permission] = permission.access }
+        access = states
     }
 }
 
