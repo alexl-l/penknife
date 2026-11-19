@@ -31,6 +31,10 @@ final class RecordingSession {
     private let onFinish: () -> Void
 
     private var countdownPanel: OverlayPanel?
+    /// The capsule with "Recording in 3" and the sound switches (O-18).
+    private var capsulePanel: OverlayPanel?
+    /// A switch touched during the countdown restarts it at 3, once (O-18).
+    private var countdownRestarted = false
     private var strokePanel: OverlayPanel?
     private var canvas: StrokeCanvas?
     private var inputPanel: OverlayPanel?
@@ -134,25 +138,67 @@ final class RecordingSession {
         // Under the menu bar (and the camera housing), as the hint was.
         let top = max(screen.maxY - request.screen.visibleFrame.maxY, request.screen.safeAreaInsets.top)
         panel.ignoresMouseEvents = true
-        panel.contentView = CountdownView(frame: CGRect(origin: .zero, size: screen.size), region: local, top: top, state: state)
-        panel.onKey = { [weak self] event in
-            guard event.type == .keyDown else { return false }
-            // Esc cancels; ⌘ keys stay here, as while drawing (B-13).
-            if event.keyCode == 53 {
-                self?.cancel()
-                return true
-            }
-            return event.modifierFlags.contains(.command)
-        }
+        panel.contentView = CountdownView(frame: CGRect(origin: .zero, size: screen.size), region: local)
         panel.orderFrontRegardless()
-        panel.makeKey()
         countdownPanel = panel
+
+        let host = FirstClickHostingView(rootView: CountdownCapsule(state: state) { [weak self] in self?.run($0) })
+        let size = host.fittingSize
+        let capsule = OverlayPanel(frame: CGRect(x: screen.midX - size.width / 2, y: screen.maxY - top - 12 - size.height,
+                                                 width: size.width, height: size.height),
+                                   level: NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 4))
+        capsule.keyable = true
+        capsule.contentView = host
+        capsule.onKey = { [weak self] event in self?.countdownKey(event) ?? false }
+        capsule.orderFrontRegardless()
+        capsule.makeKey()
+        capsulePanel = capsule
+
         state.countdown = 3
-        announce(String(localized: "Recording in 3 seconds. Esc cancels."))
+        announce(String(localized: "Recording in 3 seconds. M: microphone, S: Mac sound, Esc cancels."))
+        startCountdownTimer()
+    }
+
+    private func startCountdownTimer() {
+        timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.countdownTick() }
         }
         timer?.tolerance = 0.05
+    }
+
+    /// Keys during the countdown: Esc cancels, M and S flip the switches (O-18); ⌘ keys stay
+    /// here, as while drawing (B-13).
+    private func countdownKey(_ event: NSEvent) -> Bool {
+        guard event.type == .keyDown else { return false }
+        if event.keyCode == 53 {
+            cancel()
+            return true
+        }
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags.contains(.command) { return true }
+        guard flags.isDisjoint(with: [.control, .option]), !event.isARepeat else { return false }
+        switch Self.countdownCommand(event.charactersIgnoringModifiers ?? "") {
+        case .some(let command): run(command); return true
+        case .none: return false
+        }
+    }
+
+    /// M → microphone, S → Mac sound (either case); nothing else (O-18).
+    static func countdownCommand(_ key: String) -> RecordingCommand? {
+        switch key.lowercased() {
+        case "m": .microphone
+        case "s": .macSound
+        default: nil
+        }
+    }
+
+    /// The user is setting up: give them 3 s again, once per recording (O-18).
+    private func restartCountdownOnce() {
+        guard stage == .countdown, !countdownRestarted else { return }
+        countdownRestarted = true
+        state.countdown = 3
+        startCountdownTimer()
     }
 
     private func countdownTick() {
@@ -165,6 +211,8 @@ final class RecordingSession {
         timer = nil
         countdownPanel?.orderOut(nil)
         countdownPanel = nil
+        capsulePanel?.orderOut(nil)
+        capsulePanel = nil
         counted = true
         if ready { go() }
     }
@@ -403,8 +451,11 @@ final class RecordingSession {
         case .fade(let seconds):
             state.fade = seconds
             RecordingPrefs.fade = seconds
-        case .microphone: toggleMicrophone()
+        case .microphone:
+            restartCountdownOnce()
+            toggleMicrophone()
         case .macSound:
+            restartCountdownOnce()
             state.macSound.toggle()
             RecordingPrefs.macSound = state.macSound
             recorder?.setSound(state.macSound)
@@ -447,7 +498,7 @@ final class RecordingSession {
             return
         }
         Task { [weak self] in
-            guard await Self.microphoneAllowed(), let self, stage == .recording else { return }
+            guard await Self.microphoneAllowed(), let self, stage == .countdown || stage == .recording else { return }
             state.microphone = true
             RecordingPrefs.microphone = true
             recorder?.setMicrophone(true)
@@ -665,12 +716,13 @@ final class RecordingSession {
             state.drawing = false
             appBeforeDrawing?.activate()
         }
-        for panel in [countdownPanel, strokePanel, blurPanel, inputPanel, framePanel, toolbarPanel] {
+        for panel in [countdownPanel, capsulePanel, strokePanel, blurPanel, inputPanel, framePanel, toolbarPanel] {
             panel?.orderOut(nil)
             panel?.close()
         }
         blurPanel = nil
         countdownPanel = nil
+        capsulePanel = nil
         strokePanel = nil
         canvas = nil
         inputPanel = nil

@@ -94,6 +94,8 @@ final class BarButton: NSButton {
     private var symbol: String?
     private var text = ""
     private var unit = ""
+    /// Unavailable (no microphone, O-1): the symbol at 35 % of its color.
+    private var dimmed = false
     /// A drawn icon instead of a symbol (the battery), made in the current tint.
     private var drawing: ((NSColor) -> NSImage)?
     private var drawingKey = ""
@@ -119,13 +121,16 @@ final class BarButton: NSButton {
 
     /// Updates what the button shows. `label` is what VoiceOver reads (R-19). With `unit`, the text
     /// is a number with its unit in small type underneath (speed test, user's pick C, 2026-11-16).
-    func show(symbol: String?, text: String = "", unit: String = "", label: String) {
+    func show(symbol: String?, text: String = "", unit: String = "", dimmed: Bool = false, label: String) {
         // A label-only change (e.g. a new percentage under the same symbol) needs no redraw.
         if label != accessibilityLabel() { setAccessibilityLabel(label) }
-        guard symbol != self.symbol || text != self.text || unit != self.unit || drawing != nil else { return }
+        guard symbol != self.symbol || text != self.text || unit != self.unit || dimmed != self.dimmed
+                || drawing != nil else { return }
         self.symbol = symbol
         self.text = text
         self.unit = unit
+        self.dimmed = dimmed
+        setAccessibilityEnabled(!dimmed)
         drawing = nil
         drawingKey = ""
         setAccessibilityLabel(label)
@@ -190,7 +195,7 @@ final class BarButton: NSButton {
             imagePosition = .imageOnly
         } else if let symbol, let base = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) {
             let config = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
-                .applying(NSImage.SymbolConfiguration(paletteColors: [tint]))
+                .applying(NSImage.SymbolConfiguration(paletteColors: [dimmed ? tint.withAlphaComponent(0.35) : tint]))
             image = base.withSymbolConfiguration(config)
             imagePosition = text.isEmpty ? .imageOnly : .imageLeading
         } else {

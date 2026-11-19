@@ -372,7 +372,7 @@ struct MicrophoneRulesTests {
         #expect(!TeamsConsent.isSameDialog(sameElement: false, frame: notice, before: nil))
     }
 
-    // MIC-39 / MIC-06: Siri listening → ignored (checked first); no input device → "No microphone found".
+    // MIC-39 / MIC-06: Siri listening → ignored (checked first); no input device → "No microphone" (O-1).
     @Test("MIC-39 MIC-06 when the Mac's microphone can be written")
     func macGate() {
         #expect(Mic.macGate(siriListening: true, device: 42) == .siriListening)

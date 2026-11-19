@@ -283,6 +283,12 @@ struct TouchBarRulesTests {
         #expect(BarLooks.microphone(muted: true).symbol == "mic.slash.fill")
         #expect(BarLooks.microphone(muted: false).symbol == "mic.fill")
         #expect(BarLooks.microphone(muted: true).label != BarLooks.microphone(muted: false).label)
+        // O-1 (user's pick A): no microphone → dimmed mic.slash, whatever the mute says.
+        for muted in [true, false] {
+            let none = BarLooks.microphone(muted: muted, available: false)
+            #expect(none.symbol == "mic.slash" && none.dimmed && none.label != BarLooks.microphone(muted: muted).label)
+        }
+        #expect(!BarLooks.microphone(muted: true).dimmed && !BarLooks.microphone(muted: false).dimmed)
         #expect(BarLooks.music(playing: true).symbol == "music.quarternote.3")
         #expect(BarLooks.music(playing: false).symbol == "music.note")
         #expect(BarLooks.music(playing: true).label != BarLooks.music(playing: false).label)

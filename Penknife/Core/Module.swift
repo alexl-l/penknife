@@ -85,6 +85,8 @@ struct ModuleAction {
     let symbol: String
     /// Returns the checkmark state for toggles, nil for plain actions.
     var state: (() -> Bool)? = nil
+    /// False → the menu item is dimmed (no microphone, O-1); the shortcut still runs and explains.
+    var isAvailable: (() -> Bool)? = nil
     let perform: () -> Void
 }
 

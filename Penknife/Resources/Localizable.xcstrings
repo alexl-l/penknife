@@ -901,6 +901,16 @@
         }
       }
     },
+    "Connect one to mute it": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conecta uno para silenciarlo"
+          }
+        }
+      }
+    },
     "Continue": {
       "localizations": {
         "es": {
@@ -2041,6 +2051,16 @@
         }
       }
     },
+    "Microphone: none connected": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Micrófono: ninguno conectado"
+          }
+        }
+      }
+    },
     "Microphone: off": {
       "localizations": {
         "es": {
@@ -2177,6 +2197,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mover arriba"
+          }
+        }
+      }
+    },
+    "No microphone": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin micrófono"
           }
         }
       }
@@ -2331,12 +2361,12 @@
         }
       }
     },
-    "Recording in 3 seconds. Esc cancels.": {
+    "Recording in 3 seconds. M: microphone, S: Mac sound, Esc cancels.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La grabación empieza en 3 segundos. Esc para cancelar."
+            "value": "La grabación empieza en 3 segundos. M: micrófono, S: sonido del Mac, Esc para cancelar."
           }
         }
       }
@@ -2627,16 +2657,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Canción siguiente"
-          }
-        }
-      }
-    },
-    "No microphone found": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No se encontró ningún micrófono"
           }
         }
       }

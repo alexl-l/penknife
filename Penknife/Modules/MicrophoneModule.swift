@@ -47,6 +47,7 @@ final class MicrophoneModule: Module {
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .toggleMicrophone, title: String(localized: "Mute Microphone"), symbol: "mic.slash",
                       state: { [weak self] in self?.showsMuted ?? false },
+                      isAvailable: { [weak self] in self?.hasInput ?? true },
                       perform: { [weak self] in self?.toggle() })]
     }
 
@@ -151,6 +152,9 @@ final class MicrophoneModule: Module {
     /// the device, and open while a called Siri hears the user (B-2). Presses decide by `isMuted`.
     var showsMuted: Bool { Self.shownMuted(deviceMuted: isMuted, siriHears: siri?.hears ?? false) }
 
+    /// There is an input device to mute (O-1: without one the button and the menu item are dimmed).
+    var hasInput: Bool { Self.defaultInputDevice() != nil }
+
     /// Mutes the current meeting (the one in front, or the last one used) with its own shortcut;
     /// with no meeting, or when the setting asks for it, also the Mac's microphone (R-28).
     /// What a press does is decided by `route`, `afterSend` and `macGate` (tested).
@@ -210,7 +214,8 @@ final class MicrophoneModule: Module {
             log.notice("Toggle ignored: Siri is listening")
             return
         case .noDevice:
-            HUD.shared.show(String(localized: "No microphone found"), symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
+            HUD.shared.show(String(localized: "No microphone"), detail: String(localized: "Connect one to mute it"),
+                            symbol: "mic.slash", kind: .error, category: .microphone)
             return
         case .write(let input):
             device = input

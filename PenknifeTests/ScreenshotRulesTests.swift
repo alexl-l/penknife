@@ -1245,6 +1245,14 @@ struct ScreenshotRulesTests {
         #expect(moved.erasures.first?.points == [Self.p(100, 50)])
     }
 
+    @Test("REC-05 O-18 during the countdown M flips the microphone, S the Mac sound; other keys do nothing")
+    func countdownKeys() {
+        typealias S = RecordingSession
+        for key in ["m", "M"] { if case .microphone = S.countdownCommand(key) {} else { Issue.record("\(key)") } }
+        for key in ["s", "S"] { if case .macSound = S.countdownCommand(key) {} else { Issue.record("\(key)") } }
+        for key in ["v", "l", "r", " ", "1", ""] { #expect(S.countdownCommand(key) == nil, "\(key)") }
+    }
+
     @Test("B-13 REC-19 while drawing, ⌘Z undoes; while typing only the Edit menu's keys reach the text; other ⌘ keys stay")
     func recordingCommandKeys() {
         typealias S = RecordingSession

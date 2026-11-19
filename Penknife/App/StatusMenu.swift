@@ -234,6 +234,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             if let state = action.state {
                 entry.state = state() ? .on : .off
             }
+            if let isAvailable = action.isAvailable { entry.isEnabled = isAvailable() }
             entry.setShortcut(for: action.shortcut)
             menu.addItem(entry)
         }

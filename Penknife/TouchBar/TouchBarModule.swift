@@ -621,7 +621,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     /// Follows the real microphone (R-28), open while a called Siri hears the user (B-2).
     private func updateMicrophone() {
         guard let button = barView?.button(Item.microphone.rawValue) else { return }
-        button.show(BarLooks.microphone(muted: microphone.showsMuted))
+        button.show(BarLooks.microphone(muted: microphone.showsMuted, available: microphone.hasInput))
     }
 
     // MARK: Clock

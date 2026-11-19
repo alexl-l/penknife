@@ -9,6 +9,8 @@ enum BarLooks {
         var text = ""
         /// With a unit, the text is a number drawn over it (the speed test, TB-10).
         var unit = ""
+        /// Shown at 35 %: the thing exists but can't be used now (no microphone, O-1).
+        var dimmed = false
         var label: String
     }
 
@@ -85,8 +87,12 @@ enum BarLooks {
              label: on ? String(localized: "Mouse jiggler, on") : String(localized: "Mouse jiggler, off"))
     }
 
-    static func microphone(muted: Bool) -> Look {
-        Look(symbol: muted ? "mic.slash.fill" : "mic.fill",
+    /// No input device at all (O-1, user's pick A): dimmed, never "open" or "muted".
+    static func microphone(muted: Bool, available: Bool = true) -> Look {
+        guard available else {
+            return Look(symbol: "mic.slash", dimmed: true, label: String(localized: "Microphone: none connected"))
+        }
+        return Look(symbol: muted ? "mic.slash.fill" : "mic.fill",
              label: muted ? String(localized: "Microphone muted") : String(localized: "Microphone on"))
     }
 
@@ -177,6 +183,6 @@ enum BarLooks {
 
 extension BarButton {
     func show(_ look: BarLooks.Look) {
-        show(symbol: look.symbol, text: look.text, unit: look.unit, label: look.label)
+        show(symbol: look.symbol, text: look.text, unit: look.unit, dimmed: look.dimmed, label: look.label)
     }
 }

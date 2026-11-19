@@ -710,14 +710,11 @@ final class RegionFrameView: NSView {
 final class CountdownView: NSView {
     private let region: CGRect
 
-    /// `region`: in this view's coordinates (bottom-left origin). `top`: the menu bar's height.
-    init(frame: CGRect, region: CGRect, top: CGFloat, state: RecordingState) {
+    /// `region`: in this view's coordinates (bottom-left origin). The capsule has its own panel
+    /// (it takes clicks and keys, O-18); this one only draws the line and lets clicks through.
+    init(frame: CGRect, region: CGRect) {
         self.region = region
         super.init(frame: frame)
-        let capsule = NSHostingView(rootView: CountdownCapsule(state: state))
-        capsule.frame = CGRect(x: 0, y: bounds.height - top - 12 - 36, width: bounds.width, height: 36)
-        capsule.autoresizingMask = [.width, .minYMargin]
-        addSubview(capsule)
     }
 
     @available(*, unavailable)
@@ -733,8 +730,10 @@ final class CountdownView: NSView {
     }
 }
 
-private struct CountdownCapsule: View {
+/// "Recording in 3" with the microphone and Mac sound switches (O-18, user's pick A).
+struct CountdownCapsule: View {
     let state: RecordingState
+    let run: (RecordingCommand) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
@@ -747,8 +746,15 @@ private struct CountdownCapsule: View {
             Text(String(localized: "Recording in \(max(state.countdown, 1))"))
                 .font(.system(size: 13, weight: .semibold).monospacedDigit())
                 .contentTransition(reduceMotion ? .opacity : .numericText(countsDown: true))
+                // VoiceOver hears it once, in the session's announcement; only the switches are read.
+                .accessibilityHidden(true)
+            Divider().frame(height: 18).padding(.horizontal, 2)
+            HStack(spacing: 4) {
+                SoundSwitches(state: state, keys: true, run: run)
+            }
         }
-        .padding(.horizontal, 16)
+        .padding(.leading, 16)
+        .padding(.trailing, 4)
         .frame(height: 36)
         .background {
             if opaque {
@@ -759,9 +765,6 @@ private struct CountdownCapsule: View {
         .glassEffect(opaque ? .identity : .regular, in: .capsule)
         .fixedSize()
         .animation(.easeInOut(duration: 0.25), value: state.countdown)
-        .frame(maxWidth: .infinity)
-        // VoiceOver hears it once, in the session's announcement.
-        .accessibilityHidden(true)
     }
 
     private var opaque: Bool { reduceTransparency || contrast == .increased }

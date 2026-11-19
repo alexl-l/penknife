@@ -43,14 +43,7 @@ struct RecordingToolbar: View {
                              toggle: { run(.toggle($0)) }, color: { run(.color($0)) }, size: { run(.size($0)) })
             fadeMenu
             separator
-            Button { run(.microphone) } label: { symbol(state.microphone ? "mic" : "mic.slash", selected: state.microphone) }
-                .help(state.microphone ? String(localized: "Microphone: on") : String(localized: "Microphone: off"))
-                .accessibilityLabel(String(localized: "Microphone"))
-                .accessibilityValue(state.microphone ? String(localized: "On") : String(localized: "Off"))
-            Button { run(.macSound) } label: { symbol(state.macSound ? "speaker.wave.2" : "speaker.slash", selected: state.macSound) }
-                .help(state.macSound ? String(localized: "Mac sound: on") : String(localized: "Mac sound: off"))
-                .accessibilityLabel(String(localized: "Mac sound"))
-                .accessibilityValue(state.macSound ? String(localized: "On") : String(localized: "Off"))
+            SoundSwitches(state: state, keys: false, run: run)
             separator
             Button { run(.erase) } label: { symbol("trash") }
                 .help(String(localized: "Erase all drawings"))
@@ -118,5 +111,35 @@ struct RecordingToolbar: View {
 
     private var separator: some View {
         Divider().frame(height: 18).padding(.horizontal, 2)
+    }
+}
+
+/// Microphone and Mac sound (REC-27): in the recording toolbar and, with their keys M and S in
+/// the tooltips, in the countdown capsule (O-18, user's pick A). Same look in both.
+struct SoundSwitches: View {
+    let state: RecordingState
+    let keys: Bool
+    let run: (RecordingCommand) -> Void
+
+    var body: some View {
+        Button { run(.microphone) } label: { symbol(state.microphone ? "mic" : "mic.slash", selected: state.microphone) }
+            .help(withKey(state.microphone ? String(localized: "Microphone: on") : String(localized: "Microphone: off"), "M"))
+            .accessibilityLabel(String(localized: "Microphone"))
+            .accessibilityValue(state.microphone ? String(localized: "On") : String(localized: "Off"))
+        Button { run(.macSound) } label: { symbol(state.macSound ? "speaker.wave.2" : "speaker.slash", selected: state.macSound) }
+            .help(withKey(state.macSound ? String(localized: "Mac sound: on") : String(localized: "Mac sound: off"), "S"))
+            .accessibilityLabel(String(localized: "Mac sound"))
+            .accessibilityValue(state.macSound ? String(localized: "On") : String(localized: "Off"))
+    }
+
+    private func withKey(_ text: String, _ key: String) -> String { keys ? "\(text) (\(key))" : text }
+
+    private func symbol(_ name: String, selected: Bool) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(selected ? Color.white : Color.primary)
+            .frame(width: 28, height: 28)
+            .background(selected ? Color.accentColor : .clear, in: Circle())
+            .contentShape(Circle())
     }
 }
