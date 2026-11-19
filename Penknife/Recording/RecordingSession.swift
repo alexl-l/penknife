@@ -104,11 +104,26 @@ final class RecordingSession {
         self.canvas = canvas
         canvas.onBlursChanged = { [weak self] in self?.updateBlurs() }
         // Marks from the screenshot editor stay, fixed.
-        for mark in request.marks {
+        for mark in Self.carried(request.marks, into: request.rect) { canvas.add(mark, fade: 0) }
+    }
+
+    /// The editor's marks (screen points) placed in the region's own points: the whole mark
+    /// moves, with its bend and what was erased from it (B-15).
+    static func carried(_ marks: [Annotation], into rect: CGRect) -> [Annotation] {
+        marks.map { mark in
             var moved = mark
-            moved.points = mark.points.map { CGPoint(x: $0.x - request.rect.minX, y: $0.y - request.rect.minY) }
-            canvas.add(moved, fade: 0)
+            moved.move(by: CGVector(dx: -rect.minX, dy: -rect.minY))
+            return moved
         }
+    }
+
+    /// What a ⌘ key does while drawing (B-13): ⌘Z undoes the newest drawing; while a text is
+    /// typed the Edit menu's keys reach it (undo, cut, copy, paste, select all); every other ⌘ key
+    /// stays here, so ⌘Q or ⌘, can't quit Penknife or open Settings in the middle of a recording.
+    enum CommandKey: Equatable { case undo, toText, swallow }
+    static func commandKey(_ key: String, typing: Bool) -> CommandKey {
+        if typing { return ["z", "x", "c", "v", "a"].contains(key) ? .toText : .swallow }
+        return key == "z" ? .undo : .swallow
     }
 
     private func showCountdown() {
@@ -121,9 +136,13 @@ final class RecordingSession {
         panel.ignoresMouseEvents = true
         panel.contentView = CountdownView(frame: CGRect(origin: .zero, size: screen.size), region: local, top: top, state: state)
         panel.onKey = { [weak self] event in
-            guard event.type == .keyDown, event.keyCode == 53 else { return false }
-            self?.cancel()
-            return true
+            guard event.type == .keyDown else { return false }
+            // Esc cancels; ⌘ keys stay here, as while drawing (B-13).
+            if event.keyCode == 53 {
+                self?.cancel()
+                return true
+            }
+            return event.modifierFlags.contains(.command)
         }
         panel.orderFrontRegardless()
         panel.makeKey()
@@ -499,10 +518,14 @@ final class RecordingSession {
             return true
         }
         if flags.contains(.command) {
-            guard key == "z", !input.isTyping else { return false }
-            input.select(nil)
-            if canvas?.undo() == true { announce(String(localized: "Undone")) }
-            return true
+            switch Self.commandKey(key, typing: input.isTyping) {
+            case .toText: return false
+            case .swallow: return true
+            case .undo:
+                input.select(nil)
+                if canvas?.undo() == true { announce(String(localized: "Undone")) }
+                return true
+            }
         }
         guard !input.isTyping else { return false }
         // R-32: Tab selects the next mark; arrows move the selected one (⇧ by 10, ⌥ resize).

@@ -1229,4 +1229,27 @@ struct ScreenshotRulesTests {
         editor.endText(Self.mark(.text, [Self.p(1, 1)], text: "Nuevo"))
         #expect(editor.marks.count == 4 && editor.marks.last?.text == "Nuevo")
     }
+
+    // MARK: Recording (rules in docs/requirements/recording.md)
+
+    @Test("B-15 editor marks carried into a recording move whole: points, bend and erased parts")
+    func carriedMarks() {
+        var line = Self.mark(.arrow, [Self.p(450, 350), Self.p(550, 350)])
+        line.bend = Self.p(500, 320)
+        line.erasures = [Erasure(points: [Self.p(500, 350)], width: 10, stroke: 1)]
+        let region = CGRect(x: 400, y: 300, width: 300, height: 200)
+        let moved = RecordingSession.carried([line], into: region)[0]
+        #expect(moved.points == [Self.p(50, 50), Self.p(150, 50)])
+        #expect(moved.bend == Self.p(100, 20))
+        #expect(moved.erasures.first?.points == [Self.p(100, 50)])
+    }
+
+    @Test("B-13 REC-19 while drawing, ⌘Z undoes; while typing only the Edit menu's keys reach the text; other ⌘ keys stay")
+    func recordingCommandKeys() {
+        typealias S = RecordingSession
+        #expect(S.commandKey("z", typing: false) == .undo)
+        for key in ["q", ",", "w", "h", "m", "c", "v"] { #expect(S.commandKey(key, typing: false) == .swallow, "⌘\(key)") }
+        for key in ["z", "x", "c", "v", "a"] { #expect(S.commandKey(key, typing: true) == .toText, "⌘\(key)") }
+        for key in ["q", ",", "w", "h"] { #expect(S.commandKey(key, typing: true) == .swallow, "⌘\(key)") }
+    }
 }
