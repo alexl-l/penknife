@@ -542,6 +542,55 @@ struct ClipboardRulesTests {
         #expect(model.rows.count == 3)
     }
 
+    @Test("CB-21 B-21 an image's thumbnail is made when it comes in, never by the panel")
+    func thumbnails() async throws {
+        let png = try #require(NSImage(size: NSSize(width: 400, height: 200), flipped: false) { _ in
+            NSColor.red.setFill(); NSRect(x: 0, y: 0, width: 400, height: 200).fill(); return true
+        }.tiffRepresentation)
+        let temp = TempStore()
+        let store = temp.store!
+        store.add(.image(png, type: NSPasteboard.PasteboardType.tiff.rawValue))
+        let item = store.history[0]
+        // The panel only reads what the store made: not ready yet → the generic icon, no decoding.
+        #expect(ClipboardPanelModel(store: store).icon(for: item) == nil)
+        for _ in 0..<250 where store.thumbnails[item.key] == nil { try await Task.sleep(for: .milliseconds(20)) }
+        let thumbnail = try #require(store.thumbnails[item.key])
+        #expect(max(thumbnail.size.width, thumbnail.size.height) <= 96)
+        #expect(ClipboardPanelModel(store: store).icon(for: item) === thumbnail)
+        // Pinned and unpinned it stays; deleted it goes.
+        store.togglePin(item.id)
+        store.togglePin(item.id)
+        #expect(store.thumbnails[item.key] != nil)
+        store.remove(item.id)
+        #expect(store.thumbnails.isEmpty)
+        // An image that isn't one (damaged data) gets no thumbnail and no error.
+        store.add(.image(Self.blob(3), type: "public.png"))
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(store.thumbnails.isEmpty)
+    }
+
+    @Test("CB-21 B-24 one list: headers only with pins, ⌘ numbers in order, a pinned row keeps its id")
+    func entries() {
+        let a = ClipItem.text("a"), b = ClipItem.text("b"), c = ClipItem.text("c")
+        func shape(_ list: [PanelEntry]) -> [String] {
+            list.map {
+                switch $0 {
+                case .pinnedHeader: "P"
+                case .historyHeader: "H"
+                case .row(let item, let number): "\(item.text!)\(number)"
+                }
+            }
+        }
+        #expect(shape(PanelEntry.list(pinned: [], history: [a, b])) == ["a0", "b1"])
+        #expect(shape(PanelEntry.list(pinned: [c], history: [a, b])) == ["P", "c0", "H", "a1", "b2"])
+        #expect(shape(PanelEntry.list(pinned: [c], history: [])) == ["P", "c0"])
+        // Pinning moves the row inside the same list, under the same id (one ForEach).
+        let before = PanelEntry.list(pinned: [], history: [a, b]).map(\.id)
+        let after = PanelEntry.list(pinned: [b], history: [a]).map(\.id)
+        #expect(before.contains(.row(b.id)) && after.contains(.row(b.id)))
+        #expect(Set(after).count == after.count)
+    }
+
     @Test("CB-22 ↑↓ stop at the ends; delete keeps the place")
     func selection() {
         let temp = TempStore()

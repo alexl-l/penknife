@@ -52,7 +52,7 @@ enum ClipboardKeys {
     }
 }
 
-/// State of one open panel: the search, the selected row and small caches (thumbnails, app
+/// State of one open panel: the search, the selected row and a small cache (app
 /// icons) that go away with the panel.
 @Observable
 final class ClipboardPanelModel {
@@ -72,7 +72,6 @@ final class ClipboardPanelModel {
     /// Rows scrolled by the keyboard slide under a resting pointer; hover is ignored meanwhile.
     @ObservationIgnored var lastKeyMove = Date.distantPast
     @ObservationIgnored private var icons: [String: NSImage] = [:]
-    @ObservationIgnored private var thumbnails: [ClipItem.ID: NSImage] = [:]
 
     init(store: ClipboardStore, hidden: Set<ClipItem.ID> = []) {
         self.store = store
@@ -133,16 +132,9 @@ final class ClipboardPanelModel {
     func icon(for item: ClipItem) -> NSImage? {
         switch item.kind {
         case .image:
-            if let cached = thumbnails[item.id] { return cached }
-            guard let data = item.image, let source = CGImageSourceCreateWithData(data as CFData, nil),
-                  let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
-                      kCGImageSourceCreateThumbnailFromImageAlways: true,
-                      kCGImageSourceThumbnailMaxPixelSize: 96,
-                      kCGImageSourceCreateThumbnailWithTransform: true,
-                  ] as CFDictionary) else { return nil }
-            let thumbnail = NSImage(cgImage: image, size: .zero)
-            thumbnails[item.id] = thumbnail
-            return thumbnail
+            // Made by the store when the image came in; never decoded here (B-21). Until it's
+            // ready (a fraction of a second after a copy) the row shows the generic icon.
+            return store.thumbnails[item.key]
         case .files:
             guard let first = item.files?.first else { return nil }
             return NSWorkspace.shared.icon(forFile: first.path)
@@ -326,6 +318,30 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
 
 // MARK: - View
 
+/// What the list shows, in order: section headers (only when something is pinned) and rows with
+/// their position for ⌘1–⌘9 (CB-21).
+enum PanelEntry: Identifiable {
+    case pinnedHeader, historyHeader
+    case row(ClipItem, number: Int)
+
+    enum ID: Hashable { case pinnedHeader, historyHeader, row(ClipItem.ID) }
+
+    var id: ID {
+        switch self {
+        case .pinnedHeader: .pinnedHeader
+        case .historyHeader: .historyHeader
+        case .row(let item, _): .row(item.id)
+        }
+    }
+
+    static func list(pinned: [ClipItem], history: [ClipItem]) -> [PanelEntry] {
+        let rows = (pinned + history).enumerated().map { PanelEntry.row($1, number: $0) }
+        guard !pinned.isEmpty else { return rows }
+        return [.pinnedHeader] + rows.prefix(pinned.count)
+            + (history.isEmpty ? [] : [.historyHeader]) + rows.dropFirst(pinned.count)
+    }
+}
+
 struct ClipboardView: View {
     @Bindable var model: ClipboardPanelModel
     let use: (ClipItem.ID, Bool) -> Void
@@ -371,23 +387,21 @@ struct ClipboardView: View {
     private var list: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                // Filtered once per render; rows know their position for ⌘1–⌘9.
-                let pinned = model.pinned
-                let history = model.history
+                // One list, headers included: pinning moves a row inside it. With a ForEach per
+                // section the moved row kept its old look (still blue, old ⌘ number) (B-24).
                 LazyVStack(alignment: .leading, spacing: 2) {
-                    if !pinned.isEmpty {
-                        header("Pinned")
-                        ForEach(Array(pinned.enumerated()), id: \.element.id) { index, item in row(item, number: index) }
-                        if !history.isEmpty { header("History") }
-                    }
-                    ForEach(Array(history.enumerated()), id: \.element.id) { index, item in
-                        row(item, number: pinned.count + index)
+                    ForEach(PanelEntry.list(pinned: model.pinned, history: model.history)) { entry in
+                        switch entry {
+                        case .pinnedHeader: header("Pinned")
+                        case .historyHeader: header("History")
+                        case .row(let item, let number): row(item, number: number)
+                        }
                     }
                 }
                 .padding(8)
             }
             .onChange(of: model.selection) { _, id in
-                if let id { proxy.scrollTo(id) }
+                if let id { proxy.scrollTo(PanelEntry.ID.row(id)) }
             }
         }
     }
@@ -445,7 +459,6 @@ struct ClipboardView: View {
             }
         }
         .contentShape(Rectangle())
-        .id(item.id)
         .onHover { inside in
             if inside, Date.now.timeIntervalSince(model.lastKeyMove) > 0.4 { model.selection = item.id }
         }

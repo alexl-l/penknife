@@ -146,6 +146,12 @@ final class ClipboardStore {
     /// Kept up to date on every change instead of summing the history each time.
     private(set) var usedBytes = 0
 
+    /// Row thumbnails of the images, by content key. Made once, off the main thread, when an
+    /// image comes in (or a pin is loaded): decoding a screenshot takes 25–150 ms, and doing it
+    /// for every image row when the panel opened made it take seconds (B-21).
+    private(set) var thumbnails: [String: NSImage] = [:]
+    @ObservationIgnored private var thumbnailsMaking: Set<String> = []
+
     static var defaultFolder: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appending(path: "Penknife", directoryHint: .isDirectory)
@@ -178,15 +184,50 @@ final class ClipboardStore {
         history.insert(item, at: 0)
         usedBytes += size
         trim()
+        makeThumbnail(for: item)
+    }
+
+    /// A small picture for an image row, made from the image's data. Slow for big images: never
+    /// on the main thread.
+    nonisolated static func thumbnail(_ data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceThumbnailMaxPixelSize: 96,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+        ] as CFDictionary)
+    }
+
+    private func makeThumbnail(for item: ClipItem) {
+        guard item.kind == .image, let data = item.image, thumbnails[item.key] == nil,
+              thumbnailsMaking.insert(item.key).inserted else { return }
+        let key = item.key
+        Task { [weak self] in
+            let image = await Task.detached(priority: .utility) { Self.thumbnail(data) }.value
+            guard let self else { return }
+            thumbnailsMaking.remove(key)
+            // Only if the item is still there (it may have been deleted or trimmed meanwhile).
+            guard let image, (history + pinned).contains(where: { $0.key == key }) else { return }
+            thumbnails[key] = NSImage(cgImage: image, size: .zero)
+        }
+    }
+
+    /// Thumbnails of items no longer kept are let go.
+    private func dropUnusedThumbnails() {
+        guard !thumbnails.isEmpty else { return }
+        let keys = Set((history + pinned).lazy.filter { $0.kind == .image }.map(\.key))
+        for key in thumbnails.keys where !keys.contains(key) { thumbnails[key] = nil }
     }
 
     /// Drops the oldest unpinned items until the history fits the limit. `keeping` is never
     /// dropped: an item just unpinned stays even if it alone is over the limit (O-21).
     func trim(keeping kept: ClipItem.ID? = nil) {
         let limit = limit()
+        let count = history.count
         while usedBytes > limit, let index = history.lastIndex(where: { $0.id != kept }) {
             usedBytes -= history.remove(at: index).bytes
         }
+        if history.count < count { dropUnusedThumbnails() }
     }
 
     /// Files that no longer exist leave the history (O-22): the missing ones are taken out of
@@ -227,6 +268,7 @@ final class ClipboardStore {
         } else if let index = history.firstIndex(where: { $0.id == id }) {
             usedBytes -= history.remove(at: index).bytes
         }
+        dropUnusedThumbnails()
     }
 
     func togglePin(_ id: ClipItem.ID) {
@@ -249,6 +291,7 @@ final class ClipboardStore {
     func clearHistory() {
         history.removeAll()
         usedBytes = 0
+        dropUnusedThumbnails()
     }
 
     func item(_ id: ClipItem.ID) -> ClipItem? {
@@ -330,6 +373,7 @@ final class ClipboardStore {
             item.files = item.files?.filter(\.isFileURL)
             return item
         }
+        pinned.forEach(makeThumbnail)
     }
 
     /// Set when an unreadable pins file couldn't be set aside: it is never written over.
