@@ -48,7 +48,7 @@ Code abbreviations: WM = `Modules/WeatherModule.swift` (WeatherModule, Report, W
 
 ## 2. Open questions and known bugs
 
-Open (the user decides):
+Decided, not built yet (user, 2026-11-19: "okay, hay que hacer eso entonces cuando lleguemos a esas tareas" = yes to the recommendation, build it when we get to it):
 - **O-27 An old report stays forever without saying so.** When every refresh fails (no internet for hours, Open-Meteo down), the Touch Bar, the menu and the menu bar item keep showing the last report as if it were current, even a day later. [After 2 hours without a new report, show "no data yet" (`cloud`) instead of the old temperature; the next good answer brings it back.]
 
 Not measured (check live; nothing to decide yet):
