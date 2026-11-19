@@ -111,7 +111,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 /// Launch at login (R-16): on by default, can be turned off in Settings → General.
 /// Only the copy in /Applications registers itself, so development builds never become the
-/// login item; if the app moved since it registered, the registration is renewed.
+/// login item; if the app moved since it registered, the registration is renewed. Removing it
+/// in System Settings › Login Items turns the choice off (B-25): the system has the last word.
 enum LaunchAtLogin {
     private static let wantedKey = "launchAtLogin.enabled"
     private static let pathKey = "launchAtLogin.registeredPath"
@@ -120,7 +121,7 @@ enum LaunchAtLogin {
         Bundle.main.bundlePath.hasPrefix("/Applications/")
     }
 
-    /// What the user chose (default on).
+    /// What the user chose (default on), after `apply()` has taken in a removal in System Settings.
     static var isEnabled: Bool {
         get { UserDefaults.standard.object(forKey: wantedKey) as? Bool ?? true }
         set {
@@ -129,14 +130,15 @@ enum LaunchAtLogin {
         }
     }
 
-    enum Step: Equatable { case none, register, reregister, unregister }
+    enum Step: Equatable { case none, register, reregister, unregister, forget }
 
     /// GN-23: what brings the login item in line with the choice. Only the /Applications copy
-    /// acts; a registration from another path is renewed.
+    /// acts; a registration from another path is renewed. Registered from this path but no
+    /// longer in the system = the user removed it in System Settings: forget, never re-add (B-25).
     static func step(installed: Bool, wanted: Bool, enabled: Bool, registeredHere: Bool) -> Step {
         guard installed else { return .none }
         if wanted {
-            if !enabled { return .register }
+            if !enabled { return registeredHere ? .forget : .register }
             return registeredHere ? .none : .reregister
         }
         return enabled ? .unregister : .none
@@ -148,10 +150,15 @@ enum LaunchAtLogin {
         let service = SMAppService.mainApp
         let path = Bundle.main.bundlePath
         let registeredHere = UserDefaults.standard.string(forKey: pathKey) == path
+        // Waiting for the user's approval still counts as there: not a removal.
+        let enabled = service.status == .enabled || service.status == .requiresApproval
         do {
-            switch step(installed: true, wanted: isEnabled, enabled: service.status == .enabled, registeredHere: registeredHere) {
+            switch step(installed: true, wanted: isEnabled, enabled: enabled, registeredHere: registeredHere) {
             case .none:
                 return
+            case .forget:
+                UserDefaults.standard.set(false, forKey: wantedKey)
+                UserDefaults.standard.removeObject(forKey: pathKey)
             case .register, .reregister:
                 if service.status == .enabled { try? service.unregister() }
                 try service.register()

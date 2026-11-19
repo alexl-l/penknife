@@ -170,7 +170,7 @@ struct GeneralRulesTests {
         #expect(P.screenAccess(granted: false, asked: true) == .denied)
     }
 
-    @Test("GN-23 the login item: only from /Applications, registered once per path, removed when off")
+    @Test("GN-23 B-25 the login item: only from /Applications, registered once per path, removed when off, a removal in System Settings is kept")
     func loginItem() {
         typealias L = LaunchAtLogin
         for wanted in [true, false] {
@@ -181,7 +181,7 @@ struct GeneralRulesTests {
             }
         }
         #expect(L.step(installed: true, wanted: true, enabled: false, registeredHere: false) == .register)
-        #expect(L.step(installed: true, wanted: true, enabled: false, registeredHere: true) == .register)
+        #expect(L.step(installed: true, wanted: true, enabled: false, registeredHere: true) == .forget)
         #expect(L.step(installed: true, wanted: true, enabled: true, registeredHere: true) == .none)
         #expect(L.step(installed: true, wanted: true, enabled: true, registeredHere: false) == .reregister)
         #expect(L.step(installed: true, wanted: false, enabled: true, registeredHere: true) == .unregister)

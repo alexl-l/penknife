@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// General: start, menu bar dots and alerts.
@@ -12,7 +13,12 @@ struct GeneralPage: View {
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, on in
-                        LaunchAtLogin.isEnabled = on
+                        if on != LaunchAtLogin.isEnabled { LaunchAtLogin.isEnabled = on }
+                    }
+                    // Back from System Settings: show what the system has now (B-25).
+                    .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                        LaunchAtLogin.apply()
+                        launchAtLogin = LaunchAtLogin.isEnabled
                     }
                 Toggle("Show status dots in the menu bar", isOn: $statusDots)
                 Picker("Menu bar readings style", selection: $readingStyle) {
