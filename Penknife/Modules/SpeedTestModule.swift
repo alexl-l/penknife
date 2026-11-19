@@ -55,6 +55,8 @@ final class SpeedTestModule: Module {
     /// The running tool's pid, written from the background thread that waits for it;
     /// -1 = cancelled before the pid was known (the tool is killed as soon as it starts).
     private let pid = OSAllocatedUnfairLock<Int32>(initialState: 0)
+    /// Set only by Penknife's own cancel (module off, quitting): the one end that stays silent (B-22).
+    private var cancelled = false
     private var quitObserver: NSObjectProtocol?
     private let log = Logger(subsystem: "Penknife", category: "SpeedTest")
 
@@ -124,6 +126,7 @@ final class SpeedTestModule: Module {
         }
         log.notice("Speed test started")
         isRunning = true
+        cancelled = false
         failed = false
         changed()
         showTesting()
@@ -137,20 +140,35 @@ final class SpeedTestModule: Module {
 
     private func cancel() {
         let active = isRunning
+        if active { cancelled = true }
         pid.withLock { running in
             if running > 0 { kill(running, SIGTERM) } else if active { running = -1 }
         }
     }
 
+    /// How a test ended. Only Penknife's own cancel is silent; a tool killed by any other signal
+    /// (a crash, someone else's kill) is a failure like a non-zero exit (ST-07, B-22).
+    enum Outcome: Equatable {
+        case cancelled, success(Result), failure
+    }
+
+    nonisolated static func outcome(of output: (data: Data, status: Int32)?, cancelled: Bool, now: Date = Date()) -> Outcome {
+        if cancelled { return .cancelled }
+        guard let output, output.status == 0, let parsed = parse(output.data, now: now) else { return .failure }
+        return .success(parsed)
+    }
+
     private func finish(_ output: (data: Data, status: Int32)?) {
         isRunning = false
+        let outcome = Self.outcome(of: output, cancelled: cancelled)
+        cancelled = false
         // Ended by quitting or turning the module off: not a failure, the last result stays.
-        if output?.status == SIGTERM {
+        if outcome == .cancelled {
             changed()
             return
         }
         log.notice("Speed test ended, status \(output?.status ?? -1)")
-        if let output, output.status == 0, let parsed = Self.parse(output.data) {
+        if case .success(let parsed) = outcome {
             result = parsed
             failed = false
             Self.save(parsed, to: defaults)
@@ -189,8 +207,12 @@ final class SpeedTestModule: Module {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         pid.withLock { $0 = 0 }
-        let status = process.terminationReason == .uncaughtSignal ? SIGTERM : process.terminationStatus
-        return (data, status)
+        // Killed by a signal: the status is the signal's number, never 0, so it reads as a failure
+        // unless Penknife cancelled it (B-22).
+        if process.terminationReason == .uncaughtSignal {
+            return (data, process.terminationStatus == 0 ? -1 : process.terminationStatus)
+        }
+        return (data, process.terminationStatus)
     }
 
     /// Keys of `networkQuality -c`: throughputs in bits/s, `base_rtt` in ms, `responsiveness` in RPM.

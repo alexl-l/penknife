@@ -24,6 +24,25 @@ struct SpeedTestRulesTests {
         #expect(AlertCategory.allCases.contains(.speedTest))
     }
 
+    // MARK: How a test ends
+
+    @Test("ST-07 B-22 only Penknife's own cancel is silent; a tool killed by another signal is a failure")
+    func outcome() {
+        let json = Data(#"{"base_rtt":20,"dl_throughput":50000000,"ul_throughput":10000000,"responsiveness":300}"#.utf8)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let parsed = SpeedTestModule.parse(json, now: now)!
+        #expect(SpeedTestModule.outcome(of: (json, 0), cancelled: false, now: now) == .success(parsed))
+        // Cancelled (module off, quitting): silent whatever the tool's status.
+        #expect(SpeedTestModule.outcome(of: (Data(), SIGTERM), cancelled: true) == .cancelled)
+        #expect(SpeedTestModule.outcome(of: nil, cancelled: true) == .cancelled)
+        // Not cancelled: a crash (SIGSEGV), someone else's SIGTERM or SIGKILL, a non-zero exit, no tool.
+        for status in [SIGSEGV, SIGTERM, SIGKILL, 1] {
+            #expect(SpeedTestModule.outcome(of: (Data(), status), cancelled: false) == .failure)
+        }
+        #expect(SpeedTestModule.outcome(of: (json, SIGKILL), cancelled: false) == .failure)
+        #expect(SpeedTestModule.outcome(of: nil, cancelled: false) == .failure)
+    }
+
     // MARK: Reading the tool's output
 
     @Test("ST-04 parse: bits/s to Mbps, base_rtt, responsiveness rounded")
