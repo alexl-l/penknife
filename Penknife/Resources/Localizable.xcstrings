@@ -751,6 +751,16 @@
         }
       }
     },
+    "No sound (it couldn't be prepared)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin sonido (no se pudo preparar)"
+          }
+        }
+      }
+    },
     "Only useful on Macs with a Touch Bar.": {
       "localizations": {
         "es": {

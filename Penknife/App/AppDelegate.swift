@@ -69,6 +69,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.global(qos: .utility).async { RecordingSession.removeLeftovers() }
     }
 
+    /// An unsaved recording is never deleted by quitting without asking (B-14): each end window
+    /// that holds one asks first, as closing it does.
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        var now: Bool?, later = false
+        RecordingEndWindow.confirmQuit { quit in
+            if later { NSApp.reply(toApplicationShouldTerminate: quit) } else { now = quit }
+        }
+        if let now { return now ? .terminateNow : .terminateCancel }
+        later = true   // a question is open: its answer replies
+        return .terminateLater
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         guard !Self.isRunningTests else { return }
         RecordingSession.removeLeftovers()

@@ -66,6 +66,10 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
     private var trimCount = 0
     /// Closed while saving or copying: it closes when that ends.
     private var closeWhenDone = false
+    /// Quitting waits for the save or copy running now (B-14); then asks again if needed.
+    private var quitWhenDone: (() -> Void)?
+    /// Discarded from the quit question: nothing left to ask about.
+    private var discarded = false
 
     /// `videoSize`: the recorded region, in points.
     static func show(_ output: RecordingWriter.Output, folder: URL, gifSize: CGSize, videoSize: CGSize, screen: NSScreen?) {
@@ -132,8 +136,9 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         let output = output, movie = movie
         task = Task { [weak self] in
             do {
-                try await RecordingExport.movie(output, to: movie)
+                let soundKept = try await RecordingExport.movie(output, to: movie)
                 guard let self else { return }
+                self.soundLost = !soundKept
                 let player = AVPlayer(url: movie)
                 model.player = player
                 playerView.player = player
@@ -294,16 +299,20 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         announce(String(localized: "Trim undone"))
     }
 
+    /// The sound couldn't be prepared: the video is kept without it, and the note says so (B-16).
+    private var soundLost = false
+    private var noSound: String { soundLost ? " · " + String(localized: "No sound (it couldn't be prepared)") : "" }
+
     /// Length and size, or the trimmed length with what it was cut from.
     private func updateNote() {
         let full = Self.time(length)
         guard let trim = model.trim else {
             model.trimNote = ""
             let size = (try? movie.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0
-            model.note = "\(full) · \(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))"
+            model.note = "\(full) · \(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))" + noSound
             return
         }
-        model.note = Self.time(trim.duration)
+        model.note = Self.time(trim.duration) + noSound
         let from = Self.time(trim.start), to = Self.time(trim.end)
         model.trimNote = String(localized: "(trimmed from \(full)) · \(from) → \(to)")
     }
@@ -391,6 +400,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         model.trimNote = ""
         announce(note)
         if closeWhenDone { window.close() }
+        resumeQuit()
     }
 
     private func finished(failed note: String) {
@@ -401,6 +411,70 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         if closeWhenDone {
             closeWhenDone = false
             requestClose()
+        }
+        resumeQuit()
+    }
+
+    private func resumeQuit() {
+        guard let quit = quitWhenDone else { return }
+        quitWhenDone = nil
+        quit()
+    }
+
+    // MARK: Quitting (B-14)
+
+    /// Whether quitting Penknife now would lose this recording or cut short what it is doing.
+    private var holdsQuit: Bool { !discarded && (!(model.kept || model.failed) || model.busy) }
+
+    /// Asks every end window that holds an unsaved recording, one by one, before Penknife quits:
+    /// the same question as closing it. `reply(true)` = quit.
+    static func confirmQuit(_ reply: @escaping (Bool) -> Void) {
+        guard let window = open.first(where: \.holdsQuit) else {
+            reply(true)
+            return
+        }
+        window.askBeforeQuit { answered in answered ? confirmQuit(reply) : reply(false) }
+    }
+
+    private func askBeforeQuit(_ done: @escaping (Bool) -> Void) {
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        // Already asking (its own close question): that one decides; Penknife stays open.
+        guard window.attachedSheet == nil else {
+            done(false)
+            return
+        }
+        switch model.work {
+        case .saving?, .copying?:
+            // Short: quitting goes on when it is done (and asks if it failed).
+            quitWhenDone = { done(true) }
+            return
+        case .gif?:
+            quitQuestion(String(localized: "Stop making the GIF?"),
+                         detail: model.kept ? nil : String(localized: "The recording hasn't been saved."),
+                         confirm: String(localized: "Stop and Close"), cancel: String(localized: "Continue"), done)
+        case nil:
+            quitQuestion(String(localized: "Discard the recording?"), detail: String(localized: "It hasn't been saved."),
+                         confirm: String(localized: "Discard"), cancel: String(localized: "Cancel"), done)
+        }
+    }
+
+    private func quitQuestion(_ message: String, detail: String?, confirm: String, cancel: String,
+                              _ done: @escaping (Bool) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = message
+        if let detail { alert.informativeText = detail }
+        alert.addButton(withTitle: confirm).hasDestructiveAction = true
+        alert.addButton(withTitle: cancel)
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn, let self else {
+                done(false)
+                return
+            }
+            discarded = true
+            model.kept = true
+            task?.cancel()
+            done(true)
         }
     }
 

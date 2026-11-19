@@ -194,8 +194,16 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     /// Opens the menu from the keyboard shortcut.
+    /// While recording the item has no menu (a click stops, REC-31); the shortcut still opens
+    /// the menu then (O-17): it is attached for that click only. Stopping stays on ⌃⌥R and the item.
     func open() {
-        item.button?.performClick(nil)
+        guard item.menu == nil else {
+            item.button?.performClick(nil)
+            return
+        }
+        item.menu = menu
+        item.button?.performClick(nil)   // returns when the menu closes
+        if recording.time != nil { item.menu = nil }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {

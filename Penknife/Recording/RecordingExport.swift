@@ -4,9 +4,10 @@ import AVFoundation
 /// track (so every player hears both the Mac and the voice), and a GIF.
 nonisolated enum RecordingExport {
     /// The movie plus every sound stretch, mixed into one track, as `output` (MP4). The video is
-    /// copied as it is (no new encoding).
-    @concurrent
-    static func movie(_ recording: RecordingWriter.Output, to output: URL) async throws {
+    /// copied as it is (no new encoding). When the sound can't be prepared the movie is made
+    /// without it rather than lost (B-16); returns false then.
+    @concurrent @discardableResult
+    static func movie(_ recording: RecordingWriter.Output, to output: URL) async throws -> Bool {
         let videoAsset = AVURLAsset(url: recording.video)
         guard let videoTrack = try await videoAsset.loadTracks(withMediaType: .video).first else { throw RecordingError.export }
         let length = min(try await videoAsset.load(.duration), recording.duration.isValid ? recording.duration : CMTime.positiveInfinity)
@@ -16,15 +17,24 @@ nonisolated enum RecordingExport {
         }
         try video.insertTimeRange(CMTimeRange(start: .zero, duration: length), of: videoTrack, at: .zero)
 
+        var soundKept = true
         if !recording.segments.isEmpty {
             let mixed = output.deletingLastPathComponent().appendingPathComponent("sound.m4a")
             try? FileManager.default.removeItem(at: mixed)
-            try await mix(recording.segments, length: length, to: mixed)
-            let mixedAsset = AVURLAsset(url: mixed)
-            if let mixedTrack = try await mixedAsset.loadTracks(withMediaType: .audio).first,
-               let sound = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
-                let soundLength = min(try await mixedAsset.load(.duration), length)
-                try sound.insertTimeRange(CMTimeRange(start: .zero, duration: soundLength), of: mixedTrack, at: .zero)
+            var added: AVMutableCompositionTrack?
+            do {
+                try await mix(recording.segments, length: length, to: mixed)
+                let mixedAsset = AVURLAsset(url: mixed)
+                if let mixedTrack = try await mixedAsset.loadTracks(withMediaType: .audio).first,
+                   let sound = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                    added = sound
+                    let soundLength = min(try await mixedAsset.load(.duration), length)
+                    try sound.insertTimeRange(CMTimeRange(start: .zero, duration: soundLength), of: mixedTrack, at: .zero)
+                }
+            } catch {
+                RecordingLog.log.error("Sound not prepared, video kept without it: \(error.localizedDescription, privacy: .public)")
+                if let added { composition.removeTrack(added) }
+                soundKept = false
             }
         }
 
@@ -34,6 +44,7 @@ nonisolated enum RecordingExport {
         }
         session.shouldOptimizeForNetworkUse = true
         try await session.export(to: output, as: .mp4)
+        return soundKept
     }
 
     /// The stretches placed on one timeline from 0 to `length` and mixed into one AAC track

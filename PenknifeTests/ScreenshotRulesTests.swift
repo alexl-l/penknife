@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import CoreImage
 import Foundation
 import KeyboardShortcuts
@@ -1251,5 +1252,58 @@ struct ScreenshotRulesTests {
         for key in ["q", ",", "w", "h", "m", "c", "v"] { #expect(S.commandKey(key, typing: false) == .swallow, "⌘\(key)") }
         for key in ["z", "x", "c", "v", "a"] { #expect(S.commandKey(key, typing: true) == .toText, "⌘\(key)") }
         for key in ["q", ",", "w", "h"] { #expect(S.commandKey(key, typing: true) == .swallow, "⌘\(key)") }
+    }
+
+    /// A 1 s H.264 movie of gray frames, made with AVAssetWriter (no screen needed).
+    static func syntheticMovie(at url: URL) async throws {
+        let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
+            AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: 64, AVVideoHeightKey: 64,
+        ])
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA, kCVPixelBufferWidthKey as String: 64,
+            kCVPixelBufferHeightKey as String: 64,
+        ])
+        writer.add(input)
+        writer.startWriting()
+        writer.startSession(atSourceTime: .zero)
+        for frame in 0..<10 {
+            while !input.isReadyForMoreMediaData { try await Task.sleep(for: .milliseconds(5)) }
+            var buffer: CVPixelBuffer?
+            CVPixelBufferCreate(nil, 64, 64, kCVPixelFormatType_32BGRA, nil, &buffer)
+            let pixels = try #require(buffer)
+            CVPixelBufferLockBaseAddress(pixels, [])
+            memset(CVPixelBufferGetBaseAddress(pixels), 128, CVPixelBufferGetDataSize(pixels))
+            CVPixelBufferUnlockBaseAddress(pixels, [])
+            adaptor.append(pixels, withPresentationTime: CMTime(value: CMTimeValue(frame), timescale: 10))
+        }
+        input.markAsFinished()
+        writer.endSession(atSourceTime: CMTime(value: 10, timescale: 10))
+        await writer.finishWriting()
+        #expect(writer.status == .completed)
+    }
+
+    @Test("B-16 a sound that can't be prepared leaves the video, without sound, instead of losing it")
+    func movieWithoutSound() async throws {
+        let manager = FileManager.default
+        let folder = manager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try manager.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: folder) }
+        let video = folder.appendingPathComponent("video.mov")
+        try await Self.syntheticMovie(at: video)
+        let broken = folder.appendingPathComponent("sound-0.m4a")
+        try Data("not sound".utf8).write(to: broken)
+        let output = folder.appendingPathComponent("out.mp4")
+        let recording = RecordingWriter.Output(video: video, segments: [.init(url: broken, start: .zero)],
+                                               duration: CMTime(value: 1, timescale: 1))
+        let soundKept = try await RecordingExport.movie(recording, to: output)
+        #expect(!soundKept)
+        let asset = AVURLAsset(url: output)
+        #expect(try await asset.loadTracks(withMediaType: .video).count == 1)
+        #expect(try await asset.loadTracks(withMediaType: .audio).isEmpty)
+        // No sound recorded at all: nothing lost.
+        let silent = RecordingWriter.Output(video: video, segments: [], duration: CMTime(value: 1, timescale: 1))
+        let kept = try await RecordingExport.movie(silent, to: output)
+        #expect(kept)
     }
 }
