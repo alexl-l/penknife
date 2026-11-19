@@ -1316,20 +1316,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// resolution.
     private func render() -> NSBitmapImageRep? {
         guard let selection, !capturing, let (background, scale) = selectionImage(),
-              let context = CGContext(data: nil, width: background.width, height: background.height, bitsPerComponent: 8, bytesPerRow: 0,
-                                      space: background.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!,
-                                      bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+              let image = CaptureRender.image(background: background, scale: scale, selection: selection, marks: annotations)
         else { return nil }
-        context.draw(background, in: CGRect(x: 0, y: 0, width: background.width, height: background.height))
-        // Same drawing as on screen: flipped, in points, offset to the selection.
-        context.translateBy(x: 0, y: CGFloat(background.height))
-        context.scaleBy(x: scale, y: -scale)
-        context.translateBy(x: -selection.minX, y: -selection.minY)
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
-        for annotation in annotations { annotation.draw() }
-        NSGraphicsContext.restoreGraphicsState()
-        guard let image = context.makeImage() else { return nil }
         let rep = NSBitmapImageRep(cgImage: image)
         rep.size = CGSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
         return rep

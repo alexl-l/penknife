@@ -821,4 +821,43 @@ struct ScreenshotRulesTests {
         #expect(posts == 2)
         #expect(PastableImage.used(in: folder) == 0)
     }
+
+    /// A plain opaque image of `width` × `height` pixels in `space`.
+    static func solid(_ width: Int, _ height: Int, white: CGFloat = 1,
+                      space: CGColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!) -> CGImage {
+        let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        context.setFillColor(CGColor(gray: white, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        return context.makeImage()!
+    }
+
+    @Test("SS-34 SS-45 the output is the selection at full resolution, with the marks where they are on the screen")
+    func renderOutput() throws {
+        // The selection is 100 × 50 pt at (100, 50) on the screen, grabbed at 2× = 200 × 100 px.
+        let selection = CGRect(x: 100, y: 50, width: 100, height: 50)
+        let p3 = CGColorSpace(name: CGColorSpace.displayP3)!
+        let background = Self.solid(200, 100, space: p3)
+        let bare = try #require(CaptureRender.image(background: background, scale: 2, selection: selection, marks: []))
+        #expect(bare.width == 200 && bare.height == 100)
+        #expect(bare.colorSpace?.name == CGColorSpace.displayP3)
+        #expect(Self.pixels(bare).allSatisfy { $0 > 250 })
+
+        // A red rectangle from (110, 60) to (150, 80) on the screen = pixels 20…100 × 20…60 from
+        // the top-left; a mark outside the selection leaves nothing.
+        let marks = [Self.mark(.rectangle, [Self.p(110, 60), Self.p(150, 80)], color: .red),
+                     Self.mark(.rectangle, [Self.p(0, 0), Self.p(40, 40)], color: .red)]
+        let image = try #require(CaptureRender.image(background: background, scale: 2, selection: selection, marks: marks))
+        let bytes = Self.pixels(image)
+        func rgb(_ x: Int, _ y: Int) -> (UInt8, UInt8, UInt8) {
+            let i = (y * image.width + x) * 4
+            return (bytes[i], bytes[i + 1], bytes[i + 2])
+        }
+        let edge = rgb(20, 40)        // the rectangle's left side, halfway down
+        #expect(edge.0 > 200 && edge.1 < 120 && edge.2 < 120, "\(edge)")
+        let inside = rgb(60, 40)      // inside the rectangle: untouched
+        #expect(inside.0 > 250 && inside.1 > 250 && inside.2 > 250, "\(inside)")
+        let corner = rgb(2, 2)        // where the outside mark would be if it weren't clipped
+        #expect(corner.0 > 250 && corner.1 > 250 && corner.2 > 250, "\(corner)")
+    }
 }
