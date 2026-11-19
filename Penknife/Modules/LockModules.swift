@@ -11,10 +11,25 @@ enum ScreenLocker {
         return unsafeBitCast(symbol, to: LockFunction.self)
     }()
 
+    /// The fallback: ⌃⌘Q, the system's own Lock Screen shortcut (key code 12 = Q).
+    static let fallbackKey = CGKeyCode(12)
+    static let fallbackFlags: CGEventFlags = [.maskControl, .maskCommand]
+
+    /// Whether this macOS still has the system's lock call (LK-02).
+    static var hasSystemLock: Bool { lockFunction != nil }
+
     static func lock() {
-        if let lockFunction, lockFunction() == 0 { return }
-        guard Permissions.shared.ensureAccessibility() else { return }
-        EventPoster.key(CGKeyCode(12), flags: [.maskControl, .maskCommand]) // Q
+        lock(system: lockFunction.map { function in { function() } },
+             accessibility: { Permissions.shared.ensureAccessibility() },
+             pressKeys: { EventPoster.key(fallbackKey, flags: fallbackFlags) })
+    }
+
+    /// The order (LK-02, S1): the system call first; the keys only if it is missing or fails,
+    /// and only with Accessibility.
+    static func lock(system: (() -> Int32)?, accessibility: () -> Bool, pressKeys: () -> Void) {
+        if let system, system() == 0 { return }
+        guard accessibility() else { return }
+        pressKeys()
     }
 }
 
