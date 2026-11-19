@@ -34,7 +34,7 @@ Code abbreviations: WM = `Modules/WeatherModule.swift` (WeatherModule, Report, W
 
 - **WX-08** Privacy: location at reduced accuracy (`kCLLocationAccuracyReduced`), rounded to 0.1° (about 11 km) before anything else sees it; the only request is `https://api.open-meteo.com/v1/forecast?latitude=<0.1°>&longitude=<0.1°>&current=temperature_2m,weather_code,is_day` on an ephemeral session (no cookies, no cache on disk); no key, no account. Open-Meteo errors are logged as private.
   Source: R-13 "only rounded coordinates are sent"; D: Weather: Open-Meteo; D: Weather · Code: WM:start, didUpdateLocations, fetch, WeatherRequest.rounded, url · Verify: **auto** (S4) — 4.6534, −74.0836 → 4.7, −74.1; the URL text exactly; an unrounded place still gives one decimal.
-- **WX-09** An answer counts only when it is HTTP 200 with `current.temperature_2m`, `weather_code` and `is_day`; the report keeps them with the time it arrived. Anything else → status "failed", the previous report stays shown (O-27), new try in 2 min. A report → status idle, next one in 30 min.
+- **WX-09** An answer counts only when it is HTTP 200 with `current.temperature_2m`, `weather_code` and `is_day`; the report keeps them with the time it arrived. Anything else → status "failed", new try in 2 min; the previous report stays shown while it is younger than 2 h, older it is dropped and "no data yet" (`cloud`) shows until the next good answer (O-27, `WeatherTiming.keeps`). A report → status idle, next one in 30 min.
   Source: R-13 · Code: WM:fetch, WeatherRequest.report · Verify: **auto** (S4) — a 200 body decodes (17.6, 61, night); 429, no status, missing code → throws.
 - **WX-10** Condition (WMO code) → symbol and words, shown everywhere the report is: 0 `sun.max.fill` / `moon.stars.fill` at night, "Clear sky" / "Despejado"; 1–2 `cloud.sun.fill` / `cloud.moon.fill`, "Partly cloudy" / "Poco nuboso"; 3 `cloud.fill`, "Cloudy" / "Nublado"; 45, 48 `cloud.fog.fill`, "Fog" / "Niebla"; 51–57 `cloud.drizzle.fill`, "Drizzle" / "Llovizna"; 65, 67, 82 `cloud.heavyrain.fill` and other 61–67, 80–82 `cloud.rain.fill`, all "Rain" / "Lluvia"; 71–77, 85, 86 `cloud.snow.fill`, "Snow" / "Nieve"; 95–99 `cloud.bolt.rain.fill`, "Thunderstorm" / "Tormenta"; any other code `cloud.fill`, "Cloudy". Temperature: whole degrees in the system's unit, "18°" short, in words for VoiceOver (TT).
   Source: R-13 · Code: WM:Report.symbol, summary; TT · Verify: **auto** — the whole table, day and night for 0–2, plus unknown codes 4 and 100.
@@ -48,8 +48,8 @@ Code abbreviations: WM = `Modules/WeatherModule.swift` (WeatherModule, Report, W
 
 ## 2. Open questions and known bugs
 
-Decided, not built yet (user, 2026-11-19: "okay, hay que hacer eso entonces cuando lleguemos a esas tareas" = yes to the recommendation, build it when we get to it):
-- **O-27 An old report stays forever without saying so.** When every refresh fails (no internet for hours, Open-Meteo down), the Touch Bar, the menu and the menu bar item keep showing the last report as if it were current, even a day later. [After 2 hours without a new report, show "no data yet" (`cloud`) instead of the old temperature; the next good answer brings it back.]
+Done:
+- DONE 2026-11-19 (built at the first failure after 2 h, no timer; test in WX-05 seen to fail first): **O-27 An old report stays forever without saying so.** When every refresh fails (no internet for hours, Open-Meteo down), the Touch Bar, the menu and the menu bar item keep showing the last report as if it were current, even a day later. [After 2 hours without a new report, show "no data yet" (`cloud`) instead of the old temperature; the next good answer brings it back.]
 
 Not measured (check live; nothing to decide yet):
 - A location request still in flight when the Mac sleeps is not cancelled (CoreLocation's `requestLocation` has no cancel): its answer could start one request right after sleep begins.

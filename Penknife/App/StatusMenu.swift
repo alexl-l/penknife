@@ -149,14 +149,14 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         return (mic, jiggler)
     }
 
-    /// VoiceOver value of the icon with dots (MB-05): the jiggler first, then the microphone.
+    /// VoiceOver value of the icon with dots (MB-05): the microphone first, then the jiggler, as on screen.
     static func dotsValue(mic: Bool?, jiggler: Bool?) -> String {
         var states: [String] = []
-        if let jiggler {
-            states.append(jiggler ? String(localized: "Mouse jiggler on") : String(localized: "Mouse jiggler off"))
-        }
         if let mic {
             states.append(mic ? String(localized: "Microphone on") : String(localized: "Microphone muted"))
+        }
+        if let jiggler {
+            states.append(jiggler ? String(localized: "Mouse jiggler on") : String(localized: "Mouse jiggler off"))
         }
         return states.joined(separator: ", ")
     }

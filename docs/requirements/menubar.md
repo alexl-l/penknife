@@ -23,7 +23,7 @@ Code abbreviations: SM = `App/StatusMenu.swift`, MR = `App/MenuBarReadings.swift
 
 - **MB-04** Two 4 pt dots stacked beside the logo, always in these slots: TOP = microphone (orange: filled = open, 1 pt ring = muted), BOTTOM = mouse jiggler (system blue: filled = on, ring = off). A dot shows only while "Show status dots in the menu bar" is on (`menuBar.statusDots`, default on) and its module is on; the microphone dot also needs an input device (without one it would claim an open mic). One, the other, both or none.
   Source: R-20 MENU BAR DOTS (variant 3, 2026-11-13); JG-13 · Code: SM:dots, dotsOn, updateIcon · Verify: **auto** — `dots(shown:microphone:jiggler:)` for every case; `dotsOn(in:)` nothing stored → on; manual — F12: the bottom dot fills; mute: the top dot becomes a ring.
-- **MB-05** Look and cost: the logo in the menu bar's text color plus a fixed 6 pt column (dots 2 pt apart, 3 pt from the logo), so the icon keeps its width whatever the dots show; it follows light, dark and tinted menu bars. VoiceOver value "Mouse jiggler on, Microphone muted" (jiggler first) and a value-changed announcement when it changes from elsewhere (Touch Bar, Teams, Control Center). Redrawn only on a real change; no timer: the jiggler and the modules by observation, the microphone by CoreAudio listeners that run only while the mic dot can show; other settings writes are ignored.
+- **MB-05** Look and cost: the logo in the menu bar's text color plus a fixed 6 pt column (dots 2 pt apart, 3 pt from the logo), so the icon keeps its width whatever the dots show; it follows light, dark and tinted menu bars. VoiceOver value "Microphone muted, Mouse jiggler on" (microphone first, as on screen; O-30) and a value-changed announcement when it changes from elsewhere (Touch Bar, Teams, Control Center). Redrawn only on a real change; no timer: the jiggler and the modules by observation, the microphone by CoreAudio listeners that run only while the mic dot can show; other settings writes are ignored.
   Source: R-20; R-11; R-19 · Code: SM:icon, updateIcon, dotsValue, trackState, micWatcher · Verify: **auto** — `dotsValue` order and empty case; manual — light/dark menu bar: logo and dots legible, width doesn't jump.
 
 ### C. While recording
@@ -61,7 +61,7 @@ Code abbreviations: SM = `App/StatusMenu.swift`, MR = `App/MenuBarReadings.swift
 ## 2. Open questions and known bugs
 
 For the user:
-- **O-30 VoiceOver reads the dots in the opposite order of the screen.** The microphone dot is on top, but VoiceOver says "Mouse jiggler on, Microphone muted" (MB-05). [Recommended: read the microphone first, as on screen; tiny change.]
+- DONE 2026-11-19 (user: "go" = the recommendation; test MB-05 seen to fail first): **O-30 VoiceOver reads the dots in the opposite order of the screen.** The microphone dot is on top, but VoiceOver says "Mouse jiggler on, Microphone muted" (MB-05). [Recommended: read the microphone first, as on screen; tiny change.]
 
 Not measured / noted (nothing to decide yet):
 - An unreadable temperature leaves no line in Penknife's menu (MB-08) but the item's own menu says "CPU temperature not available" (MB-11). Not asked; probably fine.

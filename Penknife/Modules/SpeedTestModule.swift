@@ -104,23 +104,29 @@ final class SpeedTestModule: Module {
         }
     }
 
+    private func showTesting() {
+        HUD.shared.show(String(localized: "Testing internet speed…"), symbol: "speedometer", kind: .on, category: .speedTest)
+    }
+
     func stop() {
         if let quitObserver { NotificationCenter.default.removeObserver(quitObserver) }
         quitObserver = nil
         cancel()
     }
 
-    /// Starts a test; does nothing while one is running.
-    func run() {
+    /// Starts a test. While one is running nothing new starts; the menu and the shortcut show the
+    /// "Testing…" alert again (O-29), the Touch Bar doesn't (its needle already says so, TB-27).
+    func run(repeatAlert: Bool = true) {
         guard !isRunning else {
             log.notice("Speed test already running; tap ignored")
+            if repeatAlert { showTesting() }
             return
         }
         log.notice("Speed test started")
         isRunning = true
         failed = false
         changed()
-        HUD.shared.show(String(localized: "Testing internet speed…"), symbol: "speedometer", kind: .on, category: .speedTest)
+        showTesting()
         let pid = self.pid
         pid.withLock { $0 = 0 }
         Task { [weak self] in

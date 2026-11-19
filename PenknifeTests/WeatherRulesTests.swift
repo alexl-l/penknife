@@ -63,6 +63,9 @@ struct WeatherRulesTests {
         #expect(WeatherTiming.tolerance(for: 1800) == 60)
         #expect(WeatherTiming.tolerance(for: 120) == 12)
         #expect(WeatherTiming.tolerance(for: 10) == 1)
+        // O-27: a report older than 2 h is dropped at the next failure.
+        #expect(WeatherTiming.keeps(reportAge: 7199))
+        #expect(!WeatherTiming.keeps(reportAge: 7200))
     }
 
     // MARK: Request

@@ -176,6 +176,10 @@ final class WeatherModule: NSObject, Module, CLLocationManagerDelegate {
                 guard let self, !Task.isCancelled else { return }
                 self.task = nil
                 self.log.error("Open-Meteo: \(error.localizedDescription, privacy: .private)")
+                // O-27: past 2 h without a new report, show "no data yet" instead of an old one.
+                if let old = self.report, !WeatherTiming.keeps(reportAge: Date().timeIntervalSince(old.date)) {
+                    self.report = nil
+                }
                 self.set(status: .failed)
                 self.schedule(after: WeatherTiming.retry)
             }
@@ -225,6 +229,10 @@ enum WeatherTiming {
     static func afterWake(reportAge: TimeInterval) -> TimeInterval { max(10, interval - reportAge) }
 
     static func tolerance(for seconds: TimeInterval) -> TimeInterval { min(seconds * 0.1, 60) }
+
+    /// How old a report may be and still be shown after a failed refresh (O-27).
+    static let maxAge: TimeInterval = 2 * 60 * 60
+    static func keeps(reportAge: TimeInterval) -> Bool { reportAge < maxAge }
 }
 
 /// What a refresh does (WX-03, WX-04, WX-07).

@@ -303,7 +303,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .weather: { [weak self] _ in self?.weather.refresh(ifOlderThan: 60) }
         case .cpu: { [weak self] _ in self?.updateTemperature() }
         case .volume: { [weak self] in self?.openSlider($0, OutputVolume(), String(localized: "Volume")) }
-        case .speedTest: { [weak self] _ in self?.speedTest.run() }
+        case .speedTest: { [weak self] _ in self?.speedTest.run(repeatAlert: false) }
         case .time: { [weak self] _ in self?.toggleDate() }
         }
     }

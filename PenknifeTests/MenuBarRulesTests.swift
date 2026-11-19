@@ -36,10 +36,10 @@ struct MenuBarRulesTests {
         #expect(S.dots(shown: true, microphone: (true, false), jiggler: nil).jiggler == nil)
     }
 
-    @Test("MB-05 VoiceOver value: jiggler, then microphone")
+    @Test("MB-05 VoiceOver value: microphone, then jiggler, as on screen (O-30)")
     func dotsValue() {
         let both = StatusMenu.dotsValue(mic: false, jiggler: true)
-        #expect(both == "\(String(localized: "Mouse jiggler on")), \(String(localized: "Microphone muted"))")
+        #expect(both == "\(String(localized: "Microphone muted")), \(String(localized: "Mouse jiggler on"))")
         #expect(StatusMenu.dotsValue(mic: true, jiggler: nil) == String(localized: "Microphone on"))
         #expect(StatusMenu.dotsValue(mic: nil, jiggler: false) == String(localized: "Mouse jiggler off"))
         #expect(StatusMenu.dotsValue(mic: nil, jiggler: nil).isEmpty)

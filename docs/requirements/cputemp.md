@@ -45,7 +45,7 @@ Code abbreviations: CT = `Modules/CPUTemperatureModule.swift` (CPUTemperatureMod
 ## 2. Open questions and known bugs
 
 For the user (minor, wording):
-- **O-28 Two names for one reading.** The menu bar item's VoiceOver says "Mac temperature" (R-30 asked for it), but its menu, the main menu, the Touch Bar and the "not available" text say "CPU temperature". [Keep as is: VoiceOver-only, and R-30 chose it; change only if the user wants one name.]
+- DECIDED 2026-11-19 (user: "go" = keep as is): **O-28 Two names for one reading.** The menu bar item's VoiceOver says "Mac temperature" (R-30 asked for it), but its menu, the main menu, the Touch Bar and the "not available" text say "CPU temperature". [Keep as is: VoiceOver-only, and R-30 chose it; change only if the user wants one name.]
 
 Not measured (check live; nothing to decide yet):
 - With the Touch Bar button AND the menu bar item both shown, each has its own 10 s timer: two SMC readings per 10 s, and the two numbers can differ for up to 10 s.
