@@ -129,7 +129,10 @@ final class MusicModule: Module {
         if openPlayerIfClosed() { return }
         let player = MusicPlayer.current
         guard player.usesAppleEvents, let bundleID = player.bundleID else {
-            guard Permissions.shared.ensureAccessibility() else { return }
+            guard Permissions.shared.ensureAccessibility() else {
+                HUD.shared.showPermissionNeeded(.music) // O-25
+                return
+            }
             switch command {
             case .playPause, .play, .pause: EventPoster.media(.play)
             case .next: EventPoster.media(.next)
@@ -143,8 +146,28 @@ final class MusicModule: Module {
         DispatchQueue.global(qos: .userInitiated).async {
             var error: NSDictionary?
             NSAppleScript(source: source)?.executeAndReturnError(&error)
-            if let error { log.error("\(source, privacy: .public): \(error, privacy: .public)") }
+            guard let error else { return }
+            log.error("\(source, privacy: .public): \(error, privacy: .public)")
+            guard Self.isNotPermitted(error) else { return }
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { MusicModule.automationRefused(player) }
+            }
         }
+    }
+
+    /// The Automation permission for this player was refused (errAEEventNotPermitted, -1743).
+    nonisolated static func isNotPermitted(_ error: NSDictionary) -> Bool {
+        (error[NSAppleScript.errorNumber] as? NSNumber)?.intValue == -1743
+    }
+
+    /// Players already told about this session: the alert shows once per player per launch (O-26).
+    private static var toldRefused: Set<String> = []
+
+    private static func automationRefused(_ player: MusicPlayer) {
+        guard let bundleID = player.bundleID, toldRefused.insert(bundleID).inserted else { return }
+        HUD.shared.show(AlertCategory.music.title,
+                        detail: String(localized: "Allow Penknife to control \(player.title) in System Settings › Privacy & Security › Automation"),
+                        symbol: "lock.fill", kind: .permission, category: .music)
     }
 
     /// The Apple Event sent to a scriptable player (MU-05).

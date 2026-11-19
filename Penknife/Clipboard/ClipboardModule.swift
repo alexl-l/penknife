@@ -23,6 +23,7 @@ final class ClipboardModule: Module {
     private var lastChange: Int
     private var observers: [NSObjectProtocol] = []
     private var panel: ClipboardPanel?
+    var isPanelOpen: Bool { panel != nil }
     /// The app in front when the panel opened: the paste goes there and nowhere else.
     private var previousApp: NSRunningApplication?
 

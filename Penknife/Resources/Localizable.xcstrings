@@ -201,6 +201,16 @@
         }
       }
     },
+    "Allow Penknife to control %@ in System Settings › Privacy & Security › Automation": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite que Penknife controle %@ en Ajustes del Sistema › Privacidad y seguridad › Automatización"
+          }
+        }
+      }
+    },
     "Allow Penknife in System Settings › Privacy & Security › Microphone": {
       "localizations": {
         "es": {
@@ -3571,6 +3581,16 @@
         }
       }
     },
+    "This microphone can't be muted": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este micrófono no se puede silenciar"
+          }
+        }
+      }
+    },
     "Thunderstorm": {
       "localizations": {
         "es": {
@@ -4099,6 +4119,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Al activar el micro con el atajo, si Teams te pide consentimiento, Penknife lo acepta por ti. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa. Sin afiliación con Microsoft."
+          }
+        }
+      }
+    },
+    "Images you paste into Finder from the history are kept here; screenshots copied as files share this space. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aquí se guardan las imágenes que pegas en Finder desde el historial; las capturas copiadas como archivo comparten este espacio. Cuando se llena, se borran las más antiguas; una imagen que no cabe se copia solo como imagen. En uso: %@"
           }
         }
       }

@@ -34,6 +34,13 @@ struct MusicRulesTests {
 
     // MARK: A. The module and its actions
 
+    @Test("MU-14 O-26 only a refused Automation permission (-1743) counts as refused")
+    func automationRefused() {
+        #expect(MusicModule.isNotPermitted([NSAppleScript.errorNumber: -1743] as NSDictionary))
+        #expect(!MusicModule.isNotPermitted([NSAppleScript.errorNumber: -600] as NSDictionary))
+        #expect(!MusicModule.isNotPermitted([:] as NSDictionary))
+    }
+
     @Test("MU-01 MU-09 modules on by default with their symbols")
     func modules() {
         #expect(ModuleID.music.symbol == "music.note" && ModuleID.music.defaultOn)

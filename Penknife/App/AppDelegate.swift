@@ -40,14 +40,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let cpu = CPUTemperatureModule()
         let weather = WeatherModule()
         let speedTest = SpeedTestModule()
+        let screenshot = ScreenshotModule()
+        let clipboard = ClipboardModule()
+        jiggler.holdsOff = { [weak screenshot, weak clipboard] in
+            screenshot?.session != nil || screenshot?.recording != nil || clipboard?.isPanelOpen == true
+        }
         let touchBar = TouchBarModule(jiggler: jiggler, microphone: microphone, dialogs: dialogs,
                                       music: music, cpu: cpu, weather: weather, speedTest: speedTest)
         manager = ModuleManager(modules: [
             jiggler,
             microphone,
             LockScreenModule(jiggler: jiggler),
-            ScreenshotModule(),
-            ClipboardModule(),
+            screenshot,
+            clipboard,
             music,
             BlockAppleMusicModule(music: music),
             cpu,

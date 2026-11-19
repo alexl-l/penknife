@@ -133,6 +133,9 @@ final class JigglerModule: Module {
 
     private(set) var isActive = false
     @ObservationIgnored private let env: JigglerEnvironment
+    /// True while Penknife itself is waiting for the user (a recording, the capture overlay, the
+    /// clipboard panel): a jiggle then would be recorded or move the pointer under them (O-23, JG-17).
+    @ObservationIgnored var holdsOff: () -> Bool = { false }
     @ObservationIgnored private var cancelTimer: (() -> Void)?
     @ObservationIgnored private var isJiggling = false
     @ObservationIgnored private var stopObservingLock: (() -> Void)?
@@ -243,7 +246,7 @@ final class JigglerModule: Module {
     private func tick() {
         guard isActive else { return }
         let next = JigglerTiming.next(idle: env.idleSeconds(), interval: idleThreshold)
-        if next.jiggle { jiggle() }
+        if next.jiggle && !holdsOff() { jiggle() }
         schedule(after: next.wait)
     }
 

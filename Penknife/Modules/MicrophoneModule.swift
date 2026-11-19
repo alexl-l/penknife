@@ -163,7 +163,7 @@ final class MicrophoneModule: Module {
                                    alsoMac: alsoMac, teamsConsent: TeamsConsent.isEnabled)
             switch route {
             case .mac: self.toggleMac()
-            case .nothing: break
+            case .nothing: HUD.shared.showPermissionNeeded(.microphone) // O-3, MIC-36
             case .meeting(let how): if let target { self.press(target, how, alsoMac: alsoMac) }
             }
         }
@@ -224,6 +224,12 @@ final class MicrophoneModule: Module {
         savedVolume = plan.savedVolume
         Self.write(plan.write, to: device)
 
+        // O-2: never claim a change that wasn't made.
+        if plan.write == .nothing {
+            HUD.shared.show(String(localized: "This microphone can't be muted"),
+                            symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
+            return
+        }
         if mute {
             HUD.shared.show(String(localized: "Microphone muted"), symbol: "mic.slash.fill", kind: .off, category: .microphone)
         } else {
@@ -313,7 +319,7 @@ final class MicrophoneModule: Module {
         case volume(Float32)
         /// The input volume is already as asked (B-4).
         case unchanged
-        /// Neither control can be set: nothing is written (open decision O-2).
+        /// Neither control can be set: nothing is written, and the alert says so (O-2).
         case nothing
     }
 

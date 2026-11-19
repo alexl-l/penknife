@@ -89,6 +89,23 @@ struct JigglerRulesTests {
                  CGPoint(x: 100, y: 97), CGPoint(x: 100, y: 100)])
     }
 
+    @Test("JG-17 O-23 no jiggle while Penknife holds off (recording, overlay, clipboard panel); the wait goes on")
+    func holdsOff() async {
+        let mac = FakeMac([JigglerModule.intervalKey: 10.0])
+        let jiggler = JigglerModule(env: mac.env)
+        jiggler.toggle()
+        var busy = true
+        jiggler.holdsOff = { busy }
+        mac.idle = 30
+        mac.timers.last!.fire()
+        try? await Task.sleep(for: .milliseconds(50))
+        #expect(mac.posted.isEmpty && jiggler.isScheduled)
+        busy = false
+        mac.timers.last!.fire()
+        try? await Task.sleep(for: .milliseconds(600))
+        #expect(!mac.posted.isEmpty)
+    }
+
     @Test("B-19 the square stops as soon as the user moves the mouse")
     func motionStopsWhenUserMoves() async {
         var pointer = CGPoint(x: 100, y: 100)

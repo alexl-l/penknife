@@ -24,7 +24,7 @@ Code abbreviations: LM = `Modules/LockModules.swift` (ScreenLocker, LockScreenMo
 ## 2. Open questions and known bugs
 
 Suspected, found reading the code, NOT seen live:
-- **B-23 Without the system call and without Accessibility, nothing tells you why it didn't lock (LK-02).** After the first prompt, later presses do nothing at all. It only matters if a macOS update removes `SACLockScreenImmediate` (the test LK-02 would fail first, on this Mac). [Fix if it ever happens: the Jiggler's "Needs the Accessibility permission" alert.] Low priority.
+- KEPT 2026-11-19 (user: "sip" = leave it): **B-23 Without the system call and without Accessibility, nothing tells you why it didn't lock (LK-02).** After the first prompt, later presses do nothing at all. It only matters if a macOS update removes `SACLockScreenImmediate` (the test LK-02 would fail first, on this Mac). [Fix if it ever happens: the Jiggler's "Needs the Accessibility permission" alert.] Low priority.
 
 Nothing open for the user.
 

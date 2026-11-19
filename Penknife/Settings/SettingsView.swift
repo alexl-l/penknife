@@ -327,6 +327,43 @@ private struct ClipboardOptions: View {
         } message: {
             Text("Pinned items are kept.")
         }
+        PastableSpace(onClipboardPage: true)
+    }
+}
+
+/// The space for images pasted as files (SS-47): one setting shared by screenshots, recordings
+/// and the clipboard history, so it shows on both pages with the same key (O-13).
+private struct PastableSpace: View {
+    let onClipboardPage: Bool
+    @AppStorage(PastableImage.limitKey) private var pastableLimit = 500
+    @State private var pastableUsed = PastableImage.used
+
+    var body: some View {
+        let used = ByteCountFormatter.string(fromByteCount: pastableUsed, countStyle: .file)
+        Picker(selection: $pastableLimit) {
+            ForEach(PastableImage.limits, id: \.self) { mb in
+                Text(mb >= 1000 ? "\(mb / 1000) GB" : "\(mb) MB").tag(mb)
+            }
+        } label: {
+            Text("Space for images to paste as files")
+            if onClipboardPage {
+                Text("Images you paste into Finder from the history are kept here; screenshots copied as files share this space. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: \(used)")
+            } else {
+                Text("Also holds images you paste into Finder from the clipboard history. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: \(used)")
+            }
+        }
+        .onChange(of: pastableLimit) {
+            PastableImage.makeRoom()
+            pastableUsed = PastableImage.used
+        }
+        Button("Delete These Files Now") {
+            PastableImage.removeAll()
+            pastableUsed = 0
+        }
+        .disabled(pastableUsed == 0)
+        .onReceive(NotificationCenter.default.publisher(for: PastableImage.changed)) { _ in
+            pastableUsed = PastableImage.used
+        }
     }
 }
 
@@ -338,8 +375,6 @@ private struct ScreenshotOptions: View {
     @AppStorage(ScreenshotModule.scrollKey) private var scrollUpThinner = false
     @AppStorage(CapturePalette.colorKey) private var defaultColor = 4
     @AppStorage(ScreenshotModule.copyFileKey) private var copyFile = true
-    @AppStorage(PastableImage.limitKey) private var pastableLimit = 500
-    @State private var pastableUsed = PastableImage.used
 
     var body: some View {
         Picker("Screen while selecting", selection: $mode) {
@@ -365,26 +400,7 @@ private struct ScreenshotOptions: View {
             Text("Copy also as a file")
             Text("⌘V in a Finder folder creates the PNG file; other apps paste the image.")
         }
-        Picker(selection: $pastableLimit) {
-            ForEach(PastableImage.limits, id: \.self) { mb in
-                Text(mb >= 1000 ? "\(mb / 1000) GB" : "\(mb) MB").tag(mb)
-            }
-        } label: {
-            Text("Space for images to paste as files")
-            Text("Also holds images you paste into Finder from the clipboard history. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: \(ByteCountFormatter.string(fromByteCount: pastableUsed, countStyle: .file))")
-        }
-        .onChange(of: pastableLimit) {
-            PastableImage.makeRoom()
-            pastableUsed = PastableImage.used
-        }
-        Button("Delete These Files Now") {
-            PastableImage.removeAll()
-            pastableUsed = 0
-        }
-        .disabled(pastableUsed == 0)
-        .onReceive(NotificationCenter.default.publisher(for: PastableImage.changed)) { _ in
-            pastableUsed = PastableImage.used
-        }
+        PastableSpace(onClipboardPage: false)
         LabeledContent("Save to") {
             HStack {
                 Text(FileManager.default.displayName(atPath: ScreenshotModule.folder.path))

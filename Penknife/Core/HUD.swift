@@ -63,6 +63,12 @@ final class HUD {
     private static let slideIn: CGFloat = 10
     private static let slideOut: CGFloat = 6
 
+    /// The one "permission missing" alert (JG-03; O-3 microphone, O-25 music): never silently nothing.
+    func showPermissionNeeded(_ category: AlertCategory) {
+        show(category.title, detail: String(localized: "Permission needed: open Settings › Permissions"),
+             symbol: "lock.fill", kind: .permission, category: category)
+    }
+
     func show(_ title: String, detail: String? = nil, symbol: String, kind: AlertKind, category: AlertCategory) {
         let spoken = [title, detail].compactMap { $0 }.joined(separator: ". ")
         NSAccessibility.post(
