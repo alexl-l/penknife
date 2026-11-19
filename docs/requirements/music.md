@@ -1,0 +1,79 @@
+# Music and Block Apple Music — requirements (current behavior)
+
+Source of truth for what the Music module (play/pause, next, previous on the chosen player; the player choice) and the Block Apple Music module (closing Apple Music when it opens by itself; headphone clicks through Now Playing) must do TODAY (main at 323f5f4). The history behind each rule stays in `docs/REQUIREMENTS.md` (R-5, R-6; R-11, R-15, R-19, R-20 for cost, modules, accessibility and alerts) and `docs/DECISIONS.md` (Music control, Player = bundle id, Manual vs automatic Apple Music launch, Now Playing bridge); where they disagree with this file, this file wins. Written 2026-11-19 from the code at 323f5f4 and those docs: seventh module of "complete requirements per module + tests that validate them" (user, 2026-11-17). The Touch Bar's music button (look, playing state, taps) is in `touchbar.md` (TB-24) and is only referenced here.
+
+**How to use it.** Before changing anything that touches music, read the rules of the parts you change. After the change, run `scripts/test.sh` and check EVERY affected rule by its Verify line, not only the new behavior. A new or changed wish → change the rule here, and keep the story in REQUIREMENTS.md.
+
+Code abbreviations: MM = `Modules/MusicModule.swift` (MusicPlayer, MusicModule, BlockAppleMusicModule, NowPlayingBridge), SV = `Settings/SettingsView.swift` (PlayerPicker, BlockAppleMusicNote), MO = `Core/Module.swift`, SC = `Core/Shortcuts.swift`, EP = `Core/EventPoster.swift`, PM = `Core/Permissions.swift`, LW = `TouchBar/LevelWatchers.swift` (PlaybackWatcher).
+
+**Tests:** `PenknifeTests/MusicRulesTests.swift` (10 tests; MU-01, 02, 03, 05, 07, 08, 09, 10, 12, 13). A test must never call `send`, `tap`, `sendFromHeadphones`, `BlockAppleMusicModule.start()` or `NowPlayingBridge.update()` (they run Apple Events, post media keys, open apps, register with the system's Now Playing), never quit an app, never write `UserDefaults.standard` (use `MemoryDefaults` as in JigglerRulesTests).
+
+## 1. Rules
+
+### A. Music: the module and its actions
+
+- **MU-01** Module "Music" / "Música" (symbol `music.note`, pink in Settings), on by default. Description: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one." / "Reproduce, pausa y cambia de canción. En la Touch Bar: un toque reproduce o pausa, dos pasan a la siguiente canción, tres a la anterior." Needs Accessibility only when the chosen player is not driven by Apple Events (MU-05), and Settings marks it so.
+  Source: R-5 · Code: MO:title, summary, symbol, defaultOn; MM:needsAccessibility; SV:tint · Verify: **auto** — `ModuleID.music` symbol and `defaultOn`; (S1) `needsAccessibility` false for Spotify, Apple Music, iTunes, true for YouTube Music, another app and "any app"; manual — Settings › Music reads as above.
+- **MU-02** Three actions, in this order: "Play or pause" / "Reproducir o pausar" (`playpause`), "Next track" / "Canción siguiente" (`forward`), "Previous track" / "Canción anterior" (`backward`). In the Penknife menu and as shortcuts `playPause`, `nextTrack`, `previousTrack`, with NO default keys (the user records them in Settings › Shortcuts). Shown and registered only while the module is on.
+  Source: R-5; Phases "Play/pause, next and previous also have shortcuts (no default keys)" · Code: MM:actions; SC:20–24 · Verify: **auto** — the three actions' shortcuts and symbols in order; the three shortcuts have no default key.
+- **MU-03** Touch Bar taps (TB-24): 1 tap = play/pause, 2 = next, 3 or more = previous, counted while taps come less than 0.35 s apart; the command is sent 0.35 s after the last tap. If the chosen player is closed, the first tap only opens it (MU-06) and is not counted.
+  Source: R-5 "1 play/pause, 2 next, 3 previous"; D: Music control "Taps counted in a 0.35 s window as in Hammerspoon" · Code: MM:tap · Verify: **auto** (S2) — `MusicTaps.command(for:)`: 1 → playPause, 2 → next, 3 → previous, 5 → previous; manual — two quick taps on the music button: the next song plays.
+- **MU-04** Nothing runs between presses: no timer, no observer in the Music module (the tap timer only lives the 0.35 s after a tap; stopping the module cancels it and forgets the taps). The playing state on the Touch Bar comes from the bar's own watcher (TB-24, TB-61).
+  Source: R-11; MM header "Nothing runs between presses" · Code: MM:start, stop, tap · Verify: manual (source) — `MusicModule.start()` is empty.
+
+### B. Music: the player and how commands reach it
+
+- **MU-05** How a command is sent. Spotify (`com.spotify.client`), Apple Music (`com.apple.Music`) and iTunes (`com.apple.iTunes`) get an Apple Event to that exact app: `tell application id "<bundle id>" to playpause | play | pause | next track | previous track`, run off the main thread; an error is only logged (category `Music`). Every other player, and "any app", gets the Mac's media keys (play for play/pause/play/pause, next, previous; key down then up), which go to whatever macOS considers "now playing"; that needs Accessibility (asked once per session through macOS's prompt; without it the press does nothing, see O-25).
+  Source: R-5 "Spotify and Apple Music/iTunes are driven by Apple Events (exact app); the others by media keys after making sure the app is open (needs Accessibility)"; D: Music control; D: Player = bundle id "known limit" · Code: MM:send; EP:media · Verify: **auto** (S4) — `MusicModule.script(bundleID:command:)` gives the five sentences above; (S1) `usesAppleEvents` true only for the three ids; manual — Spotify chosen, F-key shortcut for "Next track": Spotify skips even while another app plays.
+- **MU-06** A press with a chosen player that is closed only opens it (no command); with "any app" nothing is opened. A chosen player that is no longer installed shows the alert "<name> is not installed" / "<nombre> no está instalado" (`exclamationmark.triangle.fill`, error kind, "Music" alert type) and sends nothing.
+  Source: R-5 "opens the player if closed" · Code: MM:openPlayerIfClosed · Verify: manual — quit Spotify, press play/pause: Spotify opens and doesn't start playing; press again: it plays.
+- **MU-07** "Player" / "Reproductor" (Settings › Music, `music.player`): the known players that are installed, in this order: Spotify, Apple Music, iTunes, YouTube Music (`com.github.th-ch.youtube-music`), Amazon Music (`com.amazon.music`); then the current choice if it is another app (shown by its name, or its bundle id when it is no longer installed); then "Any app (media keys)" / "Cualquier app (teclas multimedia)". "Choose Another App…" / "Elegir otra app…" opens a panel in /Applications ("Choose the app you listen to music with." / "Elige la app con la que escuchas música.", button "Choose" / "Elegir") and stores that app's bundle id. A choice applies to the next press.
+  Source: R-5 PLAYER CONFIGURABLE BY THE USER; D: Player = bundle id · Code: MM:MusicPlayer.known, choices, title; SV:PlayerPicker · Verify: **auto** (S1) — `choices(including:installed:)`: only installed known ones in order, an extra app appended once, "any app" last; manual — Settings › Music › Choose Another App…, pick Safari: the picker shows "Safari".
+- **MU-08** Stored value: the bundle id, or `mediaKeys` for "any app". Older values are read as: `spotify` → Spotify, `appleMusic` → Apple Music. Until the user chooses, the default is the first installed known player (MU-07 order), else "any app".
+  Source: D: Player = bundle id · Code: MM:MusicPlayer.init(id:), current, defaultID · Verify: **auto** — `MusicPlayer(id:)` for "mediaKeys", "spotify", "appleMusic", "com.x.y"; `id` gives the stored value back; (S1) `defaultID(installed:)`: Apple Music only → Apple Music; nothing → "mediaKeys"; Spotify and Music → Spotify.
+
+### C. Block Apple Music
+
+- **MU-09** Module "Block Apple Music" / "Bloquear Apple Music" (symbol `nosign`, red in Settings), on by default. Description: "Keeps Apple Music from opening by itself (headphones, play key). Opening it yourself still works." / "Impide que Apple Music se abra sola (auriculares, tecla de reproducir). Abrirla tú sigue funcionando." Settings shows under it "Paused automatically while Apple Music or iTunes is your music player." / "Se pausa solo mientras Apple Music o iTunes sea tu reproductor de música.", or, while it is the player, "Paused: Apple Music is your music player." / "En pausa: Apple Music es tu reproductor de música." No permission needed.
+  Source: R-6 · Code: MO; SV:BlockAppleMusicNote · Verify: manual — choose Apple Music as the player: the note under Block Apple Music says it is paused.
+- **MU-10** When Apple Music or iTunes is about to open (`willLaunchApplication`), it is kept if (a) Apple Music or iTunes is the chosen player (MUST NOT CLASH with the player choice), or (b) "Allow Apple Music" is on (MU-12), or (c) the launch is the user's: a click or a key press happened ≤ 1.5 s before AND the audio output (default output device or the device list) did not change in the last 4 s. Otherwise it is force-quit at once (as noTunes; a polite quit let its window show first). Every decision is logged in the `BlockAppleMusic` category with the seconds since the last click, key and route change (no other data).
+  Source: R-6 CLARIFIED; D: Manual vs automatic Apple Music launch · Code: MM:BlockAppleMusicModule.launched, inputWindow, routeWindow · Verify: **auto** (S3) — `AppleMusicLaunch.byUser(click:key:route:)`: click 0.8, route 10 → user; click 2, key 3 → automatic; click 0.5, route 1 → automatic (headphones just connected); click 1.5, route 4.1 → user; click 1.5, route 4.0 → automatic; manual — open Music from the Dock: it stays; connect headphones or press their play with Music closed: it doesn't stay.
+- **MU-11** Event-driven only: one launch notification observer and two CoreAudio property listeners (default output, device list), added when the module starts and removed when it stops; no timer, no polling.
+  Source: R-6 "Event-driven"; R-11 · Code: MM:start, stop · Verify: manual (source).
+- **MU-12** Menu action "Allow Apple Music" / "Permitir Apple Music" (`music.note`, checkmark while on; shortcut `allowAppleMusic`, no default key): while on, Apple Music may open freely. Not saved: off again when Penknife quits and when the module is switched off.
+  Source: R-6 "'Allow Apple Music' menu toggle as backup (until Penknife quits)" · Code: MM:actions, allowed, stop · Verify: **auto** (S3) — `stop()` leaves `allowed` false; manual — menu › Allow Apple Music, connect headphones: Music may open.
+- **MU-13** Headphone clicks through Now Playing (inside Block Apple Music): while the chosen player is Spotify (an Apple Events player that is not Apple Music or iTunes), Penknife registers as a PAUSED Now Playing app named after the player (no audio, only command targets: play/pause, play, pause, next, previous). A headphone command goes to the chosen player (MU-05) ONLY while it is running; with it closed nothing opens (connecting headphones never opens anything) and the command is reported as "no playable item". Unregistered (and Now Playing cleared) for any other player, when the module stops, and re-checked on every settings change. The launch block (MU-10) stays as the backup. Logged: registered/unregistered and each headphone command "sent to the player" or "ignored, player closed".
+  Source: R-6 "Built 2026-11-13 inside Block Apple Music"; D: Now Playing bridge · Code: MM:NowPlayingBridge.update, register, unregister; MusicModule.sendFromHeadphones · Verify: **auto** (S3) — `NowPlayingBridge.wanted(for:)`: Spotify → its id; Apple Music, iTunes, YouTube Music, another app, "any app" → nil; manual — Spotify open and paused, click the AirPods: Spotify plays; Spotify closed, click: nothing opens.
+
+## 2. Open questions and known bugs
+
+Open (asked 2026-11-19 with O-23/O-24, the user decides):
+- **O-25 Media keys without Accessibility do nothing, silently.** With YouTube Music, Amazon Music, another app or "any app" as the player and no Accessibility, the first press of the session shows macOS's prompt; every later press does nothing and says nothing (the Mouse Jiggler shows "Needs the Accessibility permission" in the same case, JG-03). [Show the same permission alert as the jiggler ("Music" — "Needs the Accessibility permission"), Music alert type. Small change.]
+- **O-26 A refused Apple Event says nothing.** If the user refused Penknife's Automation permission for Spotify or Music (macOS asks at the first press), every press fails and is only logged. [Show an alert "Music" — "Allow Penknife to control <player> in System Settings › Privacy & Security › Automation", once per session. Small change.]
+
+Not measured (check live; nothing to decide yet):
+- Whether a Touch Bar tap or a Penknife shortcut counts as "a click or a key press" in MU-10 (a shortcut does: it is a key down). So with "any app" as the player and Apple Music closed, Penknife's own play shortcut can open Apple Music and it is kept.
+- Whether the media keys reach YouTube Music and Amazon Music when another app played last (D: Player = bundle id "known limit").
+
+Doc conflicts (code wins; marked in REQUIREMENTS.md/DECISIONS.md on 2026-11-19):
+- D: Music control "Block Apple Music = `terminate` on `didLaunchApplication`, `forceTerminate` if still running 2 s later" → MU-10 (force-quit at once at `willLaunchApplication`; D: Manual vs automatic Apple Music launch already says so).
+
+## 3. Rejected / out of scope (do not rebuild)
+
+- Blocking every Apple Music launch, as noTunes does (R-6: opening it yourself MUST work).
+- A polite quit before the force-quit (R-6: the window showed up first).
+- Opening the player from a headphone click or when headphones connect (R-6, MU-13: our choice).
+- Now Playing for media-key players (D: Now Playing bridge: the keys would loop back to Penknife).
+- An audio engine for Now Playing (D: Now Playing bridge: the "silencio" variant wasn't needed).
+
+## 4. Test plan (step B)
+
+**Done 2026-11-19** (autonomous routine work): as-is tests + S1–S4 in `PenknifeTests/MusicRulesTests.swift`, 204 pass in all; each rule broken on purpose made its test fail (mutation run: MU-01, 03, 05, 07, 08, 10, 12, 13); no behavior change. Same method as the other modules: each seam is a pure rule the app keeps calling with exactly the same reads, tests pass plain values, each test is named after its rule and is seen to fail with its rule broken on purpose (one mutation run per step). No S-step changes behavior; O-25/O-26 only after the user's yes, each in its own commit.
+
+- **Testable as-is:** `ModuleID.music` / `.blockAppleMusic` symbol and `defaultOn` (MU-01, MU-09); the actions' shortcuts, symbols and order and their missing default keys (MU-02); `MusicPlayer(id:)` and `id` (MU-08); `usesAppleEvents`, `isAppleMusic` (MU-05, MU-10a).
+- **S1 Player readers** (MM). `MusicPlayer.current(in:installed:)`, `defaultID(installed:)`, `choices(including:installed:)` with `installed: (String) -> Bool`; the app passes `.standard` and the real check. Covers MU-01 (needsAccessibility), MU-07, MU-08.
+- **S2 Tap counting** (MM). `MusicTaps.command(for:)` used by `tap`. Covers MU-03.
+- **S3 Block rules** (MM). `AppleMusicLaunch.byUser(click:key:route:)` used by `launched`; `NowPlayingBridge.wanted(for:)` used by `update`; `allowed` false after `stop()` (no start). Covers MU-10, MU-12, MU-13.
+- **S4 Apple Event text** (MM). `MusicModule.script(bundleID:command:)` used by `send`. Covers MU-05.
+
+Manual only (no seam worth it): MU-04, MU-06, MU-09 (look), MU-11.

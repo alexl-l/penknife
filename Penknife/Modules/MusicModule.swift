@@ -48,19 +48,28 @@ struct MusicPlayer: Hashable, Identifiable {
         }
     }
 
+    /// Whether an app with this bundle id is installed (the real check; tests pass their own).
+    static let isInstalled: (String) -> Bool = { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil }
+
     static var current: MusicPlayer {
-        get { MusicPlayer(id: UserDefaults.standard.string(forKey: key) ?? defaultID) }
+        get { current(in: .standard) }
         set { UserDefaults.standard.set(newValue.id, forKey: key) }
     }
 
+    static func current(in defaults: UserDefaults, installed: (String) -> Bool = isInstalled) -> MusicPlayer {
+        MusicPlayer(id: defaults.string(forKey: key) ?? defaultID(installed: installed))
+    }
+
     /// Until the user chooses: the first installed known player, else "any app".
-    static var defaultID: String {
-        known.first { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) != nil } ?? anyAppID
+    static var defaultID: String { defaultID(installed: isInstalled) }
+
+    static func defaultID(installed: (String) -> Bool) -> String {
+        known.first(where: installed) ?? anyAppID
     }
 
     /// Installed known players, the current one (even if it is another app) and "any app".
-    static func choices(including current: MusicPlayer) -> [MusicPlayer] {
-        var list = known.map(MusicPlayer.init(bundleID:)).filter { $0.url != nil }
+    static func choices(including current: MusicPlayer, installed: (String) -> Bool = isInstalled) -> [MusicPlayer] {
+        var list = known.filter(installed).map(MusicPlayer.init(bundleID:))
         if current.bundleID != nil, !list.contains(current) { list.append(current) }
         list.append(.anyApp)
         return list
@@ -73,7 +82,8 @@ struct MusicPlayer: Hashable, Identifiable {
 /// Nothing runs between presses.
 final class MusicModule: Module {
     let id = ModuleID.music
-    var needsAccessibility: Bool { !MusicPlayer.current.usesAppleEvents }
+    var needsAccessibility: Bool { Self.needsAccessibility(for: MusicPlayer.current) }
+    static func needsAccessibility(for player: MusicPlayer) -> Bool { !player.usesAppleEvents }
 
     private let log = Logger(subsystem: "Penknife", category: "Music")
     private var taps = 0
@@ -110,7 +120,7 @@ final class MusicModule: Module {
                 guard let self else { return }
                 let taps = self.taps
                 self.taps = 0
-                self.send(taps == 1 ? .playPause : taps == 2 ? .next : .previous)
+                self.send(MusicTaps.command(for: taps))
             }
         }
     }
@@ -127,14 +137,7 @@ final class MusicModule: Module {
             }
             return
         }
-        let verb = switch command {
-        case .playPause: "playpause"
-        case .play: "play"
-        case .pause: "pause"
-        case .next: "next track"
-        case .previous: "previous track"
-        }
-        let source = "tell application id \"\(bundleID)\" to \(verb)"
+        let source = Self.script(bundleID: bundleID, command: command)
         let log = log
         // Apple Events can wait for the other app; keep them off the main thread.
         DispatchQueue.global(qos: .userInitiated).async {
@@ -142,6 +145,18 @@ final class MusicModule: Module {
             NSAppleScript(source: source)?.executeAndReturnError(&error)
             if let error { log.error("\(source, privacy: .public): \(error, privacy: .public)") }
         }
+    }
+
+    /// The Apple Event sent to a scriptable player (MU-05).
+    static func script(bundleID: String, command: Command) -> String {
+        let verb = switch command {
+        case .playPause: "playpause"
+        case .play: "play"
+        case .pause: "pause"
+        case .next: "next track"
+        case .previous: "previous track"
+        }
+        return "tell application id \"\(bundleID)\" to \(verb)"
     }
 
     /// Headphone clicks (R-6 Now Playing): sent only while the chosen player is running, so
@@ -165,6 +180,27 @@ final class MusicModule: Module {
         }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
         return true
+    }
+}
+
+/// Touch Bar taps (MU-03): 1 play/pause, 2 next, 3 or more previous.
+enum MusicTaps {
+    static func command(for taps: Int) -> MusicModule.Command {
+        taps == 1 ? .playPause : taps == 2 ? .next : .previous
+    }
+}
+
+/// Whether an Apple Music launch is the user's (MU-10): a click or key press just before, and no
+/// audio route change (headphones) just before. Seconds since each.
+enum AppleMusicLaunch {
+    /// Dock/Spotlight launches measured at ~0.8 s; 3 s let a headphone click right after a
+    /// menu click pass as the user's.
+    static let inputWindow: TimeInterval = 1.5
+    /// A launch this close after an audio route change (headphones) is automatic.
+    static let routeWindow: TimeInterval = 4
+
+    static func byUser(click: TimeInterval, key: TimeInterval, route: TimeInterval) -> Bool {
+        min(click, key) <= inputWindow && route > routeWindow
     }
 }
 
@@ -197,13 +233,6 @@ final class BlockAppleMusicModule: Module {
     private let log = Logger(subsystem: "Penknife", category: "BlockAppleMusic")
 
     nonisolated private static let bundleIDs: Set<String> = ["com.apple.Music", "com.apple.iTunes"]
-    /// A click or key press this close before the launch means the user opened it.
-    /// Dock/Spotlight launches measured at ~0.8 s; 3 s let a headphone click right after a
-    /// menu click pass as the user's.
-    private static let inputWindow: TimeInterval = 1.5
-    /// A launch this close after an audio route change (headphones) is automatic.
-    private static let routeWindow: TimeInterval = 4
-
     private static let routeAddresses = [
         AudioObjectPropertyAddress(mSelector: kAudioHardwarePropertyDefaultOutputDevice,
                                    mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain),
@@ -259,7 +288,7 @@ final class BlockAppleMusicModule: Module {
         let click = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .leftMouseDown)
         let key = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown)
         let route = Date().timeIntervalSince(lastRouteChange)
-        let byUser = min(click, key) <= Self.inputWindow && route > Self.routeWindow
+        let byUser = AppleMusicLaunch.byUser(click: click, key: key, route: route)
         let reason = String(format: "click %.1f s ago, key %.1f s ago, audio route change %.1f s ago", click, key, route)
         guard !byUser else {
             log.info("Apple Music opened by the user, kept (\(reason, privacy: .public))")
@@ -288,12 +317,17 @@ final class NowPlayingBridge {
     /// Registers, re-registers or unregisters for the current player choice.
     func update() {
         let player = MusicPlayer.current
-        let wanted = player.usesAppleEvents && !player.isAppleMusic ? player.bundleID : nil
+        let wanted = Self.wanted(for: player)
         guard wanted != registeredFor else { return }
         unregister()
         guard let wanted else { return }
         register(player)
         registeredFor = wanted
+    }
+
+    /// The player Now Playing registers for (MU-13): only Apple Events players that are not Apple Music.
+    static func wanted(for player: MusicPlayer) -> String? {
+        player.usesAppleEvents && !player.isAppleMusic ? player.bundleID : nil
     }
 
     func unregister() {
