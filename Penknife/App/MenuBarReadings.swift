@@ -39,7 +39,23 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
     static var shownByDefault: Bool { shownByDefault(hasTouchBar: TouchBarPrivate.hasTouchBar) }
     static func shownByDefault(hasTouchBar: Bool) -> Bool { !hasTouchBar }
     /// Celsius from which the temperature turns orange (Color style only).
-    private static let hot = 85
+    static let hot = 85
+
+    /// What the temperature item shows (CT-07): symbol by style, "54°" or "—", VoiceOver label.
+    struct TemperatureLook: Equatable {
+        let symbol: String, text: String, label: String, hot: Bool
+    }
+
+    static func temperatureLook(celsius: Int?, style: Style) -> TemperatureLook {
+        let symbol = style == .color ? "cpu" : "thermometer.medium"
+        guard let celsius else {
+            return TemperatureLook(symbol: symbol, text: "—", label: String(localized: "CPU temperature not available"), hot: false)
+        }
+        let isHot = celsius >= hot
+        var label = String(localized: "Mac temperature: \(TemperatureText.long(celsius: Double(celsius)))")
+        if isHot { label += ", " + String(localized: "temperature.hot", defaultValue: "hot") }
+        return TemperatureLook(symbol: symbol, text: TemperatureText.short(celsius: Double(celsius)), label: label, hot: isHot)
+    }
 
     static func isShown(_ kind: Kind) -> Bool { isShown(kind, in: .standard, hasTouchBar: TouchBarPrivate.hasTouchBar) }
     static func isShown(_ kind: Kind, in defaults: UserDefaults, hasTouchBar: Bool) -> Bool {
@@ -188,15 +204,8 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
         cpuTimer?.invalidate()
         cpuTimer = nil
         guard items[.temperature] != nil, !screensAsleep, let cpu else { return }
-        let symbol = Self.style == .color ? "cpu" : "thermometer.medium"
-        if let celsius = cpu.read() {
-            let isHot = celsius >= Self.hot
-            var label = String(localized: "Mac temperature: \(TemperatureText.long(celsius: Double(celsius)))")
-            if isHot { label += ", " + String(localized: "temperature.hot", defaultValue: "hot") }
-            draw(.temperature, symbol: symbol, text: TemperatureText.short(celsius: Double(celsius)), label: label, hot: isHot)
-        } else {
-            draw(.temperature, symbol: symbol, text: "—", label: String(localized: "CPU temperature not available"))
-        }
+        let look = Self.temperatureLook(celsius: cpu.read(), style: Self.style)
+        draw(.temperature, symbol: look.symbol, text: look.text, label: look.label, hot: look.hot)
         let timer = Timer(timeInterval: 10, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.readTemperature() }
         }

@@ -23,8 +23,17 @@ final class CPUTemperatureModule: Module {
     func read() -> Int? {
         guard open() else { return nil }
         if keys == nil { keys = findKeys() }
-        let hottest = (keys ?? []).compactMap(readTemperature).max()
-        return hottest.map { Int($0) }
+        return Self.degrees((keys ?? []).compactMap(readTemperature))
+    }
+
+    /// The hottest reading, truncated to whole degrees (as MacFanPro shows it); nil with none.
+    static func degrees(_ readings: [Double]) -> Int? {
+        readings.max().map { Int($0) }
+    }
+
+    /// A raw SMC float as °C; values outside 0…150 are no reading (a missing or idle sensor).
+    static func celsius(raw: Float) -> Double? {
+        raw > 0 && raw < 150 ? Double(raw) : nil
     }
 
     private func open() -> Bool {
@@ -35,23 +44,27 @@ final class CPUTemperatureModule: Module {
         return IOServiceOpen(service, mach_task_self_, 0, &connection) == kIOReturnSuccess
     }
 
-    /// TCMb, or every core key (Tp**: performance, Te**: efficiency; "a" is the current reading
-    /// on M1, older chips number them Tp01, Tp05...).
+    /// TCMb, or every core key that answers.
     private func findKeys() -> [String] {
         if readTemperature("TCMb") != nil { return ["TCMb"] }
+        return Self.coreKeys.filter { readTemperature($0) != nil }
+    }
+
+    /// The core keys tried when TCMb is missing, in order (Tp**: performance, Te**: efficiency;
+    /// "a" is the current reading on M1, older chips number them Tp01, Tp05...).
+    static let coreKeys: [String] = {
         let digits = Array("0123456789")
         let suffixes = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZacdefghijklmnopqrstuvwy")
-        var found: [String] = []
+        var keys: [String] = []
         for prefix in ["Tp", "Te"] {
             for a in digits {
                 for b in suffixes where a == "0" || b == "a" {
-                    let key = prefix + String(a) + String(b)
-                    if readTemperature(key) != nil { found.append(key) }
+                    keys.append(prefix + String(a) + String(b))
                 }
             }
         }
-        return found
-    }
+        return keys
+    }()
 
     // MARK: SMC
 
@@ -94,7 +107,7 @@ final class CPUTemperatureModule: Module {
         input[Self.commandOffset] = Self.readKey
         guard let output = call(input) else { return nil }
         let value = output[Self.bytesOffset..<Self.bytesOffset + 4].withUnsafeBytes { $0.loadUnaligned(as: Float.self) }
-        return value > 0 && value < 150 ? Double(value) : nil
+        return Self.celsius(raw: value)
     }
 }
 
