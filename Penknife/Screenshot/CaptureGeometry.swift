@@ -110,7 +110,8 @@ nonisolated enum CaptureGeometry {
         var y = selection.maxY + 10
         if y + size.height > bounds.height - 8 {
             y = selection.minY - 10 - size.height
-            if y < 8 { y = selection.maxY - size.height - 10 }
+            // Inside, but on the screen even when the selection runs past its bottom (B-8).
+            if y < 8 { y = min(selection.maxY, bounds.height) - size.height - 10 }
         }
         var x = selection.midX - size.width / 2
         x = min(max(x, 8), bounds.width - size.width - 8)

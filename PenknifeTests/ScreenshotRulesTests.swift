@@ -767,4 +767,15 @@ struct ScreenshotRulesTests {
         #expect(key(36, "", [], choosing) == .choose)
         #expect(key(36, "", [], chosen) == .startRecording)
     }
+
+    // MARK: Bugs fixed after S2 and S3
+
+    @Test("B-8 the toolbar stays on the screen for a window past the screen's bottom")
+    func toolbarForTallWindow() {
+        let bar = CGSize(width: 400, height: 44)
+        let window = CGRect(x: 200, y: 30, width: 600, height: 900)   // the screen is 800 pt tall
+        let frame = CaptureGeometry.toolbarFrame(selection: window, size: bar, bounds: Self.screen)
+        #expect(frame == CGRect(x: 300, y: 746, width: 400, height: 44))
+        #expect(Self.screen.contains(frame))
+    }
 }
