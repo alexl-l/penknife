@@ -802,4 +802,23 @@ struct ScreenshotRulesTests {
         #expect(g.recordRegion(CGRect(x: 10, y: 10, width: 100, height: 50), bounds: Self.screen)
                 == CGRect(x: 10, y: 10, width: 100, height: 50))
     }
+
+    @Test("B-11 writing or deleting these files tells Settings, which reads the space again")
+    func pastableChangesAreAnnounced() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        var posts = 0
+        let token = NotificationCenter.default.addObserver(forName: PastableImage.changed, object: nil, queue: nil) { _ in posts += 1 }
+        defer { NotificationCenter.default.removeObserver(token) }
+        #expect(PastableImage.used(in: folder) == 0)
+        let url = try #require(PastableImage.write(Data(count: 1_000), named: "a", in: folder, limit: 10_000))
+        #expect(FileManager.default.fileExists(atPath: url.path))
+        #expect(posts == 1)
+        #expect(PastableImage.used(in: folder) == 1_000)
+        PastableImage.makeRoom(0, limit: 10_000, in: folder)
+        #expect(posts == 1)
+        PastableImage.makeRoom(0, limit: 0, in: folder)
+        #expect(posts == 2)
+        #expect(PastableImage.used(in: folder) == 0)
+    }
 }

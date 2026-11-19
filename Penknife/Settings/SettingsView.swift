@@ -382,6 +382,9 @@ private struct ScreenshotOptions: View {
             pastableUsed = 0
         }
         .disabled(pastableUsed == 0)
+        .onReceive(NotificationCenter.default.publisher(for: PastableImage.changed)) { _ in
+            pastableUsed = PastableImage.used
+        }
         LabeledContent("Save to") {
             HStack {
                 Text(FileManager.default.displayName(atPath: ScreenshotModule.folder.path))

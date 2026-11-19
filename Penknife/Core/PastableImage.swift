@@ -7,6 +7,9 @@ import AppKit
 enum PastableImage {
     static let limitKey = "pastable.limitMB"
     static let limits = [100, 250, 500, 1000, 2000]
+    /// Posted after these files change (one written, the oldest deleted, all removed), so
+    /// Settings' "In use" follows them while it is open (B-11).
+    static let changed = Notification.Name("PastableImage.changed")
 
     /// Disk space for these files, in MB (setting, default 500).
     static var limitMB: Int { limitMB(in: .standard) }
@@ -50,6 +53,7 @@ enum PastableImage {
         do {
             try manager.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
             makeRoom(size, limit: limit)
+            defer { NotificationCenter.default.post(name: changed, object: nil) }
             let directory = folder.appendingPathComponent(UUID().uuidString, isDirectory: true)
             try manager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
             let url = directory.appendingPathComponent(name).appendingPathExtension(source.pathExtension)
@@ -79,13 +83,15 @@ enum PastableImage {
         return NSBitmapImageRep(data: data)?.representation(using: .png, properties: [:])
     }
 
-    private static func write(_ png: Data, named name: String) -> URL? {
-        let limit = Int64(limitMB) * 1_000_000
+    /// Writes `png` as `name`.png in its own subfolder of `folder`, making room first.
+    static func write(_ png: Data, named name: String, in folder: URL = folder,
+                      limit: Int64 = Int64(limitMB) * 1_000_000) -> URL? {
         guard Int64(png.count) <= limit else { return nil }
         let manager = FileManager.default
         do {
             try manager.createDirectory(at: folder, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-            makeRoom(Int64(png.count), limit: limit)
+            makeRoom(Int64(png.count), limit: limit, in: folder)
+            defer { NotificationCenter.default.post(name: changed, object: nil) }
             // Each copy gets its own subfolder, so the pasted file keeps a clean name.
             let directory = folder.appendingPathComponent(UUID().uuidString, isDirectory: true)
             try manager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.posixPermissions: 0o700])
@@ -99,7 +105,7 @@ enum PastableImage {
     }
 
     /// Removes the oldest files until `incoming` more bytes fit within `limit`.
-    static func makeRoom(_ incoming: Int64 = 0, limit: Int64 = Int64(limitMB) * 1_000_000) {
+    static func makeRoom(_ incoming: Int64 = 0, limit: Int64 = Int64(limitMB) * 1_000_000, in folder: URL = folder) {
         let manager = FileManager.default
         guard let entries = try? manager.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.creationDateKey]) else { return }
         var folders = entries.map { entry -> (url: URL, date: Date, size: Int64) in
@@ -110,14 +116,18 @@ enum PastableImage {
         }
         folders.sort { $0.date < $1.date }
         var total = folders.reduce(Int64(0)) { $0 + $1.size } + incoming
+        var removed = false
         for entry in folders where total > limit {
             try? manager.removeItem(at: entry.url)
             total -= entry.size
+            removed = true
         }
+        if removed { NotificationCenter.default.post(name: changed, object: nil) }
     }
 
     /// Space used now, in bytes (shown in Settings).
-    static var used: Int64 {
+    static var used: Int64 { used(in: folder) }
+    static func used(in folder: URL) -> Int64 {
         let manager = FileManager.default
         guard let enumerator = manager.enumerator(at: folder, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
         var total: Int64 = 0
@@ -129,5 +139,6 @@ enum PastableImage {
 
     static func removeAll() {
         try? FileManager.default.removeItem(at: folder)
+        NotificationCenter.default.post(name: changed, object: nil)
     }
 }
