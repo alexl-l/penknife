@@ -150,7 +150,8 @@ final class ClipboardStore {
     /// image comes in (or a pin is loaded): decoding a screenshot takes 25–150 ms, and doing it
     /// for every image row when the panel opened made it take seconds (B-21).
     private(set) var thumbnails: [String: NSImage] = [:]
-    @ObservationIgnored private var thumbnailsMaking: Set<String> = []
+    @ObservationIgnored private var thumbnailsWaiting: [(key: String, data: Data)] = []
+    @ObservationIgnored private var makingThumbnails = false
 
     static var defaultFolder: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -198,18 +199,28 @@ final class ClipboardStore {
         ] as CFDictionary)
     }
 
+    /// Queues the item's thumbnail. They are made one at a time: decoding needs the whole image in
+    /// memory (about 60 MB for a 5K screenshot), so many pins at launch must not decode together.
     private func makeThumbnail(for item: ClipItem) {
         guard item.kind == .image, let data = item.image, thumbnails[item.key] == nil,
-              thumbnailsMaking.insert(item.key).inserted else { return }
-        let key = item.key
+              !thumbnailsWaiting.contains(where: { $0.key == item.key }) else { return }
+        thumbnailsWaiting.append((item.key, data))
+        guard !makingThumbnails else { return }
+        makingThumbnails = true
         Task { [weak self] in
-            let image = await Task.detached(priority: .utility) { Self.thumbnail(data) }.value
-            guard let self else { return }
-            thumbnailsMaking.remove(key)
-            // Only if the item is still there (it may have been deleted or trimmed meanwhile).
-            guard let image, (history + pinned).contains(where: { $0.key == key }) else { return }
-            thumbnails[key] = NSImage(cgImage: image, size: .zero)
+            while let self, !self.thumbnailsWaiting.isEmpty {
+                let (key, data) = self.thumbnailsWaiting.removeFirst()
+                // Skipped if the item left while waiting (deleted, trimmed, history cleared).
+                guard self.keeps(key) else { continue }
+                let image = await Task.detached(priority: .utility) { autoreleasepool { Self.thumbnail(data) } }.value
+                if let image, self.keeps(key) { self.thumbnails[key] = NSImage(cgImage: image, size: .zero) }
+            }
+            self?.makingThumbnails = false
         }
+    }
+
+    private func keeps(_ key: String) -> Bool {
+        history.contains { $0.key == key } || pinned.contains { $0.key == key }
     }
 
     /// Thumbnails of items no longer kept are let go.
