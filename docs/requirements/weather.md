@@ -42,7 +42,7 @@ Code abbreviations: WM = `Modules/WeatherModule.swift` (WeatherModule, Report, W
 ### D. Where it shows
 
 - **WX-11** Every change of report or status redraws, on the main thread: the Touch Bar button (TB-25, through `onChange`), the menu bar item (R-30, through `didChangeNotification`). The main menu shows "Weather: <condition>, 18°" / "Tiempo: <condición>, 18°" with the condition symbol only while the module is on and a report exists (R-19). The menu bar item's own menu: the reading (if any), then "Allow Location…" while "no location", else "Update Now" / "Actualizar ahora"; both refresh with minimum age 0 (WX-03, WX-04).
-  Source: R-13, R-19, R-30 · Code: WM:set(status:); TM:updateWeather, tap; SM:readings; MR:drawWeather, menuNeedsUpdate, refreshWeather · Verify: manual — open the main menu: the weather line; menu bar item › Update Now: the item redraws.
+  Source: R-13, R-19, R-30 · Code: WM:set(status:); TM:updateWeather, tap; SM:readings; MR:drawWeather, menuNeedsUpdate, refreshWeather · Verify: **auto** — the item's look (report, location refused, no data yet) and the main menu line (MenuBarRulesTests: WX-11, MB-08); manual — menu bar item › Update Now: the item redraws.
 - **WX-12** Off: switching the module off cancels the timer and request, removes the sleep/wake observers, forgets the location manager and the session; nothing more is asked until it is on again (then a fresh refresh). The last report stays in memory but the main menu stops showing it.
   Source: R-13 "no request while the module is off"; R-15 · Code: WM:stop, start; SM:isEnabled · Verify: manual — switch Weather off: Console (category Weather) stays quiet; the menu has no weather line; on again: a new report within seconds.
 

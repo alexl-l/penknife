@@ -86,15 +86,15 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         guard let button = item.button, let glyph else { return }
         lastDotsOn = dotsOn
         let showMic = dotsOn && manager.isEnabled(.microphone)
-        // No input device: no mic dot (it would claim an open mic).
-        let hasMic = showMic && MicrophoneModule.defaultInputDevice() != nil
-        let showJiggler = dotsOn && manager.isEnabled(.jiggler)
-
         // The microphone is watched only while its dot is shown.
         if showMic { micWatcher.start() } else { micWatcher.stop() }
 
-        let micOpen = hasMic ? !(microphone?.showsMuted ?? false) : nil
-        let jigglerOn = showJiggler ? (jiggler?.isActive ?? false) : nil
+        let dots = Self.dots(shown: dotsOn,
+                             microphone: showMic ? (hasInput: MicrophoneModule.defaultInputDevice() != nil,
+                                                    muted: microphone?.showsMuted ?? false) : nil,
+                             jiggler: manager.isEnabled(.jiggler) ? (jiggler?.isActive ?? false) : nil)
+        let micOpen = dots.mic
+        let jigglerOn = dots.jiggler
         let time = recording.time
         if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn, shown.recording == time, shown.paused == recording.paused { return }
         let wasRecording = shown?.recording != nil
@@ -121,15 +121,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         }
         item.length = NSStatusItem.variableLength
         button.image = Self.icon(glyph: glyph, micOpen: micOpen, jigglerOn: jigglerOn)
-
-        var states: [String] = []
-        if let jigglerOn {
-            states.append(jigglerOn ? String(localized: "Mouse jiggler on") : String(localized: "Mouse jiggler off"))
-        }
-        if let micOpen {
-            states.append(micOpen ? String(localized: "Microphone on") : String(localized: "Microphone muted"))
-        }
-        button.setAccessibilityValue(states.joined(separator: ", "))
+        button.setAccessibilityValue(Self.dotsValue(mic: micOpen, jiggler: jigglerOn))
         // State can change from elsewhere (Touch Bar, Teams, Control Center): tell VoiceOver.
         NSAccessibility.post(element: button, notification: .valueChanged)
     }
@@ -146,9 +138,33 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         button.attributedTitle = NSAttributedString(string: " " + time, attributes: [
             .font: NSFont.monospacedDigitSystemFont(ofSize: NSFont.systemFontSize, weight: .regular),
         ])
-        button.setAccessibilityLabel(recording.paused
-            ? String(localized: "Recording paused at \(time). Click to stop.")
-            : String(localized: "Recording, \(time). Click to stop."))
+        button.setAccessibilityLabel(Self.recordingLabel(time: time, paused: recording.paused))
+    }
+
+    /// What each dot shows (MB-04): nil = no dot (dots off, module off, or no input device:
+    /// a mic dot would claim an open mic); mic true = open; jiggler true = on.
+    static func dots(shown: Bool, microphone: (hasInput: Bool, muted: Bool)?, jiggler: Bool?) -> (mic: Bool?, jiggler: Bool?) {
+        guard shown else { return (nil, nil) }
+        let mic = microphone.flatMap { $0.hasInput ? !$0.muted : nil }
+        return (mic, jiggler)
+    }
+
+    /// VoiceOver value of the icon with dots (MB-05): the jiggler first, then the microphone.
+    static func dotsValue(mic: Bool?, jiggler: Bool?) -> String {
+        var states: [String] = []
+        if let jiggler {
+            states.append(jiggler ? String(localized: "Mouse jiggler on") : String(localized: "Mouse jiggler off"))
+        }
+        if let mic {
+            states.append(mic ? String(localized: "Microphone on") : String(localized: "Microphone muted"))
+        }
+        return states.joined(separator: ", ")
+    }
+
+    /// VoiceOver label of the recording indicator (REC-31).
+    static func recordingLabel(time: String, paused: Bool) -> String {
+        paused ? String(localized: "Recording paused at \(time). Click to stop.")
+               : String(localized: "Recording, \(time). Click to stop.")
     }
 
     @objc private func stopRecording() {
@@ -226,22 +242,13 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         }
 
         // Touch Bar readings, also reachable from the menu (R-19).
-        var readings: [NSMenuItem] = []
-        if manager.isEnabled(.weather), let report = (manager.module(.weather) as? WeatherModule)?.report {
-            readings.append(reading(String(localized: "Weather: \(report.summary), \(TemperatureText.short(celsius: report.celsius))"),
-                                    symbol: report.symbol))
-        }
-        if manager.isEnabled(.cpuTemperature), let celsius = (manager.module(.cpuTemperature) as? CPUTemperatureModule)?.read() {
-            readings.append(reading(String(localized: "CPU temperature: \(TemperatureText.short(celsius: Double(celsius)))"),
-                                    symbol: "thermometer.medium"))
-        }
-        if manager.isEnabled(.speedTest), let speed = manager.module(.speedTest) as? SpeedTestModule {
-            for line in SpeedTestModule.menuLines(isRunning: speed.isRunning, failed: speed.failed, result: speed.result) {
-                readings.append(reading(line.title, symbol: line.symbol))
-            }
-        }
+        let speed = manager.isEnabled(.speedTest) ? manager.module(.speedTest) as? SpeedTestModule : nil
+        let readings = Self.readingLines(
+            weather: manager.isEnabled(.weather) ? (manager.module(.weather) as? WeatherModule)?.report : nil,
+            celsius: manager.isEnabled(.cpuTemperature) ? (manager.module(.cpuTemperature) as? CPUTemperatureModule)?.read() : nil,
+            speed: speed.map { SpeedTestModule.menuLines(isRunning: $0.isRunning, failed: $0.failed, result: $0.result) } ?? [])
         if !readings.isEmpty {
-            readings.forEach(menu.addItem)
+            readings.forEach { menu.addItem(reading($0.title, symbol: $0.symbol)) }
             menu.addItem(.separator())
         }
 
@@ -255,6 +262,20 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         settings.target = self
         menu.addItem(settings)
         menu.addItem(NSMenuItem(title: String(localized: "Quit Penknife"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+    }
+
+    /// The readings block of the menu (MB-08), in this order: weather, CPU temperature, speed test.
+    /// Each is nil / empty when its module is off or it has nothing to show.
+    static func readingLines(weather: WeatherModule.Report?, celsius: Int?,
+                             speed: [(title: String, symbol: String)]) -> [(title: String, symbol: String)] {
+        var lines: [(title: String, symbol: String)] = []
+        if let weather {
+            lines.append((String(localized: "Weather: \(weather.summary), \(TemperatureText.short(celsius: weather.celsius))"), weather.symbol))
+        }
+        if let celsius {
+            lines.append((String(localized: "CPU temperature: \(TemperatureText.short(celsius: Double(celsius)))"), "thermometer.medium"))
+        }
+        return lines + speed
     }
 
     /// An informative line: enabled so VoiceOver reads it normally, does nothing when chosen.

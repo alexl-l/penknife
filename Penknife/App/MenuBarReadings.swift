@@ -62,8 +62,36 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
         defaults.object(forKey: kind.key) as? Bool ?? shownByDefault(hasTouchBar: hasTouchBar)
     }
 
-    static var style: Style {
-        Style(rawValue: UserDefaults.standard.string(forKey: styleKey) ?? "") ?? .sober
+    static var style: Style { style(in: .standard) }
+    /// Nothing stored or an unknown value → Simple (MB-12).
+    static func style(in defaults: UserDefaults) -> Style {
+        Style(rawValue: defaults.string(forKey: styleKey) ?? "") ?? .sober
+    }
+
+    /// The items that exist (MB-10): module on and its switch on.
+    static func wanted(isEnabled: (ModuleID) -> Bool, isShown: (Kind) -> Bool) -> Set<Kind> {
+        Set(Kind.allCases.filter { isEnabled($0.module) && isShown($0) })
+    }
+
+    /// Symbol name, weight and template look in a style (MB-12): Simple drops `.fill`; Bold is
+    /// medium weight; Color keeps weather in its own colors (multicolor, not template).
+    static func symbolLook(_ symbol: String, kind: Kind, style: Style) -> (name: String, medium: Bool, multicolor: Bool) {
+        var name = symbol
+        if style == .sober, name.hasSuffix(".fill") { name.removeLast(5) }
+        return (name, style == .bold, style == .color && kind == .weather)
+    }
+
+    /// What the weather item shows (WX-11): the report's symbol and "18°"; else location refused
+    /// or no data yet, symbol only.
+    static func weatherLook(report: WeatherModule.Report?, status: WeatherModule.Status) -> (symbol: String, text: String?, label: String) {
+        if let report {
+            return (report.symbol, TemperatureText.short(celsius: report.celsius),
+                    String(localized: "Weather: \(report.summary), \(TemperatureText.long(celsius: report.celsius))"))
+        }
+        if status == .noLocation {
+            return ("location.slash", nil, String(localized: "Weather: location not allowed"))
+        }
+        return ("cloud", nil, String(localized: "Weather: no data yet"))
     }
 
     private let manager: ModuleManager
@@ -103,7 +131,7 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
     // MARK: Items
 
     private func update() {
-        let wanted = Set(Kind.allCases.filter { manager.isEnabled($0.module) && Self.isShown($0) })
+        let wanted = Self.wanted(isEnabled: manager.isEnabled, isShown: Self.isShown)
         let style = Self.style
         if let lastSetup, lastSetup.0 == wanted, lastSetup.1 == style { return }
         let hadSpeedTest = items[.speedTest] != nil
@@ -136,13 +164,12 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
     private func draw(_ kind: Kind, symbol: String, text: String?, label: String, hot: Bool = false) {
         guard let button = items[kind]?.button else { return }
         let style = Self.style
-        var name = symbol
-        if style == .sober, name.hasSuffix(".fill") { name.removeLast(5) }
-        var config = NSImage.SymbolConfiguration(pointSize: 13, weight: style == .bold ? .medium : .regular)
-        if style == .color, kind == .weather { config = config.applying(.preferringMulticolor()) }
-        let image = (NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        let look = Self.symbolLook(symbol, kind: kind, style: style)
+        var config = NSImage.SymbolConfiguration(pointSize: 13, weight: look.medium ? .medium : .regular)
+        if look.multicolor { config = config.applying(.preferringMulticolor()) }
+        let image = (NSImage(systemSymbolName: look.name, accessibilityDescription: nil)
             ?? NSImage(systemSymbolName: symbol, accessibilityDescription: nil))?.withSymbolConfiguration(config)
-        image?.isTemplate = !(style == .color && kind == .weather)
+        image?.isTemplate = !look.multicolor
         button.image = image
         button.imagePosition = text == nil ? .imageOnly : .imageLeading
         if let text {
@@ -162,15 +189,8 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
 
     private func drawWeather() {
         guard items[.weather] != nil, let weather else { return }
-        if let report = weather.report {
-            draw(.weather, symbol: report.symbol, text: TemperatureText.short(celsius: report.celsius),
-                 label: String(localized: "Weather: \(report.summary), \(TemperatureText.long(celsius: report.celsius))"))
-        } else if weather.status == .noLocation {
-            draw(.weather, symbol: "location.slash", text: nil,
-                 label: String(localized: "Weather: location not allowed"))
-        } else {
-            draw(.weather, symbol: "cloud", text: nil, label: String(localized: "Weather: no data yet"))
-        }
+        let look = Self.weatherLook(report: weather.report, status: weather.status)
+        draw(.weather, symbol: look.symbol, text: look.text, label: look.label)
     }
 
     // MARK: Temperature
