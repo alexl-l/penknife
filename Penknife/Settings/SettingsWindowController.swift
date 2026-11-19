@@ -22,12 +22,20 @@ final class SettingsWindowController: NSWindowController {
         window.isReleasedWhenClosed = false
         window.contentMinSize = NSSize(width: 680, height: 420)
         hasSavedFrame = window.setFrameUsingName(Self.frameName)
-        if !hasSavedFrame { window.setContentSize(NSSize(width: 760, height: 560)) }
-        // Frames saved before the sidebar (2026-11-14) are too small for it.
-        if let size = window.contentView?.frame.size, size.width < 680 || size.height < 420 {
-            window.setContentSize(NSSize(width: max(size.width, 760), height: max(size.height, 560)))
+        if !hasSavedFrame {
+            window.setContentSize(Self.startSize(saved: nil)!)
+        } else if let saved = window.contentView?.frame.size, let size = Self.startSize(saved: saved) {
+            window.setContentSize(size)
         }
         window.setFrameAutosaveName(Self.frameName)
+    }
+
+    /// GN-11: 760×560 the first time; a saved size under 680×420 (frames saved before the
+    /// sidebar, 2026-11-14) grows to at least 760×560; any other saved size is kept (nil).
+    static func startSize(saved: NSSize?) -> NSSize? {
+        guard let saved else { return NSSize(width: 760, height: 560) }
+        guard saved.width < 680 || saved.height < 420 else { return nil }
+        return NSSize(width: max(saved.width, 760), height: max(saved.height, 560))
     }
 
     @available(*, unavailable)

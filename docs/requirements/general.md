@@ -6,7 +6,7 @@ Source of truth for what the app as a whole must do TODAY (main at bad155b): lau
 
 Code abbreviations: AD = `App/AppDelegate.swift` (with `LaunchAtLogin`), UP = `App/Updater.swift`, MM = `App/MainMenu.swift`, MO = `Core/Module.swift`, MGR = `Core/ModuleManager.swift`, SC = `Core/Shortcuts.swift`, HUD = `Core/HUD.swift`, PM = `Core/Permissions.swift`, SWC = `Settings/SettingsWindowController.swift`, SV = `Settings/SettingsView.swift`, GT = `Settings/GeneralTab.swift` (General, Permissions, About pages), ST = `Settings/ShortcutsTab.swift`, IP = `Penknife-Info.plist`.
 
-**Tests:** none of their own yet (step B, §4). Already covered elsewhere: `ModuleManager.isOn` defaults, `AlertCategory.isShown(in:)`, `HUD.duration(in:)` and `ModuleManager.shouldRun` (MicrophoneRulesTests, ScreenshotRulesTests), `ModuleID.isAvailable` (TouchBarRulesTests O-7), `FnHotKeys.needsTwin` (TB-58).
+**Tests:** `PenknifeTests/GeneralRulesTests.swift` (11 tests, 2026-11-19; step B done: as-is + S1–S5), run with `scripts/test.sh`, each named after its rule ("GN-23 …"). Never call `LaunchAtLogin.apply` or set `isEnabled`, `HUD.shared.show`, `Permissions.requestAccessibility`, or build a `ModuleManager` with real modules; a test manager is `ModuleManager(modules:defaults:)` on fake modules with no actions and `MemoryDefaults`. Also covered elsewhere: the Spanish catalog (GN-27), `ModuleManager.isOn` defaults, `AlertCategory.isShown(in:)`, `HUD.duration(in:)` and `ModuleManager.shouldRun` (MicrophoneRulesTests, ScreenshotRulesTests), `ModuleID.isAvailable` (TouchBarRulesTests O-7), `FnHotKeys.needsTwin` (TB-58).
 
 ## 1. Rules
 
@@ -26,7 +26,7 @@ Code abbreviations: AD = `App/AppDelegate.swift` (with `LaunchAtLogin`), UP = `A
 - **GN-05** Every function is a module that can be turned on and off from its page in Settings (GN-14). The choice is saved as `module.<id>.enabled`; nothing saved = on, for every module (Touch Bar and Native Dialogs too, then shown unavailable on a Mac without one, GN-12). At launch each module that is on starts; one that is off is not started and its shortcuts are disabled.
   Source: R-15; TB-46 · Code: MO:ModuleID.defaultOn; MGR:startEnabledModules, isOn, key · Verify: **auto** — `isOn` with nothing saved, for every `ModuleID` (partly in other files); keys; manual — turn a module off, quit and open Penknife: it is still off.
 - **GN-06** Turning a module on starts it and enables its shortcuts; turning it off stops it and disables them, at once, without restarting Penknife. Setting a module to the state it already has does nothing. Then the Fn twins are rebuilt (TB-58) and a change notification goes out (menu bar dots and items, Touch Bar, Settings sidebar follow it).
-  Source: R-15 · Code: MGR:setEnabled, setShortcuts, refreshFnKeys, didChangeNotification · Verify: **auto after refactor** (S4) — a manager on fake modules and an injected suite: on → start once, off → stop once, the same state twice → nothing; manual — turn Mouse Jiggler off: F12 does nothing; on again: F12 toggles it.
+  Source: R-15 · Code: MGR:setEnabled, setShortcuts, refreshFnKeys, didChangeNotification · Verify: **auto** (S4) — a manager on fake modules and an injected suite: on → start once, off → stop once, the same state twice → nothing; manual — turn Mouse Jiggler off: F12 does nothing; on again: F12 toggles it.
 - **GN-07** A module that is off uses no CPU or memory: no timers, observers or event taps (each module's file has its own rule for this). The menu shows only the actions of the modules that are on, in module order (MB-02).
   Source: R-15 "A module that is off uses no CPU/RAM" · Code: MGR:enabledActions; each module's stop · Verify: manual — `measure-resources` with every module off: ~0 % CPU, no wakeups.
 - **GN-08** Module order, the same in the Settings sidebar, the menu and the Shortcuts page: Mouse Jiggler, Microphone, Lock Screen, Screenshot, Clipboard History, Music, Block Apple Music, CPU Temperature, Weather, Speed Test, Touch Bar, Native Dialogs.
@@ -42,7 +42,7 @@ Code abbreviations: AD = `App/AppDelegate.swift` (with `LaunchAtLogin`), UP = `A
 ### D. Settings window (R-12)
 
 - **GN-11** "Penknife Settings" / "Ajustes de Penknife" opens from the menu (Settings… ⌘,), ⌘, while Penknife has a window, or by opening the app again (GN-04). It is built when it opens and released when it closes (no memory while closed). It always comes to the front with the keyboard (a menu bar app could otherwise open it inactive). Resizable, at least 680×420; first time 760×560, centered; afterwards the size and place the user left (`PenknifeSettings`), a saved frame smaller than the minimum is enlarged to at least 760×560; changing pages never resizes it. Esc or ⌘W closes it. Each opening re-reads the Accessibility state (GN-21).
-  Source: R-12; R-11; R-19; DECISIONS Settings window built on open / resizable · Code: AD:showSettings, releaseSettings; SWC:init, show; SettingsWindow:cancelOperation · Verify: **auto after refactor** (S3) — the starting size for no frame, a small saved frame and a big one; manual — open, resize, close, open: same size and place; `measure-resources` after closing: memory back to ~11 MB.
+  Source: R-12; R-11; R-19; DECISIONS Settings window built on open / resizable · Code: AD:showSettings, releaseSettings; SWC:init, show; SettingsWindow:cancelOperation · Verify: **auto** (S3) — the starting size for no frame, a small saved frame and a big one; manual — open, resize, close, open: same size and place; `measure-resources` after closing: memory back to ~11 MB.
 - **GN-12** One sidebar in three groups: General, Permissions, Shortcuts; the modules (GN-08); About. Each row has a System Settings tile (white symbol on a color: General and About graphite, Permissions blue, Shortcuts indigo, each module its own color). A module that is off has a gray tile and secondary text; one that is unavailable (Touch Bar and Native Dialogs without a Touch Bar, O-7) has its whole row at half opacity. VoiceOver value per module row: "On" / "Activado", "Off" / "Desactivado", "Unavailable" / "No disponible". Arrows move in the sidebar, Tab moves to the page.
   Source: R-12; R-15; R-19; DECISIONS Modules sidebar; O-7 · Code: SV:SettingsView, SettingsTile, ModuleTile, ModuleID.tint · Verify: manual — turn a module off: its tile turns gray at once; VoiceOver on a module row says its state.
 - **GN-13** The page last shown is remembered (`settings.selectedPage`: "general", "permissions", "shortcuts", "about" or "module.<id>"); a missing or unknown value opens General.
@@ -60,7 +60,7 @@ Code abbreviations: AD = `App/AppDelegate.swift` (with `LaunchAtLogin`), UP = `A
 ### F. Alerts (R-20, IMPERATIVE)
 
 - **GN-17** An alert is a capsule at the top center of the screen with the pointer (else the main screen): 8 pt under the menu bar or the notch, whichever is lower, or 12 pt under the top edge when there is neither (full screen, hidden menu bar); it never covers Apple's notification banners or the volume indicator. 44 pt high with one line (fully round ends), 56 pt with a second line (16 pt corners); width fitted to the text, 120–360 pt, longer text cut with "…". An 18 pt medium SF Symbol tinted by kind (on and permission: system blue; off: secondary gray; error: system yellow, never red), a 13 pt medium title, an optional 11 pt secondary second line. State is always in the text, never only in the color.
-  Source: R-20 (top center since 2026-11-18, 1.9); R-19 · Code: HUD:show, frame, makeContent, AlertKind.color · Verify: **auto after refactor** (S1) — the frame for a notch, a menu bar, neither, and both heights; width clamped at 120 and 360; manual — with an Apple banner on screen both are visible; pointer on a second screen: the alert shows there.
+  Source: R-20 (top center since 2026-11-18, 1.9); R-19 · Code: HUD:show, frame, makeContent, AlertKind.color · Verify: **auto** (S1) — the frame for a notch, a menu bar, neither, and both heights; width clamped at 120 and 360; manual — with an Apple banner on screen both are visible; pointer on a second screen: the alert shows there.
 - **GN-18** Six alert types, each hideable (`alerts.<type>`, default shown): Mouse Jiggler, Microphone, Screenshots / Capturas (recording included), Clipboard / Portapapeles, Music, Speed Test. A hidden type shows nothing at all, errors included, but VoiceOver still hears every alert ("title. detail", high priority).
   Source: R-20 "turning a type off hides all its alerts, errors included. VoiceOver announcements stay"; R-19 · Code: HUD:AlertCategory, show · Verify: **auto** — the six types, keys and default (partly in other files); manual — turn Mouse Jiggler alerts off, press F12: no capsule, VoiceOver still speaks.
 - **GN-19** Behavior: fades and slides 10 pt down in (0.25 s), fades and slides 6 pt up out (0.2 s); with Reduce Motion a plain fade in (0.15 s) and it disappears at once. It stays for the chosen time (GN-16); a new alert replaces the one on screen in place (no new slide) and restarts the time, also during a fade-out; a late fade-out never closes a newer alert. Liquid Glass by default; an opaque window-colored capsule under Reduce Transparency; opaque with a 1 pt outline under Increase Contrast. It never takes the keyboard or the mouse (clicks go through), shows on every Space and over full-screen apps; VoiceOver reads it as one text.
@@ -78,15 +78,15 @@ Code abbreviations: AD = `App/AppDelegate.swift` (with `LaunchAtLogin`), UP = `A
 ### H. Launch at login, updates, About, language
 
 - **GN-23** "Launch at login" is on by default (`launchAtLogin.enabled`). Only the copy in /Applications registers itself as a login item, so a development build never becomes it. At launch and on each change: wanted and not registered from this path → register (unregistering an older path first) and remember the path (`launchAtLogin.registeredPath`); not wanted and registered → unregister and forget the path; outside /Applications → nothing. A failure is only logged.
-  Source: R-16; DECISIONS Launch at login only from /Applications · Code: AD:LaunchAtLogin · Verify: **auto after refactor** (S2) — the step for every mix of installed, wanted, registered and same path; manual — turn it off: System Settings › General › Login Items no longer lists Penknife; on: it is back.
+  Source: R-16; DECISIONS Launch at login only from /Applications · Code: AD:LaunchAtLogin · Verify: **auto** (S2) — the step for every mix of installed, wanted, registered and same path; manual — turn it off: System Settings › General › Login Items no longer lists Penknife; on: it is back.
 - **GN-24** Updates with Sparkle: the feed is the appcast on GitHub Pages, each update signed with the EdDSA key (checked before unpacking); one automatic check a day, never installing without asking (Sparkle's window with the release notes). "Check for Updates…" / "Buscar actualizaciones…" is in Penknife's menu (MB-02), not in Settings, greyed while a check runs; it brings Sparkle's window to the front, and so does a daily check that finds an update. After updating, the privacy permissions are kept.
   Source: R-17 · Code: UP; IP · Verify: manual — menu › Check for Updates…: "You're up to date" (or the update window) in front.
 - **GN-25** Updater cost: one check a day, nothing else while idle.
   Source: R-17 acceptance "no extra CPU/RAM when idle" · Code: IP (`SUScheduledCheckInterval` 86400) · Verify: manual — `measure-resources`: idle as before.
 - **GN-26** Settings › About: "Version" / "Versión" as "1.11 (186)" (version and build, as in Finder; only the version when there is no build) and "Acknowledgements" / "Agradecimientos", folded, with the KeyboardShortcuts and Sparkle licenses (selectable text).
-  Source: R-17 Versions; DECISIONS License · Code: GT:AboutPage, Acknowledgements · Verify: **auto after refactor** (S5) — the version text with and without a build; manual — About shows the installed build.
+  Source: R-17 Versions; DECISIONS License · Code: GT:AboutPage, Acknowledgements · Verify: **auto** (S5) — the version text with and without a build; manual — About shows the installed build.
 - **GN-27** Every visible or spoken string is in English and Spanish and follows the system language (no setting in Penknife).
-  Source: R-16 · Code: Localizable.xcstrings, InfoPlist.xcstrings · Verify: **auto** — no string in the catalog lacks a Spanish value (none stale); manual — the app in Spanish: Settings pages, menu, an alert.
+  Source: R-16 · Code: Localizable.xcstrings, InfoPlist.xcstrings · Verify: **auto** — no string in the catalog lacks a Spanish value (MicrophoneRulesTests); manual — the app in Spanish: Settings pages, menu, an alert.
 
 ## 2. Open questions and known bugs
 
@@ -97,7 +97,7 @@ Suspected from reading the code, not seen live:
 - **B-25 Turning launch at login off in System Settings is undone.** If the user removes Penknife in System Settings › General › Login Items, Penknife's own switch still says on (it shows the saved choice, not the system's), and at the next launch `apply()` registers it again. To check live first; then decide whether the switch should follow the system.
 
 Not measured / noted (nothing to decide yet):
-- `Module.needsAccessibility` is declared by four modules but read nowhere (dead code; cleanup in step B, no behavior change).
+- `Module.needsAccessibility` is declared by four modules and read only by tests, not by the app (kept: the tests use it to state which modules need the permission).
 - A stored `hud.duration` that is not one of 1/2/4/8/15 (e.g. 3, written by hand) leaves the picker with nothing selected; the alerts use it anyway. Only possible by editing the defaults by hand.
 
 ## 3. Rejected / out of scope (do not rebuild)
@@ -108,7 +108,10 @@ Not measured / noted (nothing to decide yet):
 - One on/off switch for all alerts (R-20 replaced it with one per type); alerts at the top right (R-20 moved them to the center).
 - A language setting inside Penknife (R-16: it follows the system).
 
-## 4. Test plan (step B proposal)
+## 4. Test plan (step B)
+
+**Done 2026-11-19** (autonomous routine work): as-is tests + S1–S5 in `PenknifeTests/GeneralRulesTests.swift`, 261 pass in all; no behavior change. Mutation run of 14 changes (alert width clamp, 12 pt gap, re-register step, 680 pt threshold, same-state switch, start what is saved, version without build, duration ≤ 0, page key, Native Dialogs default, alert default, F6 default, …): each made its test fail (the threshold needed a 650×500 case, added).
+
 
 Same method as the other modules: each seam is a pure rule the app keeps calling with exactly the same reads; tests pass plain values, are named after their rule and are seen to fail with the rule broken on purpose (one mutation run); no S-step changes behavior. Warnings: never call `LaunchAtLogin.apply` or set `isEnabled` (they change the real login item), never `HUD.shared.show` (it puts a window on screen), never build a `ModuleManager` with real modules or the real `UserDefaults.standard`, never `Permissions.requestAccessibility`.
 

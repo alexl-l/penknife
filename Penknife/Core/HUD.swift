@@ -74,13 +74,13 @@ final class HUD {
 
         generation += 1
         let content = makeContent(title: title, detail: detail, symbol: symbol, kind: kind, spoken: spoken)
-        let height = detail == nil ? Self.singleHeight : Self.doubleHeight
-        let width = min(max(Self.minWidth, content.fittingSize.width), Self.maxWidth)
-        let background = makeBackground(content: content, cornerRadius: detail == nil ? height / 2 : 16)
+        let size = Self.size(hasDetail: detail != nil, fittingWidth: content.fittingSize.width)
+        let background = makeBackground(content: content, cornerRadius: detail == nil ? size.height / 2 : 16)
 
         let mouse = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) ?? NSScreen.main else { return }
-        let frame = Self.frame(width: width, height: height, on: screen)
+        let frame = Self.frame(size: size, screen: screen.frame, visible: screen.visibleFrame,
+                               safeTop: screen.safeAreaInsets.top)
 
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -130,13 +130,19 @@ final class HUD {
         }
     }
 
-    /// 8 pt under the menu bar or the notch, whichever is lower. With no menu bar (full screen,
-    /// auto-hidden) and no notch: 12 pt under the top edge.
-    private static func frame(width: CGFloat, height: CGFloat, on screen: NSScreen) -> NSRect {
-        let menuBar = screen.frame.maxY - screen.visibleFrame.maxY
-        let top = max(menuBar, screen.safeAreaInsets.top)
+    /// GN-17: 44 pt high with one line, 56 pt with two; the text's width kept within 120–360 pt.
+    static func size(hasDetail: Bool, fittingWidth: CGFloat) -> NSSize {
+        NSSize(width: min(max(minWidth, fittingWidth), maxWidth), height: hasDetail ? doubleHeight : singleHeight)
+    }
+
+    /// GN-17: centered, 8 pt under the menu bar or the notch, whichever is lower. With no menu bar
+    /// (full screen, auto-hidden) and no notch: 12 pt under the top edge.
+    static func frame(size: NSSize, screen: NSRect, visible: NSRect, safeTop: CGFloat) -> NSRect {
+        let menuBar = screen.maxY - visible.maxY
+        let top = max(menuBar, safeTop)
         let gap: CGFloat = top > 0 ? 8 : 12
-        return NSRect(x: screen.frame.midX - width / 2, y: screen.frame.maxY - top - gap - height, width: width, height: height)
+        return NSRect(x: screen.midX - size.width / 2, y: screen.maxY - top - gap - size.height,
+                      width: size.width, height: size.height)
     }
 
     private func makePanel() -> NSPanel {

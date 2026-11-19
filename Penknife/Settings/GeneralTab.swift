@@ -78,9 +78,13 @@ struct AboutPage: View {
     /// "1.0 (32)": version and build, as in Finder's Get Info.
     private var version: String {
         let info = Bundle.main.infoDictionary
-        let short = info?["CFBundleShortVersionString"] as? String ?? ""
-        let build = info?["CFBundleVersion"] as? String ?? ""
-        return build.isEmpty ? short : "\(short) (\(build))"
+        return Self.version(short: info?["CFBundleShortVersionString"] as? String ?? "",
+                            build: info?["CFBundleVersion"] as? String ?? "")
+    }
+
+    /// GN-26: "1.11 (186)", or only the version when there is no build.
+    static func version(short: String, build: String) -> String {
+        build.isEmpty ? short : "\(short) (\(build))"
     }
 
     var body: some View {

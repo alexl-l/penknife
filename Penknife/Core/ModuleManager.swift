@@ -11,15 +11,17 @@ final class ModuleManager {
     let modules: [any Module]
     private(set) var enabled: Set<ModuleID> = []
 
-    @ObservationIgnored private let defaults = UserDefaults.standard
+    @ObservationIgnored private let defaults: UserDefaults
     @ObservationIgnored private let fnKeys = FnHotKeys()
     @ObservationIgnored private var paused = false
     @ObservationIgnored private var defaultsObserver: NSObjectProtocol?
     /// Last hotkey run per shortcut: which twin (plain or Fn) and when.
     @ObservationIgnored private var lastHotKey: [String: (fn: Bool, at: Date)] = [:]
 
-    init(modules: [any Module]) {
+    /// The app passes `.standard`; tests pass a suite in memory (GN-06).
+    init(modules: [any Module], defaults: UserDefaults = .standard) {
         self.modules = modules
+        self.defaults = defaults
         for module in modules {
             for action in module.actions {
                 KeyboardShortcuts.onKeyUp(for: action.shortcut) { [weak self, weak module] in

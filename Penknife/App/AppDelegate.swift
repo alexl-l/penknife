@@ -129,19 +129,34 @@ enum LaunchAtLogin {
         }
     }
 
+    enum Step: Equatable { case none, register, reregister, unregister }
+
+    /// GN-23: what brings the login item in line with the choice. Only the /Applications copy
+    /// acts; a registration from another path is renewed.
+    static func step(installed: Bool, wanted: Bool, enabled: Bool, registeredHere: Bool) -> Step {
+        guard installed else { return .none }
+        if wanted {
+            if !enabled { return .register }
+            return registeredHere ? .none : .reregister
+        }
+        return enabled ? .unregister : .none
+    }
+
     /// Brings the system login item in line with the user's choice. Called at launch.
     static func apply() {
         guard isInstalled else { return }
         let service = SMAppService.mainApp
         let path = Bundle.main.bundlePath
+        let registeredHere = UserDefaults.standard.string(forKey: pathKey) == path
         do {
-            if isEnabled {
-                let registeredHere = UserDefaults.standard.string(forKey: pathKey) == path
-                if service.status == .enabled, registeredHere { return }
+            switch step(installed: true, wanted: isEnabled, enabled: service.status == .enabled, registeredHere: registeredHere) {
+            case .none:
+                return
+            case .register, .reregister:
                 if service.status == .enabled { try? service.unregister() }
                 try service.register()
                 UserDefaults.standard.set(path, forKey: pathKey)
-            } else if service.status == .enabled {
+            case .unregister:
                 try service.unregister()
                 UserDefaults.standard.removeObject(forKey: pathKey)
             }
