@@ -9,8 +9,9 @@ enum PastableImage {
     static let limits = [100, 250, 500, 1000, 2000]
 
     /// Disk space for these files, in MB (setting, default 500).
-    static var limitMB: Int {
-        let value = UserDefaults.standard.integer(forKey: limitKey)
+    static var limitMB: Int { limitMB(in: .standard) }
+    static func limitMB(in defaults: UserDefaults) -> Int {
+        let value = defaults.integer(forKey: limitKey)
         return value > 0 ? value : 500
     }
 

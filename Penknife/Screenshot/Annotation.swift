@@ -58,8 +58,9 @@ enum CapturePalette {
     static let colors: [NSColor] = [.systemRed, .systemOrange, .systemYellow, .systemGreen, .systemBlue, .systemPurple, .white, .black]
     static let colorKey = "screenshot.defaultColor"
     /// The color each screenshot starts with (setting); blue unless changed.
-    static var defaultIndex: Int {
-        let index = UserDefaults.standard.object(forKey: colorKey) as? Int ?? 4
+    static var defaultIndex: Int { defaultIndex(in: .standard) }
+    static func defaultIndex(in defaults: UserDefaults) -> Int {
+        let index = defaults.object(forKey: colorKey) as? Int ?? 4
         return colors.indices.contains(index) ? index : 4
     }
 

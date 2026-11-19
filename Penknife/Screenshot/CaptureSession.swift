@@ -6,7 +6,7 @@ import SwiftUI
 /// lives on one screen; starting one on another screen moves it there.
 final class CaptureSession {
     let mode: ScreenshotMode
-    let state = CaptureEditorState()
+    let state = CaptureEditorState(defaults: .standard)
     private var windows: [CaptureWindow] = []
     private let previousApp: NSRunningApplication?
     private let onRecord: (RecordingRequest) -> Void

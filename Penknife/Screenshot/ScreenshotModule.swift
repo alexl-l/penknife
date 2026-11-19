@@ -13,8 +13,9 @@ enum ScreenshotMode: String, CaseIterable {
         }
     }
 
-    static var current: Self {
-        Self(rawValue: UserDefaults.standard.string(forKey: ScreenshotModule.modeKey) ?? "") ?? .frozen
+    static var current: Self { current(in: .standard) }
+    static func current(in defaults: UserDefaults) -> Self {
+        Self(rawValue: defaults.string(forKey: ScreenshotModule.modeKey) ?? "") ?? .frozen
     }
 }
 
@@ -28,10 +29,12 @@ final class ScreenshotModule: Module {
     static let copyFileKey = "screenshot.copyFile"
 
     /// Copy also offers the screenshot as a file, for pasting into Finder folders (on by default).
-    static var copiesFile: Bool { UserDefaults.standard.object(forKey: copyFileKey) as? Bool ?? true }
+    static var copiesFile: Bool { copiesFile(in: .standard) }
+    static func copiesFile(in defaults: UserDefaults) -> Bool { defaults.object(forKey: copyFileKey) as? Bool ?? true }
 
     /// Scrolling up makes lines and text thicker (default) or thinner (setting).
-    static var scrollUpThinner: Bool { UserDefaults.standard.bool(forKey: scrollKey) }
+    static var scrollUpThinner: Bool { scrollUpThinner(in: .standard) }
+    static func scrollUpThinner(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: scrollKey) }
     private static let askedKey = "screenshot.askedPermission"
 
     private var session: CaptureSession?
@@ -78,17 +81,27 @@ final class ScreenshotModule: Module {
     /// Where Save puts screenshots: the folder chosen in Settings, else the system's screenshot
     /// folder, else the Desktop.
     static var folder: URL {
-        if let path = UserDefaults.standard.string(forKey: folderKey) {
+        folder(in: .standard,
+               systemLocation: UserDefaults(suiteName: "com.apple.screencapture")?.string(forKey: "location"),
+               isFolder: { url in
+                   var isDirectory: ObjCBool = false
+                   return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
+               },
+               desktop: FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0])
+    }
+
+    /// `folder` from plain inputs: the system location (`com.apple.screencapture` `location`) and
+    /// the Desktop are read only when needed, as before.
+    static func folder(in defaults: UserDefaults, systemLocation: @autoclosure () -> String?,
+                       isFolder: (URL) -> Bool, desktop: @autoclosure () -> URL) -> URL {
+        if let path = defaults.string(forKey: folderKey) {
             return URL(fileURLWithPath: path, isDirectory: true)
         }
-        if let system = UserDefaults(suiteName: "com.apple.screencapture")?.string(forKey: "location") {
+        if let system = systemLocation() {
             let url = URL(fileURLWithPath: (system as NSString).expandingTildeInPath, isDirectory: true)
-            var isDirectory: ObjCBool = false
-            if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue {
-                return url
-            }
+            if isFolder(url) { return url }
         }
-        return FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+        return desktop()
     }
 
     /// `record`: straight in record mode, over the live screen.

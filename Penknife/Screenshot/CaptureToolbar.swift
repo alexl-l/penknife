@@ -5,7 +5,7 @@ import SwiftUI
 @Observable
 final class CaptureEditorState {
     var tool: CaptureTool?
-    var colorIndex = CapturePalette.defaultIndex
+    var colorIndex: Int
     var sizeIndex = CaptureSize.defaultIndex
     /// Which choice row is open in the toolbar, if any.
     var expanded: Expansion?
@@ -19,6 +19,11 @@ final class CaptureEditorState {
     var macSound = RecordingPrefs.macSound
 
     typealias Expansion = StyleRow
+
+    /// Each overlay starts on the Pointer, the default color and Medium (SS-23).
+    init(defaults: UserDefaults) {
+        colorIndex = CapturePalette.defaultIndex(in: defaults)
+    }
 
     var color: NSColor { CapturePalette.colors[colorIndex] }
 }
