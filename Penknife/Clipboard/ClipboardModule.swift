@@ -108,7 +108,7 @@ final class ClipboardModule: Module {
 
         guard paste, Self.pastes else { return }
         guard Permissions.shared.ensureAccessibility() else {
-            HUD.shared.show(String(localized: "Copied"), detail: String(localized: "To paste it too, allow Accessibility"),
+            HUD.shared.show(String(localized: "Copied"), detail: String(localized: "To paste it, open Settings › Permissions"),
                              symbol: "doc.on.clipboard.fill", kind: .permission, category: .clipboard)
             return
         }

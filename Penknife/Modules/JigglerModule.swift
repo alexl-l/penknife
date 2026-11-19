@@ -207,7 +207,7 @@ final class JigglerModule: Module {
     private func activate() {
         guard !isActive else { return }
         guard env.ensurePermission() else {
-            env.hud(String(localized: "Mouse Jiggler"), String(localized: "Needs the Accessibility permission"),
+            env.hud(String(localized: "Mouse Jiggler"), String(localized: "Permission needed: open Settings › Permissions"),
                     "lock.fill", .permission)
             return
         }

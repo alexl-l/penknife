@@ -206,7 +206,7 @@ struct JigglerRulesTests {
         jiggler.toggle()
         #expect(!jiggler.isActive && !jiggler.isScheduled)
         #expect(mac.alerts.map(\.kind) == [.permission])
-        #expect(mac.alerts.first?.detail == "Needs the Accessibility permission")
+        #expect(mac.alerts.first?.detail == "Permission needed: open Settings › Permissions")
 
         mac.clearAlerts()
         mac.permission = true

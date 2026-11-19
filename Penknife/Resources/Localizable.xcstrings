@@ -2591,12 +2591,12 @@
         }
       }
     },
-    "Needs the Accessibility permission": {
+    "Permission needed: open Settings › Permissions": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Necesita el permiso de Accesibilidad"
+            "value": "Falta un permiso: abre Ajustes › Permisos"
           }
         }
       }
@@ -3591,12 +3591,12 @@
         }
       }
     },
-    "To paste it too, allow Accessibility": {
+    "To paste it, open Settings › Permissions": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para pegarlo también, permite Accesibilidad"
+            "value": "Para pegarlo, abre Ajustes › Permisos"
           }
         }
       }

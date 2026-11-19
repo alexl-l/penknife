@@ -608,7 +608,7 @@ struct ClipboardRulesTests {
         let keys = ["Clipboard History", "Image", "%lld files: %@", "Search", "Search the clipboard history",
                     "Nothing copied yet", "No results", "%lld results", "Pinned", "History", "Paste", "Copy",
                     "Pin", "Unpin", "Delete", "Clear History…", "Clear the clipboard history?",
-                    "Pinned items are kept.", "Clear", "Copied", "To paste it too, allow Accessibility", "Text",
+                    "Pinned items are kept.", "Clear", "Copied", "To paste it, open Settings › Permissions", "Text",
                     "Files", "%@, pinned", "Deleted", "History cleared", "Unpinned", "Memory for the history",
                     "Paste after choosing an item", "Keep text formatting", "Open the history",
                     "Center of the screen", "At the pointer", "In use: %@", "Image %@ at %@"]
