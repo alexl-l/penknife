@@ -12,9 +12,9 @@ Code abbreviations: WM = `Modules/WeatherModule.swift` (WeatherModule, Report, W
 
 ### A. The module
 
-- **WX-01** Module "Weather" / "Tiempo" (symbol `cloud.sun`, cyan in Settings), on by default, no actions, no shortcuts, no Accessibility. Description: "Shows the current weather on the Touch Bar and in the menu, using your approximate location." / "Muestra el tiempo actual en la Touch Bar y en el menú, según tu ubicación aproximada." Starts with no report and status idle.
+- **WX-01** Module "Weather" / "Tiempo" (symbol `cloud.sun`, cyan in Settings), on by default, no actions, no shortcuts, no Accessibility. Description: "Shows the current weather on the Touch Bar and in the menu, based on your approximate location." / "Muestra el tiempo actual en la Touch Bar y en el menú, según tu ubicación aproximada." Starts with no report and status idle.
   Source: R-13, R-15 · Code: MO:title, summary, symbol, defaultOn; SV:tint; WM:actions · Verify: **auto** — `ModuleID.weather` symbol, `defaultOn`, not `needsTouchBar`; a new `WeatherModule` has no actions, no report, status idle.
-- **WX-02** Settings › Weather: "Show in the menu bar" (R-30, `menuBar.show.weather`), then the caption "Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)." / "Solo se envía una ubicación aproximada (unos 11 km). [Datos meteorológicos de Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)." The link opens open-meteo.com (attribution required by CC BY 4.0).
+- **WX-02** Settings › Weather: "Show in the menu bar" (R-30, `menuBar.show.weather`), then the caption "Only an approximate location (about 11 km) is sent. Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)." / "Solo se envía una ubicación aproximada (unos 11 km). Datos del tiempo de [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)." The link opens open-meteo.com (attribution required by CC BY 4.0).
   Source: R-13 "Show the data attribution"; D: Weather: Open-Meteo · Code: SV:case .weather · Verify: manual — Settings › Weather: the toggle and the caption; the link opens the site.
 
 ### B. When a report is asked for

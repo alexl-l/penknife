@@ -32,7 +32,7 @@ private struct BarButtonsSheet: View {
                 .font(.headline)
             BarPreview(items: visible)
             BarButtonsList(order: $order, hidden: $hidden, isOn: isOn)
-            Text("Drag to reorder. At least one button stays visible. Hiding a button doesn't turn its function off: it still works from the menu and its shortcut.")
+            Text("Drag to reorder. Uncheck a button to hide it; its shortcut and menu item keep working. At least one button stays visible.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

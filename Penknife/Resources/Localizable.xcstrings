@@ -281,12 +281,12 @@
         }
       }
     },
-    "Also holds images you paste into Finder from the clipboard history. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: %@": {
+    "Also stores images you paste into Finder from Clipboard History. When full, the oldest are deleted. Larger images are copied as an image only. In use: %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "También guarda las imágenes que pegas en Finder desde el historial. Cuando se llena, se borran las más antiguas; una imagen que no cabe se copia solo como imagen. En uso: %@"
+            "value": "También guarda las imágenes que pegas en Finder desde el Historial del portapapeles. Cuando se llena, se borran las más antiguas. Las imágenes más grandes se copian solo como imagen. En uso: %@"
           }
         }
       }
@@ -701,12 +701,12 @@
         }
       }
     },
-    "Close sliders and the date automatically": {
+    "Close sliders and the date by themselves": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cerrar los deslizadores y la fecha automáticamente"
+            "value": "Cerrar solos los deslizadores y la fecha"
           }
         }
       }
@@ -1061,12 +1061,12 @@
         }
       }
     },
-    "The window closes once the video or GIF is saved or the video is copied." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La ventana se cierra en cuanto se guarda el vídeo o el GIF, o se copia el vídeo."
+    "The recording window closes when you save a video or GIF, or copy the video.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La ventana de grabación se cierra al guardar un vídeo o GIF, o al copiar el vídeo."
           }
         }
       }
@@ -1621,12 +1621,12 @@
         }
       }
     },
-    "Delete These Files Now": {
+    "Delete These Files": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Eliminar estos archivos ahora"
+            "value": "Eliminar estos archivos"
           }
         }
       }
@@ -1681,12 +1681,12 @@
         }
       }
     },
-    "Drag to reorder. At least one button stays visible. Hiding a button doesn't turn its function off: it still works from the menu and its shortcut.": {
+    "Drag to reorder. Uncheck a button to hide it; its shortcut and menu item keep working. At least one button stays visible.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Arrastra para cambiar el orden. Al menos un botón queda visible. Ocultar un botón no apaga su función: sigue funcionando desde el menú y su atajo."
+            "value": "Arrastra para cambiar el orden. Desmarca un botón para ocultarlo: su atajo y su opción del menú siguen funcionando. Siempre queda al menos un botón visible."
           }
         }
       }
@@ -1751,12 +1751,12 @@
         }
       }
     },
-    "Fonts, bold and colors. ⇧↩ in the history does the opposite once.": {
+    "Fonts, bold and colors. Press ⇧↩ to do the opposite just that once.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuentes, negritas y colores. ⇧↩ en el historial hace lo contrario esa vez."
+            "value": "Fuentes, negritas y colores. Pulsa ⇧↩ para hacer lo contrario solo esa vez."
           }
         }
       }
@@ -1851,12 +1851,12 @@
         }
       }
     },
-    "Holding the battery button also changes the colors, one every second.": {
+    "Hold the battery button to switch colors: one change per second.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantener pulsado el botón de la batería también cambia los colores, uno cada segundo."
+            "value": "Mantén pulsado el botón de la batería para cambiar de colores: uno por segundo."
           }
         }
       }
@@ -1901,22 +1901,22 @@
         }
       }
     },
-    "Keep text formatting": {
+    "Keep formatting": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantener el formato del texto"
+            "value": "Mantener el formato"
           }
         }
       }
     },
-    "Key it presses": {
+    "Also press": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tecla que pulsa"
+            "value": "Pulsar también"
           }
         }
       }
@@ -2031,12 +2031,12 @@
         }
       }
     },
-    "Measures download, upload, latency and responsiveness with macOS networkQuality, from the menu, the Touch Bar or a shortcut. Keeps only the last result.": {
+    "Tests your connection: download, upload, latency and responsiveness. Start it from the menu, the Touch Bar or a shortcut. Only the last result is kept.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mide bajada, subida, latencia y capacidad de respuesta con networkQuality de macOS, desde el menú, la Touch Bar o un atajo. Guarda solo el último resultado."
+            "value": "Prueba tu conexión: bajada, subida, latencia y capacidad de respuesta. Empieza desde el menú, la Touch Bar o un atajo. Solo se guarda el último resultado."
           }
         }
       }
@@ -2051,12 +2051,12 @@
         }
       }
     },
-    "Memory for the history": {
+    "History size": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Memoria para el historial"
+            "value": "Tamaño del historial"
           }
         }
       }
@@ -2591,12 +2591,12 @@
         }
       }
     },
-    "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Or record it as a video or GIF, drawing while you record. Nothing is uploaded.": {
+    "Capture an area or a window (press Space). Mark it up, then copy or save it. Or record it as a video or GIF and draw as you go. Nothing leaves your Mac.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Selecciona un área o, con Espacio, una ventana. Márcala con flechas, texto, marcador, rectángulos, círculos, lápiz o desenfoque y luego cópiala o guárdala. O grábala como vídeo o GIF, dibujando mientras grabas. No se sube nada a internet."
+            "value": "Captura un área o una ventana (pulsa Espacio). Anótala y cópiala o guárdala. O grábala como vídeo o GIF y dibuja mientras grabas. Nada sale de tu Mac."
           }
         }
       }
@@ -2611,12 +2611,12 @@
         }
       }
     },
-    "Moves the mouse after a pause in activity, so you stay shown as active.": {
+    "Keeps you shown as active by nudging the mouse when you stop for a while.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mueve el ratón tras una pausa sin actividad, para que sigas apareciendo como activo."
+            "value": "Te mantiene como activo moviendo el ratón cuando haces una pausa."
           }
         }
       }
@@ -2791,12 +2791,12 @@
         }
       }
     },
-    "Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).": {
+    "Only an approximate location (about 11 km) is sent. Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Solo se envía una ubicación aproximada (unos 11 km). [Datos meteorológicos de Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)."
+            "value": "Solo se envía una ubicación aproximada (unos 11 km). Datos del tiempo de [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)."
           }
         }
       }
@@ -2821,12 +2821,12 @@
         }
       }
     },
-    "Open the history": {
+    "Where it opens": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir el historial"
+            "value": "Dónde se abre"
           }
         }
       }
@@ -2861,32 +2861,32 @@
         }
       }
     },
-    "Paste after choosing an item": {
+    "Paste when you choose": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pegar al elegir un elemento"
+            "value": "Pegar al elegir"
           }
         }
       }
     },
-    "Paused automatically while Apple Music or iTunes is your music player.": {
+    "Off while Apple Music or iTunes is your music player.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se pausa solo mientras Apple Music o iTunes sea tu reproductor de música."
+            "value": "Inactivo mientras Apple Music o iTunes sea tu reproductor de música."
           }
         }
       }
     },
-    "Paused: Apple Music is your music player.": {
+    "Off: Apple Music is your music player.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "En pausa: Apple Music es tu reproductor de música."
+            "value": "Inactivo: Apple Music es tu reproductor de música."
           }
         }
       }
@@ -3021,12 +3021,12 @@
         }
       }
     },
-    "Your own Touch Bar buttons: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, plus one-tap actions. You choose which ones show and in what order.": {
+    "Your own Touch Bar: brightness, volume, music, weather, battery, time and more, plus one-tap actions. Choose which buttons show and in what order.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Botones propios para tu Touch Bar: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, además de acciones a un toque. Tú eliges cuáles se muestran y en qué orden."
+            "value": "Tu propia Touch Bar: brillo, volumen, música, tiempo, batería, hora y más, además de acciones a un toque. Elige qué botones se muestran y en qué orden."
           }
         }
       }
@@ -3071,12 +3071,12 @@
         }
       }
     },
-    "Pinned items are saved on this Mac and never deleted unless you remove them.": {
+    "Pinned items stay on this Mac until you remove them.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los elementos fijados se guardan en este Mac y nunca se borran salvo que los quites tú."
+            "value": "Los elementos fijados se quedan en este Mac hasta que los quites."
           }
         }
       }
@@ -3091,12 +3091,12 @@
         }
       }
     },
-    "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.": {
+    "Play, pause and skip songs. On the Touch Bar, tap once to play or pause, twice for the next song, three times for the previous one.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reproduce, pausa y cambia de canción. En la Touch Bar: un toque reproduce o pausa, dos pasan a la siguiente canción, tres a la anterior."
+            "value": "Reproduce, pausa y cambia de canción. En la Touch Bar, un toque reproduce o pausa, dos pasan a la siguiente y tres vuelven a la anterior."
           }
         }
       }
@@ -3211,12 +3211,12 @@
         }
       }
     },
-    "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.": {
+    "Keeps what you copy (text, images, files) so you can search and paste it again. Passwords are skipped. After you quit, only pinned items remain.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recuerda lo que copias (texto, imágenes y archivos) para buscarlo y volver a pegarlo. Las contraseñas se ignoran. Al salir solo se conservan los elementos fijados."
+            "value": "Guarda lo que copias (texto, imágenes y archivos) para buscarlo y pegarlo de nuevo. Las contraseñas se ignoran. Al salir, solo quedan los elementos fijados."
           }
         }
       }
@@ -3271,12 +3271,12 @@
         }
       }
     },
-    "Screen while selecting": {
+    "While selecting": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pantalla al seleccionar"
+            "value": "Al seleccionar"
           }
         }
       }
@@ -3431,12 +3431,12 @@
         }
       }
     },
-    "Shortcuts of modules that are off are disabled. On a Mac without Touch Bar, F keys need Fn or “Use F1, F2, etc. keys as standard function keys”.": {
+    "Shortcuts for modules that are off don't work. On a Mac without a Touch Bar, F keys need Fn, or turn on “Use F1, F2, etc. keys as standard function keys” in Keyboard settings.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los atajos de los módulos desactivados no funcionan. En un Mac sin Touch Bar, las teclas F necesitan Fn o «Usar las teclas F1, F2, etc. como teclas de función estándar»."
+            "value": "Los atajos de los módulos desactivados no funcionan. En un Mac sin Touch Bar, las teclas F necesitan Fn, o activa «Usar las teclas F1, F2, etc. como teclas de función estándar» en Ajustes de Teclado."
           }
         }
       }
@@ -3451,12 +3451,12 @@
         }
       }
     },
-    "Show status dots in the menu bar": {
+    "Show microphone and Mouse Jiggler dots": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mostrar puntos de estado en la barra de menús"
+            "value": "Mostrar puntos de micrófono y de Mover ratón"
           }
         }
       }
@@ -3471,7 +3471,7 @@
         }
       }
     },
-    "Shows the current weather on the Touch Bar and in the menu, using your approximate location.": {
+    "Shows the current weather on the Touch Bar and in the menu, based on your approximate location.": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -3531,12 +3531,12 @@
         }
       }
     },
-    "Space for images to paste as files": {
+    "Space for pasted image files": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Espacio para imágenes que se pegan como archivo"
+            "value": "Espacio para imágenes pegadas como archivo"
           }
         }
       }
@@ -3631,12 +3631,12 @@
         }
       }
     },
-    "The language follows the system (Spanish or English).": {
+    "The language follows the system: Spanish or English.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El idioma sigue al del sistema (español o inglés)."
+            "value": "El idioma sigue al del sistema: español o inglés."
           }
         }
       }
@@ -3761,12 +3761,12 @@
         }
       }
     },
-    "Turns off the mouse jiggler and locks the screen.": {
+    "Locks the screen and turns off Mouse Jiggler.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Desactiva «Mover ratón» y bloquea la pantalla."
+            "value": "Bloquea la pantalla y desactiva «Mover ratón»."
           }
         }
       }
@@ -3821,12 +3821,12 @@
         }
       }
     },
-    "Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.": {
+    "Tests against Apple's servers. Each takes 20–45 seconds and uses a few hundred MB of data.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Usa los servidores de prueba de Apple. Cada test tarda 20–45 segundos y transfiere unos cientos de MB."
+            "value": "Prueba con los servidores de Apple. Cada test tarda de 20 a 45 segundos y usa unos cientos de MB de datos."
           }
         }
       }
@@ -3841,12 +3841,12 @@
         }
       }
     },
-    "VoiceOver announces them even when they are hidden.": {
+    "VoiceOver still announces hidden alerts.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "VoiceOver los anuncia aunque estén ocultos."
+            "value": "VoiceOver sigue anunciando los avisos ocultos."
           }
         }
       }
@@ -3921,12 +3921,12 @@
         }
       }
     },
-    "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.": {
+    "When a dialog or system prompt appears, the Touch Bar shows its buttons for it.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mientras haya un diálogo o aviso del sistema delante, la Touch Bar muestra sus propios botones."
+            "value": "Cuando aparece un diálogo o un aviso del sistema, la Touch Bar muestra sus propios botones."
           }
         }
       }
@@ -4039,12 +4039,12 @@
         }
       }
     },
-    "⌘V in a Finder folder creates the PNG file; other apps paste the image.": {
+    "Paste in a Finder folder to get a PNG file. Other apps paste the image.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "⌘V en una carpeta de Finder crea el archivo PNG; las demás apps pegan la imagen."
+            "value": "Pega en una carpeta de Finder para obtener un archivo PNG. Las demás apps pegan la imagen."
           }
         }
       }
@@ -4059,12 +4059,12 @@
         }
       }
     },
-    "Menu bar readings style": {
+    "Menu bar readings": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estilo de los datos en la barra de menús"
+            "value": "Datos en la barra de menús"
           }
         }
       }
@@ -4203,12 +4203,12 @@
         }
       }
     },
-    "Images you paste into Finder from the history are kept here; screenshots copied as files share this space. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: %@": {
+    "Images you paste into Finder as files are stored here, along with screenshots copied as files. When full, the oldest are deleted. Larger images are copied as an image only. In use: %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aquí se guardan las imágenes que pegas en Finder desde el historial; las capturas copiadas como archivo comparten este espacio. Cuando se llena, se borran las más antiguas; una imagen que no cabe se copia solo como imagen. En uso: %@"
+            "value": "Las imágenes que pegas en Finder como archivo se guardan aquí, junto con las capturas copiadas como archivo. Cuando se llena, se borran las más antiguas. Las imágenes más grandes se copian solo como imagen. En uso: %@"
           }
         }
       }
@@ -4253,52 +4253,52 @@
         }
       }
     },
-    "To press keys and detect dialogs: mouse jiggler, meeting mute and Siri watch, pasting from history, music keys, Touch Bar dialogs and lock screen.": {
+    "Lets Penknife press keys and see dialogs. Used by Mouse Jiggler, Microphone, Clipboard History, Music, Touch Bar and Lock Screen.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para pulsar teclas y detectar diálogos: mover el ratón, silenciar reuniones y vigilar a Siri, pegar desde el historial, teclas de música, diálogos en la Touch Bar y bloquear pantalla."
+            "value": "Permite a Penknife pulsar teclas y ver diálogos. Lo usan Mover ratón, Micrófono, Historial del portapapeles, Música, Touch Bar y Bloquear pantalla."
           }
         }
       }
     },
-    "For screenshots and screen recordings.": {
+    "Used by Screenshot to capture and record the screen.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para capturas y grabaciones de pantalla."
+            "value": "Lo usa Captura de pantalla para hacer capturas y grabar la pantalla."
           }
         }
       }
     },
-    "Adds your voice to recordings, only when you turn the microphone on.": {
+    "Lets you add your voice to screen recordings, only if you turn the microphone on.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añade tu voz a las grabaciones, solo si activas el micrófono."
+            "value": "Permite añadir tu voz a las grabaciones, solo si activas el micrófono."
           }
         }
       }
     },
-    "For the weather. Approximate location only (about 11 km).": {
+    "Used by Weather. Only an approximate location (about 11 km) is read.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Para el tiempo. Solo ubicación aproximada (unos 11 km)."
+            "value": "Lo usa Tiempo. Solo se lee una ubicación aproximada (unos 11 km)."
           }
         }
       }
     },
-    "Controls Spotify and Music, and reads the active Safari or Chrome tab to find your meeting.": {
+    "Controls Spotify and Music, and checks the Safari or Chrome tab in front to find your meeting.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Controla Spotify y Música, y lee la pestaña activa de Safari o Chrome para encontrar tu reunión."
+            "value": "Controla Spotify y Música, y mira la pestaña de Safari o Chrome que tienes delante para encontrar tu reunión."
           }
         }
       }
@@ -4323,12 +4323,12 @@
         }
       }
     },
-    "Each permission is asked for only the first time you use its feature.": {
+    "macOS asks the first time you use a feature that needs it.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cada permiso se pide solo la primera vez que usas su función."
+            "value": "macOS lo pide la primera vez que usas una función que lo necesita."
           }
         }
       }
@@ -4383,22 +4383,22 @@
         }
       }
     },
-    "Hold Screenshot to record": {
+    "Hold to record": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantener Captura para grabar"
+            "value": "Mantener para grabar"
           }
         }
       }
     },
-    "Holding the shortcut or the Touch Bar button opens the area to record; a short press takes a screenshot.": {
+    "Hold the Screenshot shortcut or Touch Bar button to record. A short press takes a screenshot.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mantener pulsado el atajo o el botón de la Touch Bar abre el área para grabar; una pulsación corta hace la captura."
+            "value": "Mantén el atajo de Captura de pantalla o el botón de la Touch Bar para grabar. Una pulsación corta hace una captura."
           }
         }
       }
@@ -4449,6 +4449,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Grabando en 3 segundos"
+          }
+        }
+      }
+    },
+    "Close after saving or copying": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cerrar al guardar o copiar"
           }
         }
       }

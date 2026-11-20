@@ -38,18 +38,18 @@ enum ModuleID: String, CaseIterable, Identifiable {
 
     var summary: String {
         switch self {
-        case .jiggler: String(localized: "Moves the mouse after a pause in activity, so you stay shown as active.")
+        case .jiggler: String(localized: "Keeps you shown as active by nudging the mouse when you stop for a while.")
         case .microphone: String(localized: "Mutes the meeting you are in with its own shortcut (Teams, Meet, Zoom, Slack, Webex), or the Mac's microphone.")
-        case .lockScreen: String(localized: "Turns off the mouse jiggler and locks the screen.")
-        case .screenshot: String(localized: "Select an area or, with Space, a window. Mark it with arrows, text, highlighter, rectangles, circles, pen or blur, then copy or save it. Or record it as a video or GIF, drawing while you record. Nothing is uploaded.")
-        case .clipboard: String(localized: "Remembers what you copy (text, images and files) so you can search it and paste it again. Passwords are skipped. Only pinned items are kept after quitting.")
-        case .music: String(localized: "Play, pause and skip songs. On the Touch Bar: one tap plays or pauses, two go to the next song, three to the previous one.")
+        case .lockScreen: String(localized: "Locks the screen and turns off Mouse Jiggler.")
+        case .screenshot: String(localized: "Capture an area or a window (press Space). Mark it up, then copy or save it. Or record it as a video or GIF and draw as you go. Nothing leaves your Mac.")
+        case .clipboard: String(localized: "Keeps what you copy (text, images, files) so you can search and paste it again. Passwords are skipped. After you quit, only pinned items remain.")
+        case .music: String(localized: "Play, pause and skip songs. On the Touch Bar, tap once to play or pause, twice for the next song, three times for the previous one.")
         case .blockAppleMusic: String(localized: "Keeps Apple Music from opening by itself (headphones, play key). Opening it yourself still works.")
         case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
-        case .weather: String(localized: "Shows the current weather on the Touch Bar and in the menu, using your approximate location.")
-        case .speedTest: String(localized: "Measures download, upload, latency and responsiveness with macOS networkQuality, from the menu, the Touch Bar or a shortcut. Keeps only the last result.")
-        case .touchBar: String(localized: "Your own Touch Bar buttons: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, plus one-tap actions. You choose which ones show and in what order.")
-        case .dialogs: String(localized: "While a dialog or system prompt is in front, the Touch Bar shows its own buttons.")
+        case .weather: String(localized: "Shows the current weather on the Touch Bar and in the menu, based on your approximate location.")
+        case .speedTest: String(localized: "Tests your connection: download, upload, latency and responsiveness. Start it from the menu, the Touch Bar or a shortcut. Only the last result is kept.")
+        case .touchBar: String(localized: "Your own Touch Bar: brightness, volume, music, weather, battery, time and more, plus one-tap actions. Choose which buttons show and in what order.")
+        case .dialogs: String(localized: "When a dialog or system prompt appears, the Touch Bar shows its buttons for it.")
         }
     }
 

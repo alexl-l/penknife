@@ -279,14 +279,14 @@ private struct ModuleDetail: View {
         case .weather:
             Section { MenuBarToggle(kind: .weather) }
             Section {
-                Text("Only an approximate location (about 11 km) is sent. [Weather data by Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
+                Text("Only an approximate location (about 11 km) is sent. Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         case .speedTest:
             Section { MenuBarToggle(kind: .speedTest) }
             Section {
-                Text("Uses Apple's test servers. Each test takes 20–45 seconds and transfers a few hundred MB.")
+                Text("Tests against Apple's servers. Each takes 20–45 seconds and uses a few hundred MB of data.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -332,18 +332,18 @@ private struct ClipboardOptions: View {
     @State private var confirmClear = false
 
     var body: some View {
-        Picker("Memory for the history", selection: $limit) {
+        Picker("History size", selection: $limit) {
             ForEach(ClipboardStore.limits, id: \.self) { mb in
                 Text("\(mb) MB").tag(mb)
             }
         }
         .onChange(of: limit) { store.trim() }
-        Toggle("Paste after choosing an item", isOn: $paste)
+        Toggle("Paste when you choose", isOn: $paste)
         Toggle(isOn: $formatting) {
-            Text("Keep text formatting")
-            Text("Fonts, bold and colors. ⇧↩ in the history does the opposite once.")
+            Text("Keep formatting")
+            Text("Fonts, bold and colors. Press ⇧↩ to do the opposite just that once.")
         }
-        Picker("Open the history", selection: $position) {
+        Picker("Where it opens", selection: $position) {
             ForEach(ClipboardPosition.allCases, id: \.rawValue) { option in
                 Text(option.title).tag(option.rawValue)
             }
@@ -353,7 +353,7 @@ private struct ClipboardOptions: View {
                 .disabled(store.history.isEmpty)
         } label: {
             Text("In use: \(ByteCountFormatter.string(fromByteCount: Int64(store.usedBytes), countStyle: .memory))")
-            Text("Pinned items are saved on this Mac and never deleted unless you remove them.")
+            Text("Pinned items stay on this Mac until you remove them.")
         }
         .confirmationDialog("Clear the clipboard history?", isPresented: $confirmClear) {
             Button("Clear", role: .destructive) { store.clearHistory() }
@@ -378,18 +378,18 @@ private struct PastableSpace: View {
                 Text(mb >= 1000 ? "\(mb / 1000) GB" : "\(mb) MB").tag(mb)
             }
         } label: {
-            Text("Space for images to paste as files")
+            Text("Space for pasted image files")
             if onClipboardPage {
-                Text("Images you paste into Finder from the history are kept here; screenshots copied as files share this space. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: \(used)")
+                Text("Images you paste into Finder as files are stored here, along with screenshots copied as files. When full, the oldest are deleted. Larger images are copied as an image only. In use: \(used)")
             } else {
-                Text("Also holds images you paste into Finder from the clipboard history. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: \(used)")
+                Text("Also stores images you paste into Finder from Clipboard History. When full, the oldest are deleted. Larger images are copied as an image only. In use: \(used)")
             }
         }
         .onChange(of: pastableLimit) {
             PastableImage.makeRoom()
             pastableUsed = PastableImage.used
         }
-        Button("Delete These Files Now") {
+        Button("Delete These Files") {
             PastableImage.removeAll()
             pastableUsed = 0
         }
@@ -413,15 +413,15 @@ private struct ScreenshotOptions: View {
     @AppStorage(RecordingPrefs.closeAfterKey) private var closeAfterSaving = false
 
     var body: some View {
-        Picker("Screen while selecting", selection: $mode) {
+        Picker("While selecting", selection: $mode) {
             ForEach(ScreenshotMode.allCases, id: \.rawValue) { option in
                 Text(option.title).tag(option.rawValue)
             }
         }
         // O-33: hold the Screenshot shortcut or Touch Bar button to record.
         Toggle(isOn: $holdToRecord) {
-            Text("Hold Screenshot to record")
-            Text("Holding the shortcut or the Touch Bar button opens the area to record; a short press takes a screenshot.")
+            Text("Hold to record")
+            Text("Hold the Screenshot shortcut or Touch Bar button to record. A short press takes a screenshot.")
         }
         Picker("Hold for", selection: $holdSeconds) {
             ForEach(ScreenshotModule.holdChoices, id: \.self) { seconds in
@@ -431,8 +431,8 @@ private struct ScreenshotOptions: View {
         .disabled(!holdToRecord)
         // REC-49: close the window after a recording once it is saved or copied.
         Toggle(isOn: $closeAfterSaving) {
-            Text("Close the recording after saving or copying")
-            Text("The window closes once the video or GIF is saved or the video is copied.")
+            Text("Close after saving or copying")
+            Text("The recording window closes when you save a video or GIF, or copy the video.")
         }
         Picker("Default color", selection: $defaultColor) {
             ForEach(CapturePalette.colors.indices, id: \.self) { index in
@@ -450,7 +450,7 @@ private struct ScreenshotOptions: View {
         }
         Toggle(isOn: $copyFile) {
             Text("Copy also as a file")
-            Text("⌘V in a Finder folder creates the PNG file; other apps paste the image.")
+            Text("Paste in a Finder folder to get a PNG file. Other apps paste the image.")
         }
         PastableSpace(onClipboardPage: false)
         LabeledContent("Save to") {
@@ -492,7 +492,7 @@ private struct AutoCloseToggle: View {
     @AppStorage(TouchBarModule.autoCloseKey) private var autoClose = true
 
     var body: some View {
-        Toggle("Close sliders and the date automatically", isOn: $autoClose)
+        Toggle("Close sliders and the date by themselves", isOn: $autoClose)
     }
 }
 
@@ -515,7 +515,7 @@ private struct TouchBarColorOptions: View {
                 monochrome = hex
             }
         ), supportsOpacity: false)
-        Text("Holding the battery button also changes the colors, one every second.")
+        Text("Hold the battery button to switch colors: one change per second.")
             .font(.caption)
             .foregroundStyle(.secondary)
     }
@@ -552,8 +552,8 @@ private struct BlockAppleMusicNote: View {
 
     var body: some View {
         Text(MusicPlayer(id: playerID).isAppleMusic
-             ? "Paused: Apple Music is your music player."
-             : "Paused automatically while Apple Music or iTunes is your music player.")
+             ? "Off: Apple Music is your music player."
+             : "Off while Apple Music or iTunes is your music player.")
             .font(.caption)
             .foregroundStyle(.secondary)
     }
@@ -579,7 +579,7 @@ private struct JigglerKeyPicker: View {
     @AppStorage(JigglerKey.key) private var key = JigglerKey.capsLock
 
     var body: some View {
-        Picker("Key it presses", selection: $key) {
+        Picker("Also press", selection: $key) {
             ForEach(JigglerKey.allCases) { Text($0.title).tag($0) }
         }
     }

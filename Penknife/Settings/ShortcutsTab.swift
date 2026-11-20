@@ -22,7 +22,7 @@ struct ShortcutsPage: View {
                     }
                 }
             } footer: {
-                Text("Shortcuts of modules that are off are disabled. On a Mac without Touch Bar, F keys need Fn or “Use F1, F2, etc. keys as standard function keys”.")
+                Text("Shortcuts for modules that are off don't work. On a Mac without a Touch Bar, F keys need Fn, or turn on “Use F1, F2, etc. keys as standard function keys” in Keyboard settings.")
                     .foregroundStyle(.secondary)
             }
         }

@@ -658,8 +658,8 @@ struct ClipboardRulesTests {
                     "Nothing copied yet", "No results", "%lld results", "Pinned", "History", "Paste", "Copy",
                     "Pin", "Unpin", "Delete", "Clear History…", "Clear the clipboard history?",
                     "Pinned items are kept.", "Clear", "Copied", "To paste it, open Settings › Permissions", "Text",
-                    "Files", "%@, pinned", "Deleted", "History cleared", "Unpinned", "Memory for the history",
-                    "Paste after choosing an item", "Keep text formatting", "Open the history",
+                    "Files", "%@, pinned", "Deleted", "History cleared", "Unpinned", "History size",
+                    "Paste when you choose", "Keep formatting", "Where it opens",
                     "Center of the screen", "At the pointer", "In use: %@", "Image %@ at %@"]
         for key in keys {
             #expect(ScreenshotRulesTests.spanish[key]?.isEmpty == false, "no Spanish for \(key)")

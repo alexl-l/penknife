@@ -94,11 +94,11 @@ enum PrivacyPermission: CaseIterable, Identifiable {
 
     var detail: String {
         switch self {
-        case .deviceControl: String(localized: "To press keys and detect dialogs: mouse jiggler, meeting mute and Siri watch, pasting from history, music keys, Touch Bar dialogs and lock screen.")
-        case .screenRecording: String(localized: "For screenshots and screen recordings.")
-        case .microphone: String(localized: "Adds your voice to recordings, only when you turn the microphone on.")
-        case .location: String(localized: "For the weather. Approximate location only (about 11 km).")
-        case .automation: String(localized: "Controls Spotify and Music, and reads the active Safari or Chrome tab to find your meeting.")
+        case .deviceControl: String(localized: "Lets Penknife press keys and see dialogs. Used by Mouse Jiggler, Microphone, Clipboard History, Music, Touch Bar and Lock Screen.")
+        case .screenRecording: String(localized: "Used by Screenshot to capture and record the screen.")
+        case .microphone: String(localized: "Lets you add your voice to screen recordings, only if you turn the microphone on.")
+        case .location: String(localized: "Used by Weather. Only an approximate location (about 11 km) is read.")
+        case .automation: String(localized: "Controls Spotify and Music, and checks the Safari or Chrome tab in front to find your meeting.")
         }
     }
 

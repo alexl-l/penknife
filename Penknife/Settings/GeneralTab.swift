@@ -20,12 +20,12 @@ struct GeneralPage: View {
                         LaunchAtLogin.apply()
                         launchAtLogin = LaunchAtLogin.isEnabled
                     }
-                Toggle("Show status dots in the menu bar", isOn: $statusDots)
-                Picker("Menu bar readings style", selection: $readingStyle) {
+                Toggle("Show microphone and Mouse Jiggler dots", isOn: $statusDots)
+                Picker("Menu bar readings", selection: $readingStyle) {
                     ForEach(MenuBarReadings.Style.allCases) { Text($0.title).tag($0) }
                 }
             } footer: {
-                Text("The language follows the system (Spanish or English).")
+                Text("The language follows the system: Spanish or English.")
                     .foregroundStyle(.secondary)
             }
 
@@ -39,7 +39,7 @@ struct GeneralPage: View {
             } header: {
                 Text("Alerts")
             } footer: {
-                Text("VoiceOver announces them even when they are hidden.")
+                Text("VoiceOver still announces hidden alerts.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -66,7 +66,7 @@ struct PermissionsPage: View {
                     }
                 }
             } footer: {
-                Text("Each permission is asked for only the first time you use its feature.")
+                Text("macOS asks the first time you use a feature that needs it.")
                     .foregroundStyle(.secondary)
             }
         }
