@@ -1399,6 +1399,12 @@ struct ScreenshotRulesTests {
         #expect(S.commandKey(".", typing: false) == .stop)
     }
 
+    @Test("REC-48 closing the end window after a save or copy is off until turned on")
+    func closeAfterSaving() {
+        #expect(!RecordingPrefs.closeAfterSaving(in: MemoryDefaults()))
+        #expect(RecordingPrefs.closeAfterSaving(in: MemoryDefaults([RecordingPrefs.closeAfterKey: true])))
+    }
+
     @Test("REC-05 O-18 during the countdown M flips the microphone, S the Mac sound; other keys do nothing")
     func countdownKeys() {
         typealias S = RecordingSession

@@ -410,6 +410,7 @@ private struct ScreenshotOptions: View {
     @AppStorage(ScreenshotModule.copyFileKey) private var copyFile = true
     @AppStorage(ScreenshotModule.holdKey) private var holdToRecord = true
     @AppStorage(ScreenshotModule.holdSecondsKey) private var holdSeconds = 2.0
+    @AppStorage(RecordingPrefs.closeAfterKey) private var closeAfterSaving = false
 
     var body: some View {
         Picker("Screen while selecting", selection: $mode) {
@@ -428,6 +429,11 @@ private struct ScreenshotOptions: View {
             }
         }
         .disabled(!holdToRecord)
+        // REC-48: close the window after a recording once it is saved or copied.
+        Toggle(isOn: $closeAfterSaving) {
+            Text("Close the recording after saving or copying")
+            Text("The window closes once the video or GIF is saved or the video is copied.")
+        }
         Picker("Default color", selection: $defaultColor) {
             ForEach(CapturePalette.colors.indices, id: \.self) { index in
                 Label {

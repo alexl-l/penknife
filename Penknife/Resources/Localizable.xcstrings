@@ -991,6 +991,16 @@
         }
       }
     },
+    "The window closes once the video or GIF is saved or the video is copied." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La ventana se cierra en cuanto se guarda el vídeo o el GIF, o se copia el vídeo."
+          }
+        }
+      }
+    },
     "The recording hasn't been saved.": {
       "localizations": {
         "es": {

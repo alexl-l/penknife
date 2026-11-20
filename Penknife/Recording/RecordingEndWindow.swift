@@ -399,7 +399,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         model.note = note
         model.trimNote = ""
         announce(note)
-        if closeWhenDone { window.close() }
+        if closeWhenDone || RecordingPrefs.closeAfterSaving(in: .standard) { window.close() }
         resumeQuit()
     }
 
