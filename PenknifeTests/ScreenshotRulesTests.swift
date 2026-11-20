@@ -669,10 +669,12 @@ struct ScreenshotRulesTests {
 
     @Test("SS-27 tool, color and size keys: with a selection, ⇧ allowed, not with ⌃ ⌥ ⌘")
     func toolKeys() {
-        #expect(key(9, "v", [], Self.editing) == .tool(.arrow))
-        #expect(key(9, "V", [.shift], Self.editing) == .tool(.arrow))
+        // O-15: a shape's key places it; the freehand tools and Text are only chosen.
+        #expect(key(9, "v", [], Self.editing) == .placeMark(.arrow))
+        #expect(key(9, "V", [.shift], Self.editing) == .placeMark(.arrow))
         for tool in CaptureTool.allCases {
-            #expect(key(0, tool.key.lowercased(), [], Self.editing) == .tool(tool))
+            let expected: CaptureKeyAction = CaptureKeys.placeable.contains(tool) ? .placeMark(tool) : .tool(tool)
+            #expect(key(0, tool.key.lowercased(), [], Self.editing) == expected)
         }
         #expect(key(9, "v", [.option], Self.editing) == nil)
         #expect(key(9, "v", [.control], Self.editing) == nil)
@@ -1245,28 +1247,26 @@ struct ScreenshotRulesTests {
         #expect(moved.erasures.first?.points == [Self.p(100, 50)])
     }
 
-    @Test("SS-42 O-15 Space places the chosen shape; Return still copies; other tools leave Space alone")
+    @Test("SS-27 O-15 a shape's key places it; Return still copies; Space does nothing with a selection")
     func placeByKeyboard() {
-        func key(_ code: UInt16, _ c: CaptureKeyContext) -> CaptureKeyAction? {
-            CaptureKeys.action(keyCode: code, characters: code == 49 ? " " : "\r", flags: [], isRepeat: false, context: c)
+        func key(_ chars: String, code: UInt16 = 0, repeat held: Bool = false, _ c: CaptureKeyContext) -> CaptureKeyAction? {
+            CaptureKeys.action(keyCode: code, characters: chars, flags: [], isRepeat: held, context: c)
         }
         for tool in [CaptureTool.arrow, .line, .rectangle, .ellipse, .blur] {
-            let c = CaptureKeyContext(hasSelection: true, tool: tool)
-            #expect(key(49, c) == .placeMark, "\(tool)")
-            #expect(key(36, c) == .copy, "\(tool)")
-            var selected = c
-            selected.markCount = 1
-            selected.selectedMark = 0
-            #expect(key(49, selected) == .placeMark && key(36, selected) == .copy)
-            var held = c
-            held.hasSelection = true
-            #expect(CaptureKeys.action(keyCode: 49, characters: " ", flags: [], isRepeat: true, context: held) == .swallow)
+            let c = CaptureKeyContext(hasSelection: true, tool: nil)
+            #expect(key(tool.key, c) == .placeMark(tool), "\(tool)")
+            #expect(key(tool.key.lowercased(), c) == .placeMark(tool))
+            #expect(key(tool.key, repeat: true, c) == .swallow)
+            var on = c
+            on.tool = tool
+            #expect(key(tool.key, on) == .placeMark(tool), "again: another one")
         }
-        for tool in [CaptureTool?.none, .pen, .highlighter, .eraser] {
-            #expect(key(49, CaptureKeyContext(hasSelection: true, tool: tool)) == nil)
+        for tool in [CaptureTool.pen, .highlighter, .text, .eraser] {
+            #expect(key(tool.key, CaptureKeyContext(hasSelection: true)) == .tool(tool))
         }
-        #expect(key(49, CaptureKeyContext(hasSelection: false, tool: .line)) == .toggleWindowMode)
-        #expect(key(49, CaptureKeyContext(hasSelection: true, recordMode: true, tool: .line)) == nil)
+        #expect(key("\r", code: 36, CaptureKeyContext(hasSelection: true, tool: .line)) == .copy)
+        #expect(key(" ", code: 49, CaptureKeyContext(hasSelection: true, tool: .line)) == nil)
+        #expect(key("l", CaptureKeyContext(hasSelection: false)) == nil)
     }
 
     @Test("O-15 a placed mark is centered inside the selection; arrow and line point right")
@@ -1283,14 +1283,31 @@ struct ScreenshotRulesTests {
         }
     }
 
-    @Test("O-15 the caption: tool keys until a tool is chosen, then how Space places a shape")
+    @Test("SS-61 ⌘D duplicates the selected mark; the copy goes 12 pt down-right, or up-left at the edge")
+    func duplicate() {
+        var c = CaptureKeyContext(hasSelection: true, markCount: 2, selectedMark: 1)
+        #expect(CaptureKeys.action(keyCode: 2, characters: "d", flags: [.command], isRepeat: false, context: c) == .duplicateMark(1))
+        c.selectedMark = nil
+        #expect(CaptureKeys.action(keyCode: 2, characters: "d", flags: [.command], isRepeat: false, context: c) == .swallow)
+        let area = CGRect(x: 0, y: 0, width: 400, height: 300)
+        let line = Annotation(tool: .line, color: .red, size: 1, points: [CGPoint(x: 10, y: 10), CGPoint(x: 100, y: 10)])
+        #expect(MarkEditing.duplicateOffset(line, in: area) == CGVector(dx: 12, dy: 12))
+        let edge = Annotation(tool: .line, color: .red, size: 1, points: [CGPoint(x: 300, y: 295), CGPoint(x: 395, y: 295)])
+        #expect(MarkEditing.duplicateOffset(edge, in: area) == CGVector(dx: -12, dy: -12))
+        var editor = MarkEditor()
+        editor.add(line)
+        editor.duplicate(0, offset: CGVector(dx: 12, dy: 12))
+        #expect(editor.marks.count == 2 && editor.selected == 1)
+        #expect(editor.marks[1].points == [CGPoint(x: 22, y: 22), CGPoint(x: 112, y: 22)])
+        #expect(editor.undo() != nil && editor.marks.count == 1)
+    }
+
+    @Test("SS-60 O-15 the caption: shape keys whenever no mark is selected; how to change the selected one")
     func caption() {
         typealias S = CaptureEditorState
-        #expect(S.caption(tool: nil, toolChosen: false, markSelected: false, typing: false) == .keys)
-        #expect(S.caption(tool: nil, toolChosen: true, markSelected: false, typing: false) == nil)
-        #expect(S.caption(tool: .line, toolChosen: true, markSelected: true, typing: false) == .place(.line))
-        #expect(S.caption(tool: .pen, toolChosen: true, markSelected: false, typing: false) == nil)
-        #expect(S.caption(tool: .text, toolChosen: true, markSelected: false, typing: true) == nil)
+        #expect(S.caption(selected: nil, typing: false) == .keys)
+        #expect(S.caption(selected: .line, typing: false) == .edit(.line))
+        #expect(S.caption(selected: nil, typing: true) == nil)
     }
 
     @Test("REC-05 O-18 during the countdown M flips the microphone, S the Mac sound; other keys do nothing")

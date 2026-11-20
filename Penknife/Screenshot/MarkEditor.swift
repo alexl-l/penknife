@@ -68,6 +68,17 @@ struct MarkEditor {
         return mark
     }
 
+    /// A copy of the mark moved by `offset`, added on top and selected (one undo step "Duplicate").
+    mutating func duplicate(_ index: Int, offset: CGVector) {
+        guard marks.indices.contains(index) else { return }
+        let before = marks
+        var copy = marks[index]
+        copy.move(by: offset)
+        marks.append(copy)
+        selected = marks.count - 1
+        commit(before, label: String(localized: "Duplicate"))
+    }
+
     /// Double-click on a bent line's middle handle: straight again (one undo step).
     mutating func straighten(at index: Int) {
         guard marks.indices.contains(index) else { return }

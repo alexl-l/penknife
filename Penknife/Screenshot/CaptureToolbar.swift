@@ -21,16 +21,15 @@ final class CaptureEditorState {
     var caption: Caption?
 
     enum Caption: Equatable {
-        /// The tool keys, until a tool is chosen.
+        /// The shape keys, whenever no mark is selected.
         case keys
-        /// How Space places this shape.
-        case place(CaptureTool)
+        /// How to move and change the selected mark.
+        case edit(CaptureTool)
     }
 
-    static func caption(tool: CaptureTool?, toolChosen: Bool, markSelected: Bool, typing: Bool) -> Caption? {
+    static func caption(selected: CaptureTool?, typing: Bool) -> Caption? {
         if typing { return nil }
-        if let tool { return CaptureKeys.placeable.contains(tool) ? .place(tool) : nil }
-        return toolChosen || markSelected ? nil : .keys
+        return selected.map { .edit($0) } ?? .keys
     }
 
     typealias Expansion = StyleRow
@@ -288,10 +287,11 @@ struct ToolbarCaption: View {
             ForEach([CaptureTool.arrow, .line, .rectangle, .ellipse, .text, .blur], id: \.self) { tool in
                 item(tool.key, tool.title)
             }
-        case .place(let tool):
-            item(String(localized: "Space"), String(localized: "Place \(tool.title.lowercased())"))
+        case .edit(let tool):
             item("← →", String(localized: "Move"))
-            item("⌥", tool == .arrow || tool == .line ? String(localized: "Tip") : String(localized: "Size"))
+            if tool != .text { item("⌥", tool == .arrow || tool == .line ? String(localized: "Tip") : String(localized: "Size")) }
+            item("⌘D", String(localized: "Duplicate"))
+            item("esc", String(localized: "Done"))
         }
     }
 

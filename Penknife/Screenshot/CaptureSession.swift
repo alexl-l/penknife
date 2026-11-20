@@ -433,7 +433,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         }
         if let index = selectedMark, annotations.indices.contains(index) {
             let mark = annotations[index]
-            if MarkEditing.isOnClose(point, of: mark, within: bounds) { NSCursor.pointingHand.set(); return }
+            if MarkEditing.isOnClose(point, of: mark, within: bounds)
+                || MarkEditing.isOnDuplicate(point, of: mark, within: bounds) { NSCursor.pointingHand.set(); return }
             if let handle = MarkEditing.handle(at: point, of: mark) {
                 MarkEditing.cursor(forHandle: handle, of: mark).set()
                 return
@@ -520,6 +521,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 removeMark(index)
                 return true
             }
+            if MarkEditing.isOnDuplicate(point, of: mark, within: bounds) {
+                duplicateMark(index)
+                return true
+            }
             if let handle = MarkEditing.handle(at: point, of: mark) {
                 if clicks == 2, mark.bends, handle == 2, mark.bend != nil {
                     // Double-click the bend handle: straight again.
@@ -578,10 +583,14 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         announce(String(localized: "Selected: \(mark.tool.title). Delete removes it, arrows move it, Tab selects the next one."))
     }
 
-    /// Space with a shape tool (O-15): the mark goes in the middle of the selection, selected,
-    /// so the arrows move it and ⌥ arrows change its tip or size (SS-38).
-    private func placeMark() {
-        guard let selection, let tool = state.tool, CaptureKeys.placeable.contains(tool) else { return }
+    /// A shape's key (O-15): that tool goes on (a drag then draws it too) and its mark goes in
+    /// the middle of the selection, selected, so the arrows move it and ⌥ arrows change its tip
+    /// or size (SS-38).
+    private func placeMark(_ tool: CaptureTool) {
+        guard let selection, CaptureKeys.placeable.contains(tool) else { return }
+        endText()
+        closeChoices()
+        state.tool = tool
         let ends = CaptureGeometry.placedMark(tool, in: selection)
         var mark = Annotation(tool: tool, color: state.color, size: state.sizeIndex, points: [ends.start, ends.end])
         if tool == .blur {
@@ -597,18 +606,33 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             : String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows change its size."))
     }
 
-    /// The line under the toolbar (O-15): the tool keys until a tool is chosen, then how Return
-    /// Space places the chosen shape; nothing while a mark is selected or a text is typed.
+    /// The line under the toolbar (O-15, SS-60): the shape keys whenever no mark is selected; how
+    /// to move and change the selected mark; nothing while a text is typed.
     private func updateCaption() {
-        let caption = CaptureEditorState.caption(tool: state.tool, toolChosen: toolChosen,
-                                                 markSelected: selectedMark != nil, typing: textView != nil)
+        let selected = selectedMark.flatMap { annotations.indices.contains($0) ? annotations[$0].tool : nil }
+        let caption = CaptureEditorState.caption(selected: selected, typing: textView != nil)
         guard caption != state.caption else { return }
         state.caption = caption
         relayoutToolbar()
     }
 
-    /// A tool was chosen in this overlay: the keys line has done its job.
-    private var toolChosen = false
+    /// A copy of the mark next to it (12 pt down and right, inside the selection), selected, so
+    /// the arrows place it (user, 2026-11-19: "duplicar elementos … con un botón y un sc").
+    private func duplicateMark(_ index: Int) {
+        guard annotations.indices.contains(index) else { return }
+        redrawMark(index)
+        let offset = MarkEditing.duplicateOffset(annotations[index], in: selection ?? bounds)
+        editor.duplicate(index, offset: offset)
+        let copy = annotations.count - 1
+        if annotations[copy].tool == .blur {
+            prepareBlur()
+            let image = blurredPart(annotations[copy].rect)
+            editor.change(copy) { $0.image = image }
+        }
+        updateUndoState()
+        redrawMark(copy)
+        announce(String(localized: "Duplicated: \(annotations[copy].tool.title)"))
+    }
 
     private func removeMark(_ index: Int) {
         guard annotations.indices.contains(index) else { return }
@@ -922,8 +946,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             let view = NSHostingView(rootView: CaptureToolbar(state: state) { [weak self] in self?.run($0) })
             addSubview(view)
             toolbar = view
-            state.caption = CaptureEditorState.caption(tool: state.tool, toolChosen: toolChosen,
-                                                       markSelected: selectedMark != nil, typing: textView != nil)
+            state.caption = CaptureEditorState.caption(selected: nil, typing: textView != nil)
         }
         layoutToolbar()
     }
@@ -988,7 +1011,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             announce(String(localized: "No tool: drag to move the selection"))
         case .tool(let tool):
             state.tool = state.tool == tool ? nil : tool
-            toolChosen = true
             selectMark(nil)
             updateCaption()
             updateHoveredMark(mouseLocation)
@@ -1044,6 +1066,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .selectMark(let index): selectMark(index)
         case .deselectMark: selectMark(nil)
         case .removeMark(let index): removeMark(index)
+        case .duplicateMark(let index): duplicateMark(index)
         case .nudgeMark(let index, let delta, let grow): nudgeMark(index, by: delta, grow: grow)
         case .cancel: session?.cancel()
         case .toggleWindowMode:
@@ -1060,7 +1083,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .startRecording: startRecording()
         case .beginText:
             if let selection { beginText(at: CGPoint(x: selection.minX + 12, y: selection.minY + 12)) }
-        case .placeMark: placeMark()
+        case .placeMark(let tool): placeMark(tool)
         case .copy: copyImage()
         case .save: saveImage()
         case .undo: undo()
@@ -1293,6 +1316,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private func updateUndoState() {
         state.canUndo = editor.canUndo
         state.canRedo = editor.canRedo
+        updateCaption()
     }
 
     // MARK: Output

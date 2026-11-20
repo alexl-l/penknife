@@ -871,16 +871,6 @@
         }
       }
     },
-    "Place %@": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Colocar %@"
-          }
-        }
-      }
-    },
     "Play": {
       "localizations": {
         "es": {
@@ -3481,16 +3471,6 @@
         }
       }
     },
-    "Space": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Espacio"
-          }
-        }
-      }
-    },
     "Space for images to paste as files": {
       "localizations": {
         "es": {
@@ -4299,6 +4279,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "Controla Spotify y Música, y lee la pestaña activa de Safari o Chrome para encontrar tu reunión."
+          }
+        }
+      }
+    },
+    "Duplicate": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicar"
+          }
+        }
+      }
+    },
+    "Duplicated: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Duplicado: %@"
           }
         }
       }

@@ -24,6 +24,8 @@ enum CaptureKeyAction: Equatable {
     case selectMark(Int)
     case deselectMark
     case removeMark(Int)
+    /// ⌘D or the ⧉ button: a copy of the selected mark, selected.
+    case duplicateMark(Int)
     case nudgeMark(Int, CGVector, grow: Bool)
     case cancel
     case toggleWindowMode
@@ -31,8 +33,9 @@ enum CaptureKeyAction: Equatable {
     case choose
     case startRecording
     case beginText
-    /// Space with a shape tool: a mark in the middle of the selection, selected (O-15).
-    case placeMark
+    /// A shape's key (V L R O B): that tool, and its mark in the middle of the selection,
+    /// selected (O-15; user: "solo con oprimir L, debería poner la línea").
+    case placeMark(CaptureTool)
     case copy
     case save
     case undo
@@ -63,9 +66,6 @@ enum CaptureKeys {
             return .cancel
         case 49 where !c.hasSelection:                          // Space: window ⇄ area
             return c.capturing ? .swallow : .toggleWindowMode
-        case 49 where !c.recordMode && !c.typing && !command:   // Space: place the shape (O-15)
-            guard let tool = c.tool, CaptureKeys.placeable.contains(tool) else { return nil }
-            return .placeMark
         case 36, 76:                                            // Return
             if c.recordMode { return c.hasSelection ? .startRecording : .choose }
             if !c.hasSelection { return .choose }
@@ -91,13 +91,17 @@ enum CaptureKeys {
             case "z": return flags.contains(.shift) ? .redo : .undo
             case "c": return .copy
             case "s": return .save
+            case "d": return c.selectedMark.map { .duplicateMark($0) } ?? .swallow
             // No other ⌘ key leaves the editor: ⌘, would open Settings under the overlay and
             // take the keyboard, ⌘Q would quit and lose the screenshot (B-9).
             default: return .swallow
             }
         }
         guard c.hasSelection, flags.isDisjoint(with: [.control, .option]) else { return nil }
-        if let tool = CaptureTool.allCases.first(where: { $0.key.lowercased() == key }) { return .tool(tool) }
+        if let tool = CaptureTool.allCases.first(where: { $0.key.lowercased() == key }) {
+            guard placeable.contains(tool) else { return .tool(tool) }
+            return isRepeat ? .swallow : .placeMark(tool)   // a held key places one mark
+        }
         if let digit = Int(key), (1...CapturePalette.colors.count).contains(digit) { return .color(digit - 1) }
         if key == "-" { return .size(max(c.sizeIndex - 1, 0)) }
         if key == "+" || key == "=" { return .size(min(c.sizeIndex + 1, CaptureSize.count - 1)) }

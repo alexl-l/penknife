@@ -254,6 +254,25 @@ enum MarkEditing {
         return center
     }
 
+    /// The duplicate button: just left of the ✕, on the same row.
+    static func duplicateCenter(_ mark: Annotation, within bounds: CGRect) -> CGPoint {
+        let close = closeCenter(mark, within: bounds)
+        return CGPoint(x: close.x - 20, y: close.y)
+    }
+
+    static func isOnDuplicate(_ point: CGPoint, of mark: Annotation, within bounds: CGRect) -> Bool {
+        let center = duplicateCenter(mark, within: bounds)
+        return hypot(point.x - center.x, point.y - center.y) <= 9
+    }
+
+    /// Where a copy goes: 12 pt down and right, or up and left when that leaves `area`.
+    static func duplicateOffset(_ mark: Annotation, in area: CGRect) -> CGVector {
+        let r = frame(mark)
+        let dx: CGFloat = r.maxX + 12 > area.maxX ? -12 : 12
+        let dy: CGFloat = r.maxY + 12 > area.maxY ? -12 : 12
+        return CGVector(dx: dx, dy: dy)
+    }
+
     static func isOnClose(_ point: CGPoint, of mark: Annotation, within bounds: CGRect) -> Bool {
         let center = closeCenter(mark, within: bounds)
         return hypot(point.x - center.x, point.y - center.y) <= 10
@@ -329,6 +348,17 @@ enum MarkEditing {
                 center.stroke()
             }
         }
+        let copyAt = duplicateCenter(mark, within: bounds)
+        NSGraphicsContext.saveGraphicsState()
+        shadow.set()
+        NSColor.white.setFill()
+        NSBezierPath(ovalIn: CGRect(x: copyAt.x - 8, y: copyAt.y - 8, width: 16, height: 16)).fill()
+        NSGraphicsContext.restoreGraphicsState()
+        if let copy = duplicateImage {
+            let size = copy.size
+            copy.draw(in: CGRect(x: copyAt.x - size.width / 2, y: copyAt.y - size.height / 2, width: size.width, height: size.height),
+                      from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+        }
         let center = closeCenter(mark, within: bounds)
         NSGraphicsContext.saveGraphicsState()
         shadow.set()
@@ -341,6 +371,10 @@ enum MarkEditing {
                        from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
         }
     }
+
+    private static let duplicateImage: NSImage? = NSImage(systemSymbolName: "plus.square.on.square", accessibilityDescription: nil)?
+        .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 9, weight: .semibold)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [.darkGray])))
 
     private static let closeImage: NSImage? = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: nil)?
         .withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
