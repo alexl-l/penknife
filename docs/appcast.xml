@@ -3,6 +3,20 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.14</title>
+            <pubDate>Fri, 20 Nov 2026 07:43:36 -0500</pubDate>
+            <sparkle:version>270</sparkle:version>
+            <sparkle:shortVersionString>1.14</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Play opens Apple Music.** With "Any app (media keys)" as the player and nothing playing, Play from the Touch Bar, a shortcut or the menu opens Apple Music, and Block Apple Music no longer closes it. Headphone clicks are still blocked.</li>
+<li>**Apple Music is the default player.** New users who haven't picked a player start with Apple Music, not Spotify. Your existing choice is never changed.</li>
+<li>**Settings title.** The window title shows the current page from the moment it opens, instead of "Penknife Settings".</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.14/Penknife-1.14.zip" length="6688664" type="application/octet-stream" sparkle:edSignature="h+dIYhldkdG2NEfl66cw13wO4zZQQdd2tnNpzVKo1S19uEmW+r8j1axX0Gku0tPfwS598vihriQVbF9FLV3tAQ=="/>
+        </item>
+        <item>
             <title>1.13</title>
             <pubDate>Fri, 20 Nov 2026 00:53:07 -0500</pubDate>
             <sparkle:version>266</sparkle:version>
@@ -40,23 +54,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.12/Penknife-1.12.zip" length="6480770" type="application/octet-stream" sparkle:edSignature="NLUS6LxsyXtmUwX8+0fVh4j2qzcA2wMIjNLmqGwtxQWXVLsOfhQ9yyWitPZCILCLOgb544A+aD65gNLtdovdDQ=="/>
-        </item>
-        <item>
-            <title>1.11</title>
-            <pubDate>Wed, 18 Nov 2026 18:01:43 -0500</pubDate>
-            <sparkle:version>135</sparkle:version>
-            <sparkle:shortVersionString>1.11</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Unmute works on volume-only microphones.** On inputs the Mac can only mute by volume, a press during a call could leave the mic muted after the next unmute. Now unmute works, and an input already in the state you asked for is left alone, with its volume kept.</li>
-<li>**Touch Bar customizing in real time.** The Touch Bar now stays visible while Customize Touch Bar is open and follows each change as you make it. The preview matches the bar exactly, including the time when the bar falls back to it. Other apps' dialogs still make the bar step aside.</li>
-<li>**Lighter Touch Bar.** Buttons you removed from the bar now cost nothing. The speed test, battery, microphone, brightness, keyboard, volume and playback buttons only run while they are on the bar, which saves CPU and battery.</li>
-<li>**Native Dialogs stays quiet.** On a Mac without a Touch Bar, or with the Touch Bar module off, it no longer watches apps in the background.</li>
-<li>**Clean restart of the Touch Bar.** Turning the Touch Bar module off and on again no longer leaves the bar hidden or the speed test showing a frozen needle or an old result.</li>
-<li>**Clear settings without a Touch Bar.** On a Mac without a Touch Bar, the Touch Bar and Native Dialogs modules now show as Unavailable, with a short note. Your saved settings are kept and come back on a Mac with a Touch Bar.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.11/Penknife-1.11.zip" length="6081296" type="application/octet-stream" sparkle:edSignature="+UevYeyliKkKShX/0ISgG6GHWTt9HlPyskCl+6VFgkTxhiGbhQBM7o5cPpCrnKtp8bOcpsqY5m3m9UgeArxeBg=="/>
         </item>
     </channel>
 </rss>
