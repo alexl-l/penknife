@@ -118,22 +118,29 @@ enum SettingsPage: Hashable {
     }
 }
 
-/// A System Settings style icon: white symbol on a color.
+/// Tinted glass icon (variant C, chosen 2026-11-19): a translucent tile with a touch of its
+/// color and a thin rim of it, the symbol in its color (a bit lighter in dark mode). Off: a
+/// gray tile and a faint symbol.
 private struct SettingsTile: View {
     let symbol: String
     let tint: Color
+    var on = true
     var size: CGFloat = 18
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
-        RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
-            .fill(tint.gradient)
-            .frame(width: size, height: size)
-            .overlay {
-                Image(systemName: symbol)
-                    .font(.system(size: size * 0.55, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
-            .accessibilityHidden(true)
+        let shape = RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+        ZStack {
+            shape.fill(.ultraThinMaterial)
+            shape.fill(on ? tint.opacity(0.16) : Color.gray.opacity(0.10))
+            shape.strokeBorder(on ? tint.opacity(0.35) : Color.gray.opacity(0.25), lineWidth: size > 20 ? 0.75 : 0.5)
+            Image(systemName: symbol)
+                .font(.system(size: size * 0.6, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(on ? AnyShapeStyle(scheme == .dark ? tint.mix(with: .white, by: 0.25) : tint) : AnyShapeStyle(.tertiary))
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }
 
@@ -144,7 +151,7 @@ private struct ModuleTile: View {
     var size: CGFloat = 18
 
     var body: some View {
-        SettingsTile(symbol: id.symbol, tint: enabled ? id.tint : Color.gray.opacity(0.55), size: size)
+        SettingsTile(symbol: id.symbol, tint: id.tint, on: enabled, size: size)
     }
 }
 
