@@ -131,6 +131,17 @@ Safari needs nothing. If the button can't be read, Penknife still sends the meet
 </details>
 
 <details>
+<summary><b>My shortcut unmutes but doesn't mute (or does nothing in the meeting)</b></summary>
+
+Penknife mutes a meeting by pressing the keys set for that app in Settings → Microphone. If the app uses different keys, nothing happens in the call. This is common after changing the shortcut inside Teams, Zoom or Slack.
+
+1. Open the meeting app's settings and look up its mute shortcut (in Teams: Settings → General → Keyboard shortcuts).
+2. In Penknife, open Settings → Microphone, find the app and record the same keys.
+3. Join a call and press your Penknife shortcut. The call's mute button should change.
+
+</details>
+
+<details>
 <summary><b>"Hey Siri" opens my microphone when the Mac plays a sound</b></summary>
 
 With "Hey Siri" on, macOS can open the microphone for a few seconds when the Mac plays a sound, even if you are muted. Penknife's "Keep the microphone muted" (Settings → Microphone, on by default) mutes it again within a moment. If you call Siri yourself, it still hears you. If you'd rather Siri didn't listen while you're muted, you can change "Listen for" in Siri settings.

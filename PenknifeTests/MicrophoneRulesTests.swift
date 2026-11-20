@@ -235,7 +235,7 @@ struct MicrophoneRulesTests {
         }
     }
 
-    // MIC-28 / MIC-35: "Also mute the Mac" on → read the call, then send; off → send only.
+    // MIC-28 / MIC-35: "Mute the Mac's microphone too" on → read the call, then send; off → send only.
     // MIC-53: the consent flow only for Teams DESKTOP with its option on.
     @Test("MIC-28 MIC-35 MIC-53 how a meeting is pressed", arguments: meetings)
     func howAMeetingIsPressed(meeting: (platform: MeetingPlatform, isBrowser: Bool)) {
@@ -262,7 +262,7 @@ struct MicrophoneRulesTests {
         #expect(Mic.afterSend(alsoMac: true, appMuted: appMuted, macMuted: macMuted) == .setMac(muted: newMuted))
     }
 
-    // MIC-35: "Also mute the Mac" off → the Mac is never written, also in the Teams consent flow.
+    // MIC-35: "Mute the Mac's microphone too" off → the Mac is never written, also in the Teams consent flow.
     @Test("MIC-35 setting off leaves the Mac alone", arguments: [true as Bool?, false, nil], [false, true])
     func settingOffLeavesTheMac(appMuted: Bool?, macMuted: Bool) {
         #expect(Mic.afterSend(alsoMac: false, appMuted: appMuted, macMuted: macMuted) == .showToggled)

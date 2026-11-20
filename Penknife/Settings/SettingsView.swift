@@ -610,29 +610,30 @@ private struct MeetingOptions: View {
                         set: { enabled[platform] = $0; platform.isEnabled = $0 }
                     ))
                     .labelsHidden()
+                    .accessibilityLabel(Text("\(platform.name), mute shortcut"))
                 }
             }
-            Button("Restore Defaults") {
+            Button("Restore Default Shortcuts") {
                 KeyboardShortcuts.reset(MeetingPlatform.allCases.map(\.shortcut))
             }
         } header: {
-            Text("Meetings")
+            Text("Meeting apps")
         } footer: {
-            Text("Shortcut = the keys Penknife sends to each app to mute. Match them to the app's own setting.")
+            Text("Penknife presses these keys in each app to mute it, so they must match the app's own. If you changed them there, change them here too. In Teams: Settings › General › Keyboard shortcuts.")
         }
         Section {
-            Toggle("Also mute the Mac's microphone", isOn: $alsoMuteMac)
+            Toggle("Mute the Mac's microphone too", isOn: $alsoMuteMac)
         } footer: {
-            Text("Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.")
+            Text("When you press the shortcut, the meeting and the Mac's microphone are muted together. Turn off to mute only the meeting. With no meeting, the Mac's microphone is muted.")
         }
         // R-34 (designer + growth review, 2026-11-17): on by default; the Siri note only when
         // "Hey Siri" is on, stating the fact, with a way to change it.
         Section {
             Toggle("Keep the microphone muted", isOn: $keepMuted)
-                .accessibilityHint(Text("Mutes again if another app unmutes the Mac's microphone."))
+                .accessibilityHint(Text("Mutes it again if the Mac opens the microphone on its own."))
             if keepMuted && MicrophoneModule.heySiriOn {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("“Hey Siri” is on: it opens the microphone when the Mac plays a sound, and Penknife mutes it again. When you call Siri, it still hears you.")
+                    Text("With “Hey Siri” on, macOS opens the microphone when the Mac plays a sound. Penknife mutes it again, but Siri still hears you when you call it.")
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     Spacer()
@@ -645,32 +646,32 @@ private struct MeetingOptions: View {
                 }
             }
         } footer: {
-            Text("If another app unmutes the Mac's microphone while you are muted, Penknife mutes it again.")
+            Text("If the Mac opens the microphone on its own (for example, “Hey Siri” when a sound plays), Penknife mutes it again.")
         }
         // R-31: opt-in, confirmed once (legal-advisor, 2026-11-17); no Teams text is quoted or matched.
         Section {
-            Toggle("Remember my choice for Teams' unmute dialog", isOn: Binding(
+            Toggle("Accept Teams' consent notice", isOn: Binding(
                 get: { teamsConsent },
                 set: { on in if on { confirmTeamsConsent = true } else { teamsConsent = false } }
             ))
             .disabled(enabled[.teams] == false)
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("When you unmute with the shortcut and Teams asks for your consent, Penknife accepts it for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.")
+                Text("If Teams asks for your consent when you unmute with the shortcut, Penknife presses the main button for you. You stay responsible for consent; check your employer's policy. Not affiliated with Microsoft.")
                 if enabled[.teams] == false {
                     Text("Requires Microsoft Teams in the list above.")
                 }
             }
         }
-        .alert("Answer Teams' unmute dialog for you?", isPresented: $confirmTeamsConsent) {
+        .alert("Accept Teams' consent notice for you?", isPresented: $confirmTeamsConsent) {
             Button("Turn On") { teamsConsent = true }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("In meetings that ask for consent, Teams shows a dialog when you unmute. If you turn this on, Penknife accepts it for you, only when you unmute with Penknife's shortcut. You remain responsible for consent. Check your employer's policy.")
+            Text("In meetings that ask for consent, Teams shows a notice when you unmute. If you turn this on, Penknife presses its main button for you, only when you unmute with Penknife's shortcut. You stay responsible for consent; check your employer's policy.")
         }
-        Section("Current meeting") {
-            Label("The meeting in front, or the last one you used.", systemImage: "scope")
-            Label("Browser meetings count only when they are the active tab.", systemImage: "safari")
+        Section("Which meeting is muted?") {
+            Label("The meeting you're talking in: the one in front or, if not, the last one you used.", systemImage: "scope")
+            Label("In a browser, only the tab you're viewing counts.", systemImage: "safari")
         }
     }
 }

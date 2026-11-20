@@ -254,11 +254,11 @@ final class MicrophoneModule: Module {
     }
 
     enum MeetingPress: Equatable {
-        /// Teams desktop with "Remember my choice for Teams' unmute dialog" on (MIC-53).
+        /// Teams desktop with "Accept Teams' consent notice" on (MIC-53).
         case teamsConsent
         /// Read the call's mic button, send the shortcut, the Mac follows the call (MIC-28).
         case readAndSend
-        /// "Also mute the Mac's microphone" off: the shortcut alone (MIC-35).
+        /// "Mute the Mac's microphone too" off: the shortcut alone (MIC-35).
         case sendOnly
     }
 

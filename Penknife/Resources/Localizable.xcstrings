@@ -71,6 +71,16 @@
         }
       }
     },
+    "%@, mute shortcut": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, atajo para silenciar"
+          }
+        }
+      }
+    },
     "%@, pinned": {
       "localizations": {
         "es": {
@@ -181,6 +191,26 @@
         }
       }
     },
+    "Accept Teams' consent notice": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aceptar el aviso de consentimiento de Teams"
+          }
+        }
+      }
+    },
+    "Accept Teams' consent notice for you?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Aceptar por ti el aviso de consentimiento de Teams?"
+          }
+        }
+      }
+    },
     "Accessibility": {
       "localizations": {
         "es": {
@@ -257,16 +287,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "También guarda las imágenes que pegas en Finder desde el historial. Cuando se llena, se borran las más antiguas; una imagen que no cabe se copia solo como imagen. En uso: %@"
-          }
-        }
-      }
-    },
-    "Also mute the Mac's microphone": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Silenciar también el micrófono del Mac"
           }
         }
       }
@@ -417,16 +437,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Brillo %@"
-          }
-        }
-      }
-    },
-    "Browser meetings count only when they are the active tab.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Las reuniones en el navegador solo cuentan si son la pestaña activa."
           }
         }
       }
@@ -701,16 +711,6 @@
         }
       }
     },
-    "Current meeting": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reunión actual"
-          }
-        }
-      }
-    },
     "Discard": {
       "localizations": {
         "es": {
@@ -751,6 +751,46 @@
         }
       }
     },
+    "If Teams asks for your consent when you unmute with the shortcut, Penknife presses the main button for you. You stay responsible for consent; check your employer's policy. Not affiliated with Microsoft.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si Teams te pide consentimiento al quitar el silencio con el atajo, Penknife pulsa el botón principal por ti. Tú sigues siendo responsable: consulta la política de tu empresa. Penknife no está afiliado a Microsoft."
+          }
+        }
+      }
+    },
+    "If the Mac opens the microphone on its own (for example, “Hey Siri” when a sound plays), Penknife mutes it again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Si el Mac abre el micrófono por sí solo (por ejemplo, «Oye Siri» al sonar un aviso), Penknife lo silencia de nuevo."
+          }
+        }
+      }
+    },
+    "In a browser, only the tab you're viewing counts.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En el navegador, solo cuenta la pestaña que tienes abierta."
+          }
+        }
+      }
+    },
+    "In meetings that ask for consent, Teams shows a notice when you unmute. If you turn this on, Penknife presses its main button for you, only when you unmute with Penknife's shortcut. You stay responsible for consent; check your employer's policy.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En las reuniones que piden consentimiento, Teams muestra un aviso al quitar el silencio. Si lo activas, Penknife pulsa su botón principal por ti, solo cuando uses el atajo de Penknife. Tú sigues siendo responsable del consentimiento: consulta la política de tu empresa."
+          }
+        }
+      }
+    },
     "Keep the microphone muted": {
       "localizations": {
         "es": {
@@ -761,12 +801,32 @@
         }
       }
     },
-    "Mutes again if another app unmutes the Mac's microphone.": {
+    "Meeting apps": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vuelve a silenciar si otra app quita el silencio del micrófono del Mac."
+            "value": "Apps de reunión"
+          }
+        }
+      }
+    },
+    "Mute the Mac's microphone too": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silenciar también el micrófono del Mac"
+          }
+        }
+      }
+    },
+    "Mutes it again if the Mac opens the microphone on its own.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo silencia de nuevo si el Mac abre el micrófono por sí solo."
           }
         }
       }
@@ -791,6 +851,36 @@
         }
       }
     },
+    "Penknife presses these keys in each app to mute it, so they must match the app's own. If you changed them there, change them here too. In Teams: Settings › General › Keyboard shortcuts.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Penknife pulsa estas teclas en la app para silenciarla, así que deben ser las mismas que usa la app. Si las cambiaste allí, cámbialas aquí. En Teams: Configuración › General › Métodos abreviados de teclado."
+          }
+        }
+      }
+    },
+    "Restore Default Shortcuts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restaurar atajos originales"
+          }
+        }
+      }
+    },
+    "The meeting you're talking in: the one in front or, if not, the last one you used.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La reunión en la que estás hablando: la que tengas delante o, si no, la última que usaste."
+          }
+        }
+      }
+    },
     "This Mac has no Touch Bar.": {
       "localizations": {
         "es": {
@@ -811,32 +901,12 @@
         }
       }
     },
-    "“Hey Siri” is on: it opens the microphone when the Mac plays a sound, and Penknife mutes it again. When you call Siri, it still hears you.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "«Oye Siri» está activado: abre el micrófono cuando el Mac reproduce un sonido, y Penknife lo vuelve a silenciar. Cuando llamas a Siri, te sigue oyendo."
-          }
-        }
-      }
-    },
     "Open Siri Settings…": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abrir ajustes de Siri…"
-          }
-        }
-      }
-    },
-    "If another app unmutes the Mac's microphone while you are muted, Penknife mutes it again.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Si otra app quita el silencio del micrófono del Mac mientras estás en silencio, Penknife lo vuelve a silenciar."
+            "value": "Abrir Ajustes de Siri…"
           }
         }
       }
@@ -1981,16 +2051,6 @@
         }
       }
     },
-    "Meetings": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reuniones"
-          }
-        }
-      }
-    },
     "Memory for the history": {
       "localizations": {
         "es": {
@@ -2227,16 +2287,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "No se pudo abrir ningún micrófono"
-          }
-        }
-      }
-    },
-    "Off: only the current meeting is muted. If no meeting is found, the Mac's microphone is muted.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desactivado: solo se silencia la reunión actual. Si no hay ninguna reunión, se silencia el micrófono del Mac."
           }
         }
       }
@@ -2871,16 +2921,6 @@
         }
       }
     },
-    "Shortcut = the keys Penknife sends to each app to mute. Match them to the app's own setting.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Atajo = las teclas que Penknife envía a cada app para silenciar. Deben coincidir con las de la propia app."
-          }
-        }
-      }
-    },
     "Stop": {
       "localizations": {
         "es": {
@@ -2907,16 +2947,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "El GIF no lleva sonido."
-          }
-        }
-      }
-    },
-    "The meeting in front, or the last one you used.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La reunión que está delante, o la última que usaste."
           }
         }
       }
@@ -2957,6 +2987,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "Vídeo copiado. Pégalo en un mensaje o en una carpeta del Finder."
+          }
+        }
+      }
+    },
+    "When you press the shortcut, the meeting and the Mac's microphone are muted together. Turn off to mute only the meeting. With no meeting, the Mac's microphone is muted.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al pulsar el atajo, se silencia la reunión y también el micrófono del Mac. Si lo desactivas, solo la reunión. Sin reunión, siempre se silencia el Mac."
+          }
+        }
+      }
+    },
+    "Which meeting is muted?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Qué reunión se silencia?"
+          }
+        }
+      }
+    },
+    "With “Hey Siri” on, macOS opens the microphone when the Mac plays a sound. Penknife mutes it again, but Siri still hears you when you call it.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con «Oye Siri» activado, macOS abre el micrófono cuando suena algo en el Mac. Penknife lo silencia de nuevo, pero Siri te oye cuando la llamas."
           }
         }
       }
@@ -4123,32 +4183,12 @@
         }
       }
     },
-    "Remember my choice for Teams' unmute dialog": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recordar mi elección en el diálogo de Teams al activar el micro"
-          }
-        }
-      }
-    },
     "Requires Microsoft Teams in the list above.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Requiere Microsoft Teams activado en la lista de arriba."
-          }
-        }
-      }
-    },
-    "Answer Teams' unmute dialog for you?": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¿Responder por ti al diálogo de Teams?"
           }
         }
       }
@@ -4163,32 +4203,12 @@
         }
       }
     },
-    "When you unmute with the shortcut and Teams asks for your consent, Penknife accepts it for you. You remain responsible for consent. Check your employer's policy. Not affiliated with Microsoft.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Al activar el micro con el atajo, si Teams te pide consentimiento, Penknife lo acepta por ti. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa. Sin afiliación con Microsoft."
-          }
-        }
-      }
-    },
     "Images you paste into Finder from the history are kept here; screenshots copied as files share this space. When it fills up, the oldest are deleted; an image bigger than this space is copied only as an image. In use: %@": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
             "value": "Aquí se guardan las imágenes que pegas en Finder desde el historial; las capturas copiadas como archivo comparten este espacio. Cuando se llena, se borran las más antiguas; una imagen que no cabe se copia solo como imagen. En uso: %@"
-          }
-        }
-      }
-    },
-    "In meetings that ask for consent, Teams shows a dialog when you unmute. If you turn this on, Penknife accepts it for you, only when you unmute with Penknife's shortcut. You remain responsible for consent. Check your employer's policy.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En las reuniones que piden consentimiento, Teams muestra un aviso al activar el micro. Si lo activas, Penknife lo acepta por ti, solo cuando activas el micro con el atajo de Penknife. Sigues siendo responsable del consentimiento. Consulta la política de tu empresa."
           }
         }
       }

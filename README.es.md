@@ -131,6 +131,17 @@ Safari no necesita nada. Si no se puede leer el botón, Penknife envía igualmen
 </details>
 
 <details>
+<summary><b>Mi atajo quita el silencio, pero no silencia (o no hace nada en la reunión)</b></summary>
+
+Penknife silencia la reunión pulsando las teclas que tiene esa app en Ajustes → Micrófono. Si la app usa otras teclas, en la llamada no pasa nada. Suele ocurrir tras cambiar el atajo dentro de Teams, Zoom o Slack.
+
+1. Abre los ajustes de la app de reuniones y busca su atajo para silenciar (en Teams: Configuración → General → Métodos abreviados de teclado).
+2. En Penknife, abre Ajustes → Micrófono, busca la app y graba las mismas teclas.
+3. Entra en una llamada y pulsa tu atajo de Penknife. El botón de silencio de la llamada debe cambiar.
+
+</details>
+
+<details>
 <summary><b>"Oye Siri" abre mi micrófono cuando el Mac reproduce un sonido</b></summary>
 
 Con "Oye Siri" activado, macOS puede abrir el micrófono unos segundos cuando el Mac reproduce un sonido, aunque estés silenciado. "Mantener el micrófono silenciado" (Ajustes → Micrófono, activado por defecto) lo vuelve a silenciar en un momento. Si llamas tú a Siri, te sigue oyendo. Si prefieres que Siri no escuche mientras estás silenciado, puedes cambiar "Al oír" en los ajustes de Siri.
