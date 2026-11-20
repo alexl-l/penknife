@@ -41,8 +41,10 @@ struct SettingsView: View {
                         .tag(SettingsPage.about)
                 }
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+            // In this order: the width last, or removing the toggle drops it to 144 pt and the
+            // names get cut (measured 2026-11-20, GN-12).
             .toolbar(removing: .sidebarToggle)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
             Group {
                 switch page {
