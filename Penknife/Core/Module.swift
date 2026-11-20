@@ -87,6 +87,9 @@ struct ModuleAction {
     var state: (() -> Bool)? = nil
     /// False → the menu item is dimmed (no microphone, O-1); the shortcut still runs and explains.
     var isAvailable: (() -> Bool)? = nil
+    /// Holding the shortcut this long runs `onHold` instead of `perform` (O-33); nil = no hold.
+    var holdDelay: (() -> TimeInterval?)? = nil
+    var onHold: (() -> Void)? = nil
     let perform: () -> Void
 }
 

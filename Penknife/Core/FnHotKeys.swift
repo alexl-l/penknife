@@ -8,6 +8,8 @@ import KeyboardShortcuts
 final class FnHotKeys {
     private var refs: [EventHotKeyRef] = []
     private var actions: [UInt32: () -> Void] = [:]
+    /// Key-down actions (O-33 hold), by the same id.
+    private var downActions: [UInt32: () -> Void] = [:]
     private var handler: EventHandlerRef?
     private var nextID: UInt32 = 0
 
@@ -23,7 +25,7 @@ final class FnHotKeys {
     }
 
     /// Replaces all twins with the given shortcuts' current values.
-    func set(_ entries: [(name: KeyboardShortcuts.Name, action: () -> Void)]) {
+    func set(_ entries: [(name: KeyboardShortcuts.Name, action: () -> Void, down: (() -> Void)?)]) {
         removeAll()
         for entry in entries {
             guard let shortcut = KeyboardShortcuts.getShortcut(for: entry.name),
@@ -37,6 +39,7 @@ final class FnHotKeys {
             if status == noErr, let ref {
                 refs.append(ref)
                 actions[nextID] = entry.action
+                downActions[nextID] = entry.down
             }
         }
     }
@@ -45,11 +48,13 @@ final class FnHotKeys {
         refs.forEach { UnregisterEventHotKey($0) }
         refs = []
         actions = [:]
+        downActions = [:]
     }
 
     private func installHandlerIfNeeded() {
         guard handler == nil else { return }
-        var spec = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased))
+        var specs = [EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
+                     EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))]
         InstallEventHandler(GetEventDispatcherTarget(), { _, event, userData in
             guard let event, let userData else { return OSStatus(eventNotHandledErr) }
             var id = EventHotKeyID()
@@ -57,8 +62,9 @@ final class FnHotKeys {
                                            nil, MemoryLayout<EventHotKeyID>.size, nil, &id)
             guard status == noErr, id.signature == FnHotKeys.signature else { return OSStatus(eventNotHandledErr) }
             let me = Unmanaged<FnHotKeys>.fromOpaque(userData).takeUnretainedValue()
-            MainActor.assumeIsolated { me.actions[id.id]?() }
+            let pressed = GetEventKind(event) == UInt32(kEventHotKeyPressed)
+            MainActor.assumeIsolated { (pressed ? me.downActions[id.id] : me.actions[id.id])?() }
             return noErr
-        }, 1, &spec, Unmanaged.passUnretained(self).toOpaque(), &handler)
+        }, 2, &specs, Unmanaged.passUnretained(self).toOpaque(), &handler)
     }
 }

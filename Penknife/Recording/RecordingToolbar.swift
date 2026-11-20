@@ -7,6 +7,7 @@ struct RecordingToolbar: View {
     let state: RecordingState
     var hints: ShortcutHintModel?
     let run: (RecordingCommand) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -20,19 +21,32 @@ struct RecordingToolbar: View {
                     .background(Color(nsColor: .systemRed), in: Circle())
                     .contentShape(Circle())
             }
-            .shortcut("stop", name: String(localized: "Stop"), key: RecordingSession.stopKeys(RecordingPrefs.keys(.recordScreen)), in: hints)
-            .accessibilityLabel(String(localized: "Stop recording"))
+            .shortcut("stop", name: state.counting ? String(localized: "Cancel") : String(localized: "Stop"),
+                      key: state.counting ? "Esc" : RecordingSession.stopKeys(RecordingPrefs.keys(.recordScreen)), in: hints)
+            .accessibilityLabel(state.counting ? String(localized: "Cancel recording") : String(localized: "Stop recording"))
             Button { run(.pause) } label: { symbol(state.paused ? "play.fill" : "pause.fill") }
                 .shortcut("pause", name: state.paused ? String(localized: "Resume") : String(localized: "Pause"),
                           key: String(localized: "Space"), in: hints)
                 .accessibilityLabel(state.paused ? String(localized: "Resume recording") : String(localized: "Pause recording"))
-            Text(state.time)
-                .font(.system(size: 13).monospacedDigit())
-                .foregroundStyle(state.paused ? Color.orange : Color.secondary)
-                .frame(minWidth: 40)
-                .accessibilityLabel(state.paused
-                    ? String(localized: "Paused at \(state.time)")
-                    : String(localized: "Recording time \(state.time)"))
+                .disabled(state.counting)
+            if state.counting {
+                // O-32: the 3-2-1 in the time's place; VoiceOver hears it in the session's
+                // announcements, not at every second.
+                Text(String(localized: "Recording in \(max(state.countdown, 1))"))
+                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    .contentTransition(reduceMotion ? .opacity : .numericText(countsDown: true))
+                    .animation(.easeInOut(duration: 0.25), value: state.countdown)
+                    .padding(.horizontal, 6)
+                    .accessibilityLabel(String(localized: "Recording in \(max(state.countdown, 1)) seconds"))
+            } else {
+                Text(state.time)
+                    .font(.system(size: 13).monospacedDigit())
+                    .foregroundStyle(state.paused ? Color.orange : Color.secondary)
+                    .frame(minWidth: 40)
+                    .accessibilityLabel(state.paused
+                        ? String(localized: "Paused at \(state.time)")
+                        : String(localized: "Recording time \(state.time)"))
+            }
             separator
             // The Mouse ⇄ Edit slot first, Mouse at the start: clicks go to the apps. Edit has no
             // tool until one is picked (REC-16). The same tools, order, color and size as the
@@ -42,16 +56,21 @@ struct RecordingToolbar: View {
                                                        : String(localized: "Clicks go to the app being recorded")) { tool in
                 run(tool.map { .tool($0) } ?? .pointer)
             }
+            .disabled(state.counting)
             separator
-            MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded, hints: hints,
-                             toggle: { run(.toggle($0)) }, color: { run(.color($0)) }, size: { run(.size($0)) })
-            fadeMenu
+            Group {
+                MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded, hints: hints,
+                                 toggle: { run(.toggle($0)) }, color: { run(.color($0)) }, size: { run(.size($0)) })
+                fadeMenu
+            }
+            .disabled(state.counting)
             separator
             SoundSwitches(state: state, hints: hints, run: run)
             separator
             Button { run(.erase) } label: { symbol("trash") }
                 .shortcut("erase", name: String(localized: "Erase all drawings"), key: "⇧⌫", in: hints)
                 .accessibilityLabel(String(localized: "Erase all drawings"))
+                .disabled(state.counting)
         }
         .buttonStyle(.plain)
         .padding(6)
@@ -120,8 +139,8 @@ struct RecordingToolbar: View {
     }
 }
 
-/// Microphone and Mac sound (REC-27): in the recording toolbar and, with their keys M and S in
-/// the tooltips, in the countdown capsule (O-18, user's pick A). Same look in both.
+/// Microphone and Mac sound (REC-27): in the recording toolbar, keys M and S; during the
+/// countdown they work too and the first touch restarts it at 3 (O-18, O-32).
 struct SoundSwitches: View {
     let state: RecordingState
     var hints: ShortcutHintModel?

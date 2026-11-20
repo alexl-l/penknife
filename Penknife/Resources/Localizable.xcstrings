@@ -4352,6 +4352,76 @@
           }
         }
       }
+    },
+    "Hold Screenshot to record": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener Captura para grabar"
+          }
+        }
+      }
+    },
+    "Holding the shortcut or the Touch Bar button opens the area to record; a short press takes a screenshot.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener pulsado el atajo o el botón de la Touch Bar abre el área para grabar; una pulsación corta hace la captura."
+          }
+        }
+      }
+    },
+    "Hold for": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener durante"
+          }
+        }
+      }
+    },
+    "Hold to record the screen": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén pulsado para grabar la pantalla"
+          }
+        }
+      }
+    },
+    "Cancel recording": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancelar grabación"
+          }
+        }
+      }
+    },
+    "Recording in %lld seconds": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando en %lld segundos"
+          }
+        }
+      }
+    },
+    "Recording in 3 seconds": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabando en 3 segundos"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

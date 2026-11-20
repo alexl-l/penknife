@@ -79,6 +79,17 @@ final class ScreenshotModule: Module {
     static var scrollUpThinner: Bool { scrollUpThinner(in: .standard) }
     static func scrollUpThinner(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: scrollKey) }
     static let askedKey = "screenshot.askedPermission"
+    /// O-33: holding the Screenshot key or Touch Bar button opens the overlay in record mode.
+    static let holdKey = "screenshot.holdToRecord"
+    static let holdSecondsKey = "screenshot.holdSeconds"
+    static let holdChoices: [Double] = [1, 1.5, 2, 3]
+    static func holdToRecord(in defaults: UserDefaults) -> Bool { defaults.object(forKey: holdKey) as? Bool ?? true }
+    /// Seconds to hold (default 2, user 2026-11-19); nil when the hold is off.
+    static func holdSeconds(in defaults: UserDefaults) -> Double? {
+        guard holdToRecord(in: defaults) else { return nil }
+        let value = defaults.object(forKey: holdSecondsKey) as? Double ?? 2
+        return holdChoices.contains(value) ? value : 2
+    }
     static let screenRecordingSettings = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
 
     private let environment: CaptureEnvironment
@@ -94,6 +105,8 @@ final class ScreenshotModule: Module {
     var actions: [ModuleAction] {
         [
             ModuleAction(shortcut: .screenshot, title: String(localized: "Screenshot"), symbol: id.symbol,
+                         holdDelay: { [weak self] in self.flatMap { Self.holdSeconds(in: $0.environment.defaults) } },
+                         onHold: { [weak self] in self?.begin(record: true) },
                          perform: { [weak self] in self?.begin() }),
             ModuleAction(shortcut: .recordScreen, title: String(localized: "Record Screen"), symbol: "record.circle",
                          perform: { [weak self] in self?.toggleRecording() }),

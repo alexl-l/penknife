@@ -40,6 +40,8 @@ enum RecordingPrefs {
 @Observable
 final class RecordingState {
     var countdown = 3
+    /// The 3-2-1 is running: the toolbar shows it in the time's place, Stop cancels (O-32).
+    var counting = false
     var elapsed = 0
     var paused = false
     var drawing = false

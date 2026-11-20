@@ -31,8 +31,6 @@ final class RecordingSession {
     private let onFinish: () -> Void
 
     private var countdownPanel: OverlayPanel?
-    /// The capsule with "Recording in 3" and the sound switches (O-18).
-    private var capsulePanel: OverlayPanel?
     /// SS-62: every button's key, above the toolbar.
     private let hints = ShortcutHintModel()
     private var hintsPanel: OverlayPanel?
@@ -161,17 +159,15 @@ final class RecordingSession {
         panel.orderFrontRegardless()
         countdownPanel = panel
 
-        let host = FirstClickHostingView(rootView: CountdownCapsule(state: state) { [weak self] in self?.run($0) })
-        let size = host.fittingSize
-        let capsule = OverlayPanel(frame: CGRect(x: screen.midX - size.width / 2, y: screen.maxY - top - 12 - size.height,
-                                                 width: size.width, height: size.height),
-                                   level: NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 4))
-        capsule.keyable = true
-        capsule.contentView = host
-        capsule.onKey = { [weak self] event in self?.countdownKey(event) ?? false }
-        capsule.orderFrontRegardless()
-        capsule.makeKey()
-        capsulePanel = capsule
+        // O-32 (user's pick A): the toolbar is there from the first second; the count sits in
+        // the time's place, Stop cancels, and it takes the keyboard until "go" (Esc, M, S).
+        state.counting = true
+        showToolbar()
+        if let toolbar = toolbarPanel {
+            toolbar.keyable = true
+            toolbar.onKey = { [weak self] event in self?.countdownKey(event) ?? false }
+            toolbar.makeKey()
+        }
 
         state.countdown = 3
         announce(String(localized: "Recording in 3 seconds. M: microphone, S: Mac sound, Esc cancels."))
@@ -217,6 +213,7 @@ final class RecordingSession {
         guard stage == .countdown, !countdownRestarted else { return }
         countdownRestarted = true
         state.countdown = 3
+        announce(String(localized: "Recording in 3 seconds"))
         startCountdownTimer()
     }
 
@@ -230,8 +227,6 @@ final class RecordingSession {
         timer = nil
         countdownPanel?.orderOut(nil)
         countdownPanel = nil
-        capsulePanel?.orderOut(nil)
-        capsulePanel = nil
         counted = true
         if ready { go() }
     }
@@ -314,7 +309,13 @@ final class RecordingSession {
         recorder.begin()
         started = Date()
         showFrame()
-        showToolbar()
+        state.counting = false
+        if let toolbar = toolbarPanel {
+            toolbar.onKey = nil
+            toolbar.keyable = false
+            toolbar.resignKey()
+        }
+        resizeToolbar()
         updateIndicator()
         startClock()
         drawShortcut = Task { [weak self] in
@@ -843,13 +844,12 @@ final class RecordingSession {
         hintObservers.forEach(NotificationCenter.default.removeObserver)
         hintObservers = []
         hints.reset()
-        for panel in [countdownPanel, capsulePanel, strokePanel, blurPanel, inputPanel, framePanel, hintsPanel, toolbarPanel] {
+        for panel in [countdownPanel, strokePanel, blurPanel, inputPanel, framePanel, hintsPanel, toolbarPanel] {
             panel?.orderOut(nil)
             panel?.close()
         }
         blurPanel = nil
         countdownPanel = nil
-        capsulePanel = nil
         strokePanel = nil
         canvas = nil
         inputPanel = nil

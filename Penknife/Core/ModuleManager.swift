@@ -16,6 +16,8 @@ final class ModuleManager {
     @ObservationIgnored private var paused = false
     @ObservationIgnored private var defaultsObserver: NSObjectProtocol?
     /// Last hotkey run per shortcut: which twin (plain or Fn) and when.
+    @ObservationIgnored private var holdTimers: [String: Timer] = [:]
+    @ObservationIgnored private var held: Set<String> = []
     @ObservationIgnored private var lastHotKey: [String: (fn: Bool, at: Date)] = [:]
 
     /// The app passes `.standard`; tests pass a suite in memory (GN-06).
@@ -27,6 +29,12 @@ final class ModuleManager {
                 KeyboardShortcuts.onKeyUp(for: action.shortcut) { [weak self, weak module] in
                     guard let self, let module, self.isEnabled(module.id) else { return }
                     self.runHotKey(action, fn: false)
+                }
+                if action.onHold != nil {
+                    KeyboardShortcuts.onKeyDown(for: action.shortcut) { [weak self, weak module] in
+                        guard let self, let module, self.isEnabled(module.id) else { return }
+                        self.pressHotKey(action)
+                    }
                 }
             }
         }
@@ -112,9 +120,33 @@ final class ModuleManager {
     private func runHotKey(_ action: ModuleAction, fn: Bool) {
         let now = Date()
         let name = action.shortcut.rawValue
+        holdTimers.removeValue(forKey: name)?.invalidate()
+        if held.remove(name) != nil {
+            // O-33: the hold already ran; this release (and its Fn twin) does nothing.
+            lastHotKey[name] = (fn, now)
+            return
+        }
         guard Self.shouldRun(last: lastHotKey[name], fn: fn, now: now) else { return }
         lastHotKey[name] = (fn, now)
         action.perform()
+    }
+
+    /// O-33: a press starts the hold timer (one per press, both twins share it); reaching it
+    /// runs the hold action and the release is then ignored. A short press runs on release.
+    private func pressHotKey(_ action: ModuleAction) {
+        let name = action.shortcut.rawValue
+        guard holdTimers[name] == nil, action.onHold != nil, let delay = action.holdDelay?() else { return }
+        held.remove(name)
+        holdTimers[name] = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.holdReached(action) }
+        }
+    }
+
+    private func holdReached(_ action: ModuleAction) {
+        let name = action.shortcut.rawValue
+        holdTimers[name] = nil
+        held.insert(name)
+        action.onHold?()
     }
 
     /// False only for the other twin of the same press: it arrives < 0.1 s after the last run.
@@ -129,7 +161,10 @@ final class ModuleManager {
             fnKeys.removeAll()
             return
         }
-        fnKeys.set(enabledActions.map { action in (action.shortcut, { [weak self] in self?.runHotKey(action, fn: true) }) })
+        fnKeys.set(enabledActions.map { action in
+            (action.shortcut, { [weak self] in self?.runHotKey(action, fn: true) },
+             action.onHold == nil ? nil : { [weak self] in self?.pressHotKey(action) })
+        })
     }
 
     /// Whether a module is on at launch: the user's choice, else its default.

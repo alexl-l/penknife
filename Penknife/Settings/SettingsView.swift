@@ -375,6 +375,8 @@ private struct ScreenshotOptions: View {
     @AppStorage(ScreenshotModule.scrollKey) private var scrollUpThinner = false
     @AppStorage(CapturePalette.colorKey) private var defaultColor = 4
     @AppStorage(ScreenshotModule.copyFileKey) private var copyFile = true
+    @AppStorage(ScreenshotModule.holdKey) private var holdToRecord = true
+    @AppStorage(ScreenshotModule.holdSecondsKey) private var holdSeconds = 2.0
 
     var body: some View {
         Picker("Screen while selecting", selection: $mode) {
@@ -382,6 +384,17 @@ private struct ScreenshotOptions: View {
                 Text(option.title).tag(option.rawValue)
             }
         }
+        // O-33: hold the Screenshot shortcut or Touch Bar button to record.
+        Toggle(isOn: $holdToRecord) {
+            Text("Hold Screenshot to record")
+            Text("Holding the shortcut or the Touch Bar button opens the area to record; a short press takes a screenshot.")
+        }
+        Picker("Hold for", selection: $holdSeconds) {
+            ForEach(ScreenshotModule.holdChoices, id: \.self) { seconds in
+                Text(seconds.formatted(.number.precision(.fractionLength(0...1))) + " s").tag(seconds)
+            }
+        }
+        .disabled(!holdToRecord)
         Picker("Default color", selection: $defaultColor) {
             ForEach(CapturePalette.colors.indices, id: \.self) { index in
                 Label {

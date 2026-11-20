@@ -274,7 +274,18 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             battery.addGestureRecognizer(press)
         }
 
-        barView.button(Item.screenshot.rawValue)?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
+        screenshotLongPressing = false
+        if let screenshot = barView.button(Item.screenshot.rawValue) {
+            screenshot.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
+            if let seconds = ScreenshotModule.holdSeconds(in: .standard) {
+                // O-33: hold = record (the area picker in record mode); a tap is the screenshot.
+                let press = NSPressGestureRecognizer(target: self, action: #selector(screenshotLongPressed(_:)))
+                press.allowedTouchTypes = .direct
+                press.minimumPressDuration = seconds
+                screenshot.addGestureRecognizer(press)
+                screenshot.setAccessibilityHelp(String(localized: "Hold to record the screen"))
+            }
+        }
         barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock Screen"))
         updateSources()
         updateBrightness()
@@ -297,7 +308,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .keyboardLight: { [weak self] in self?.openSlider($0, KeyboardBrightness(), String(localized: "Keyboard backlight")) }
         case .jiggler: { [weak self] _ in self?.jigglerTapped() }
         case .microphone: { [weak self] _ in self?.run(.microphone) }
-        case .screenshot: { [weak self] _ in self?.run(.screenshot) }
+        case .screenshot: { [weak self] _ in self?.screenshotTapped() }
         case .lock: { [weak self] _ in self?.run(.lockScreen) }
         case .music: { [weak self] _ in self?.music.tap() }
         case .weather: { [weak self] _ in self?.weather.refresh(ifOlderThan: 60) }
@@ -703,6 +714,29 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .ended, .cancelled, .failed:
             jigglerLongPressing = false
             jigglerLongPressEnded = Date()
+        default: break
+        }
+    }
+
+    private var screenshotLongPressEnded = Date.distantPast
+    private var screenshotLongPressing = false
+
+    private func screenshotTapped() {
+        guard Self.tapAllowed(holding: screenshotLongPressing, holdEnded: screenshotLongPressEnded, now: Date()) else { return }
+        run(.screenshot)
+    }
+
+    @objc private func screenshotLongPressed(_ recognizer: NSPressGestureRecognizer) {
+        let button = barView?.button(Item.screenshot.rawValue)
+        switch recognizer.state {
+        case .began:
+            screenshotLongPressing = true
+            button?.show(symbol: "record.circle", label: String(localized: "Record Screen"))
+            if let manager, let action = manager.module(.screenshot)?.actions.first { action.onHold?() }
+        case .ended, .cancelled, .failed:
+            screenshotLongPressing = false
+            screenshotLongPressEnded = Date()
+            button?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
         default: break
         }
     }
