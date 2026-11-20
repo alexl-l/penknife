@@ -125,10 +125,14 @@ final class RecordingSession {
     /// What a ⌘ key does while drawing (B-13): ⌘Z undoes the newest drawing; while a text is
     /// typed the Edit menu's keys reach it (undo, cut, copy, paste, select all); every other ⌘ key
     /// stays here, so ⌘Q or ⌘, can't quit Penknife or open Settings in the middle of a recording.
-    enum CommandKey: Equatable { case undo, toText, swallow }
+    enum CommandKey: Equatable { case undo, duplicate, toText, swallow }
     static func commandKey(_ key: String, typing: Bool) -> CommandKey {
         if typing { return ["z", "x", "c", "v", "a"].contains(key) ? .toText : .swallow }
-        return key == "z" ? .undo : .swallow
+        switch key {
+        case "z": return .undo
+        case "d": return .duplicate   // SS-61, same as the editor
+        default: return .swallow
+        }
     }
 
     private func showCountdown() {
@@ -579,6 +583,9 @@ final class RecordingSession {
                 input.select(nil)
                 if canvas?.undo() == true { announce(String(localized: "Undone")) }
                 return true
+            case .duplicate:
+                input.duplicateSelected()
+                return true
             }
         }
         guard !input.isTyping else { return false }
@@ -600,9 +607,17 @@ final class RecordingSession {
             if !input.deleteSelected(), canvas?.undo() == true { announce(String(localized: "Undone")) }
             return true
         }
-        if let tool = RecordingState.tools.first(where: { $0.key.lowercased() == key }) {
+        switch CaptureKeys.toolKey(key, isRepeat: event.isARepeat) {
+        case .tool(let tool)?:
             run(.tool(tool))
             return true
+        case .placeMark(let tool)?:
+            // Same as the editor (O-15): the shape's letter places it in the middle, selected.
+            run(.tool(tool))
+            input.place(tool)
+            return true
+        case .swallow?: return true
+        default: break
         }
         if let digit = Int(key), (1...CapturePalette.colors.count).contains(digit) {
             run(.color(digit - 1))

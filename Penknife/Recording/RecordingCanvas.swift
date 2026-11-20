@@ -290,7 +290,8 @@ final class DrawingInputView: NSView, NSTextViewDelegate {
 
     private func updateCursor(_ point: CGPoint) {
         if let mark = selected?.annotation {
-            if MarkEditing.isOnClose(point, of: mark, within: bounds) { NSCursor.pointingHand.set(); return }
+            if MarkEditing.isOnClose(point, of: mark, within: bounds)
+                || MarkEditing.isOnDuplicate(point, of: mark, within: bounds) { NSCursor.pointingHand.set(); return }
             if let handle = MarkEditing.handle(at: point, of: mark) {
                 MarkEditing.cursor(forHandle: handle, of: mark).set()
                 return
@@ -372,6 +373,36 @@ final class DrawingInputView: NSView, NSTextViewDelegate {
         return true
     }
 
+    /// A shape's letter (O-15, as in the editor): its mark in the middle of the region, selected.
+    func place(_ tool: CaptureTool) {
+        guard CaptureKeys.placeable.contains(tool) else { return }
+        endText()
+        let ends = CaptureGeometry.placedMark(tool, in: bounds)
+        let mark = Annotation(tool: tool, color: state.color, size: state.sizeIndex, points: [ends.start, ends.end],
+                              liveBlur: tool == .blur)
+        addSelected(mark)
+        announce?(tool == .arrow || tool == .line
+            ? String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows move its tip.")
+            : String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows change its size."))
+    }
+
+    /// ⌘D or ⧉ (SS-61, as in the editor): a copy next to the selected mark, selected.
+    func duplicateSelected() {
+        guard let mark = selected, mark.superview != nil else { return }
+        var copy = mark.annotation
+        copy.move(by: MarkEditing.duplicateOffset(copy, in: bounds))
+        addSelected(copy)
+        announce?(String(localized: "Duplicated: \(copy.tool.title)"))
+    }
+
+    private func addSelected(_ annotation: Annotation) {
+        let before = canvas.marks.count
+        onMark?(annotation)
+        guard canvas.marks.count > before, let added = canvas.marks.last else { return }
+        selected = nil
+        select(added)
+    }
+
     /// Arrow keys: move (⌥: bigger or smaller).
     func nudge(_ delta: CGVector, grow: Bool) {
         guard let mark = selected, mark.superview != nil else { return }
@@ -429,6 +460,10 @@ final class DrawingInputView: NSView, NSTextViewDelegate {
         if let mark = selected, mark.superview != nil {
             if MarkEditing.isOnClose(point, of: mark.annotation, within: bounds) {
                 deleteSelected()
+                return
+            }
+            if MarkEditing.isOnDuplicate(point, of: mark.annotation, within: bounds) {
+                duplicateSelected()
                 return
             }
             if let handle = MarkEditing.handle(at: point, of: mark.annotation) {

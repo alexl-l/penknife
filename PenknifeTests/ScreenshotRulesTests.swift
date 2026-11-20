@@ -1310,6 +1310,16 @@ struct ScreenshotRulesTests {
         #expect(S.caption(selected: nil, typing: true) == nil)
     }
 
+    @Test("REC-19 O-15 SS-61 drawing while recording uses the editor's letters and ⌘D")
+    func recordingSharesKeys() {
+        #expect(CaptureKeys.toolKey("l", isRepeat: false) == .placeMark(.line))
+        #expect(CaptureKeys.toolKey("L", isRepeat: true) == .swallow)
+        #expect(CaptureKeys.toolKey("p", isRepeat: false) == .tool(.pen))
+        #expect(CaptureKeys.toolKey("x", isRepeat: false) == nil)
+        #expect(RecordingSession.commandKey("d", typing: false) == .duplicate)
+        #expect(RecordingSession.commandKey("d", typing: true) == .swallow)
+    }
+
     @Test("REC-05 O-18 during the countdown M flips the microphone, S the Mac sound; other keys do nothing")
     func countdownKeys() {
         typealias S = RecordingSession

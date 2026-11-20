@@ -53,6 +53,14 @@ enum CaptureKeys {
     /// Tools whose mark Return can place by keyboard (O-15); pen, highlighter and eraser are freehand.
     static let placeable: Set<CaptureTool> = [.arrow, .line, .rectangle, .ellipse, .blur]
 
+    /// A tool's letter, shared by the editor and drawing while recording (SS-27, REC-19): a
+    /// shape's letter places it (a held key, one), the others only choose the tool.
+    static func toolKey(_ key: String, isRepeat: Bool) -> CaptureKeyAction? {
+        guard let tool = CaptureTool.allCases.first(where: { $0.key.lowercased() == key.lowercased() }) else { return nil }
+        guard placeable.contains(tool) else { return .tool(tool) }
+        return isRepeat ? .swallow : .placeMark(tool)
+    }
+
     static func action(keyCode: UInt16, characters: String?, flags: NSEvent.ModifierFlags, isRepeat: Bool,
                        context c: CaptureKeyContext) -> CaptureKeyAction? {
         let flags = flags.intersection(.deviceIndependentFlagsMask)
@@ -98,10 +106,7 @@ enum CaptureKeys {
             }
         }
         guard c.hasSelection, flags.isDisjoint(with: [.control, .option]) else { return nil }
-        if let tool = CaptureTool.allCases.first(where: { $0.key.lowercased() == key }) {
-            guard placeable.contains(tool) else { return .tool(tool) }
-            return isRepeat ? .swallow : .placeMark(tool)   // a held key places one mark
-        }
+        if let action = toolKey(key, isRepeat: isRepeat) { return action }
         if let digit = Int(key), (1...CapturePalette.colors.count).contains(digit) { return .color(digit - 1) }
         if key == "-" { return .size(max(c.sizeIndex - 1, 0)) }
         if key == "+" || key == "=" { return .size(min(c.sizeIndex + 1, CaptureSize.count - 1)) }
