@@ -183,7 +183,7 @@ final class MicrophoneModule: Module {
             case .setMac(let muted):
                 self.setMac(muted: muted)
             case .showToggled:
-                HUD.shared.show(target.platform.name, detail: String(localized: "Microphone toggled"),
+                HUD.shared.show(target.platform.name, detail: String(localized: "Mute shortcut sent"),
                                 symbol: "mic.badge.xmark", kind: .on, category: .microphone)
             }
         }

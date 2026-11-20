@@ -203,7 +203,7 @@ final class ScreenshotModule: Module {
     private func requestPermission() {
         let defaults = environment.defaults
         if defaults.bool(forKey: Self.askedKey) {
-            environment.hud(String(localized: "Screen Recording needed"), String(localized: "Allow Penknife, then reopen it"),
+            environment.hud(String(localized: "Screen Recording needed"), String(localized: "Allow it in System Settings, then reopen Penknife"),
                             "lock.fill", .permission)
             environment.open(Self.screenRecordingSettings)
         } else {

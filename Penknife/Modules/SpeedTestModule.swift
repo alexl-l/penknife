@@ -84,7 +84,7 @@ final class SpeedTestModule: Module {
         if isRunning { return [(String(localized: "Speed test: testing…"), "speedometer")] }
         var lines: [(title: String, symbol: String)] = []
         if failed {
-            lines.append((String(localized: "Speed test failed. Check the internet connection."), "wifi.exclamationmark"))
+            lines.append((String(localized: "Couldn't test the speed. Check your connection."), "wifi.exclamationmark"))
         }
         if let result {
             let time = result.date.formatted(date: isToday(result.date) ? .omitted : .abbreviated, time: .shortened)
@@ -176,7 +176,7 @@ final class SpeedTestModule: Module {
         } else {
             failed = true
             log.error("networkQuality failed, status \(output?.status ?? -1)")
-            HUD.shared.show(String(localized: "Speed test failed"), detail: String(localized: "Check the internet connection."),
+            HUD.shared.show(String(localized: "Couldn't test the speed"), detail: String(localized: "Check your connection."),
                             symbol: "wifi.exclamationmark", kind: .error, category: .speedTest)
         }
         changed()

@@ -156,7 +156,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             states.append(mic ? String(localized: "Microphone on") : String(localized: "Microphone muted"))
         }
         if let jiggler {
-            states.append(jiggler ? String(localized: "Mouse jiggler on") : String(localized: "Mouse jiggler off"))
+            states.append(jiggler ? String(localized: "Mouse Jiggler on") : String(localized: "Mouse Jiggler off"))
         }
         return states.joined(separator: ", ")
     }

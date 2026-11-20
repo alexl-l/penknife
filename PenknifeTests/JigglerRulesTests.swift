@@ -223,13 +223,13 @@ struct JigglerRulesTests {
         jiggler.toggle()
         #expect(!jiggler.isActive && !jiggler.isScheduled)
         #expect(mac.alerts.map(\.kind) == [.permission])
-        #expect(mac.alerts.first?.detail == "Permission needed: open Settings › Permissions")
+        #expect(mac.alerts.first?.detail == "Open Settings › Permissions to allow it")
 
         mac.clearAlerts()
         mac.permission = true
         jiggler.toggle()
         #expect(jiggler.isActive)
-        #expect(mac.alerts.map(\.title) == ["Mouse jiggler on"])
+        #expect(mac.alerts.map(\.title) == ["Mouse Jiggler on"])
 
         mac.clearAlerts()
         jiggler.deactivate()
@@ -238,7 +238,7 @@ struct JigglerRulesTests {
         jiggler.toggle()
         mac.clearAlerts()
         jiggler.toggle()
-        #expect(mac.alerts.map(\.title) == ["Mouse jiggler off"])
+        #expect(mac.alerts.map(\.title) == ["Mouse Jiggler off"])
         jiggler.stop()
     }
 

@@ -84,7 +84,7 @@ enum BarLooks {
 
     static func jiggler(on: Bool) -> Look {
         Look(symbol: on ? "cursorarrow.motionlines" : "cursorarrow",
-             label: on ? String(localized: "Mouse jiggler, on") : String(localized: "Mouse jiggler, off"))
+             label: on ? String(localized: "Mouse Jiggler, on") : String(localized: "Mouse Jiggler, off"))
     }
 
     /// No input device at all (O-1, user's pick A): dimmed, never "open" or "muted".
@@ -109,7 +109,7 @@ enum BarLooks {
             Look(symbol: report.symbol, text: TemperatureText.short(celsius: report.celsius),
                  label: String(localized: "Weather: \(report.summary), \(TemperatureText.long(celsius: report.celsius))"))
         } else if noLocation {
-            Look(symbol: "location.slash", label: String(localized: "Weather: location not allowed. Tap to open the settings."))
+            Look(symbol: "location.slash", label: String(localized: "Weather: location access is off. Tap to open Settings."))
         } else {
             Look(symbol: "cloud", label: String(localized: "Weather: no data yet"))
         }
@@ -168,7 +168,7 @@ enum BarLooks {
             return Look(symbol: "arrow.up", text: speed.number, unit: speed.unit,
                         label: String(localized: "Upload \(speed.spoken)"))
         case .failed:
-            return Look(symbol: "wifi.exclamationmark", label: String(localized: "Speed test failed. Tap to try again."))
+            return Look(symbol: "wifi.exclamationmark", label: String(localized: "Couldn't test the speed. Tap to try again."))
         default:
             return Look(symbol: "speedometer", label: String(localized: "Speed Test"))
         }

@@ -201,7 +201,7 @@ final class JigglerModule: Module {
     func toggle() {
         if isActive {
             deactivate()
-            env.hud(String(localized: "Mouse jiggler off"), nil, "cursorarrow", .off)
+            env.hud(String(localized: "Mouse Jiggler off"), nil, "cursorarrow", .off)
         } else {
             activate()
         }
@@ -210,13 +210,13 @@ final class JigglerModule: Module {
     private func activate() {
         guard !isActive else { return }
         guard env.ensurePermission() else {
-            env.hud(String(localized: "Mouse Jiggler"), String(localized: "Permission needed: open Settings › Permissions"),
+            env.hud(String(localized: "Mouse Jiggler"), String(localized: "Open Settings › Permissions to allow it"),
                     "lock.fill", .permission)
             return
         }
         isActive = true
         schedule(after: idleThreshold)
-        env.hud(String(localized: "Mouse jiggler on"), nil, "cursorarrow.motionlines", .on)
+        env.hud(String(localized: "Mouse Jiggler on"), nil, "cursorarrow.motionlines", .on)
     }
 
     /// Lock notifications are observed only while the module is on and the option is set (R-15).

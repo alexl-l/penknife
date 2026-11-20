@@ -11,7 +11,7 @@ enum AlertCategory: String, CaseIterable, Identifiable {
         switch self {
         case .jiggler: String(localized: "Mouse Jiggler")
         case .microphone: String(localized: "Microphone")
-        case .screenshot: String(localized: "Screenshots")
+        case .screenshot: String(localized: "Screenshot")
         case .clipboard: String(localized: "Clipboard")
         case .music: String(localized: "Music")
         case .speedTest: String(localized: "Speed Test")
@@ -65,7 +65,7 @@ final class HUD {
 
     /// The one "permission missing" alert (JG-03; O-3 microphone, O-25 music): never silently nothing.
     func showPermissionNeeded(_ category: AlertCategory) {
-        show(category.title, detail: String(localized: "Permission needed: open Settings › Permissions"),
+        show(category.title, detail: String(localized: "Open Settings › Permissions to allow it"),
              symbol: "lock.fill", kind: .permission, category: category)
     }
 

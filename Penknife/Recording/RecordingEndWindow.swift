@@ -452,7 +452,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         case .gif?:
             quitQuestion(String(localized: "Stop making the GIF?"),
                          detail: model.kept ? nil : String(localized: "The recording hasn't been saved."),
-                         confirm: String(localized: "Stop and Close"), cancel: String(localized: "Continue"), done)
+                         confirm: String(localized: "Stop and Close"), cancel: String(localized: "Keep Making GIF"), done)
         case nil:
             quitQuestion(String(localized: "Discard the recording?"), detail: String(localized: "It hasn't been saved."),
                          confirm: String(localized: "Discard"), cancel: String(localized: "Cancel"), done)
@@ -490,7 +490,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         case .gif?:
             ask(String(localized: "Stop making the GIF?"),
                 detail: model.kept ? nil : String(localized: "The recording hasn't been saved."),
-                confirm: String(localized: "Stop and Close"), cancel: String(localized: "Continue"))
+                confirm: String(localized: "Stop and Close"), cancel: String(localized: "Keep Making GIF"))
             return
         case nil:
             break
@@ -629,7 +629,7 @@ private struct RecordingEndView: View {
                 ProgressView(value: value)
                     .progressViewStyle(.linear)
                     .frame(width: 120)
-                Text(String(localized: "Making the GIF… \(Int((value * 100).rounded())) %"))
+                Text(String(localized: "Making the GIF… \(Int((value * 100).rounded()))%"))
                     .font(.system(size: 12).monospacedDigit())
                     .foregroundStyle(.secondary)
                 Spacer()

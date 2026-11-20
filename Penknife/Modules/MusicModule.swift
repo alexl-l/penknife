@@ -93,11 +93,11 @@ final class MusicModule: Module {
 
     var actions: [ModuleAction] {
         [
-            ModuleAction(shortcut: .playPause, title: String(localized: "Play or pause"), symbol: "playpause",
+            ModuleAction(shortcut: .playPause, title: String(localized: "Play or Pause"), symbol: "playpause",
                          perform: { [weak self] in self?.send(.playPause) }),
-            ModuleAction(shortcut: .nextTrack, title: String(localized: "Next track"), symbol: "forward",
+            ModuleAction(shortcut: .nextTrack, title: String(localized: "Next Track"), symbol: "forward",
                          perform: { [weak self] in self?.send(.next) }),
-            ModuleAction(shortcut: .previousTrack, title: String(localized: "Previous track"), symbol: "backward",
+            ModuleAction(shortcut: .previousTrack, title: String(localized: "Previous Track"), symbol: "backward",
                          perform: { [weak self] in self?.send(.previous) }),
         ]
     }

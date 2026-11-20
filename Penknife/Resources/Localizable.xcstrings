@@ -271,12 +271,12 @@
         }
       }
     },
-    "Allow Penknife, then reopen it": {
+    "Allow it in System Settings, then reopen Penknife": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Permite Penknife y vuelve a abrirlo"
+            "value": "Permítelo en Ajustes del Sistema y vuelve a abrir Penknife"
           }
         }
       }
@@ -571,12 +571,12 @@
         }
       }
     },
-    "Check the internet connection.": {
+    "Check your connection.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Revisa la conexión a internet."
+            "value": "Revisa tu conexión."
           }
         }
       }
@@ -976,7 +976,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grabando en %lld"
+            "value": "Grabación en %lld"
           }
         }
       }
@@ -1021,12 +1021,12 @@
         }
       }
     },
-    "Making the GIF… %lld %%": {
+    "Making the GIF… %lld%%": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Haciendo el GIF… %lld %%"
+            "value": "Creando el GIF… %lld %%"
           }
         }
       }
@@ -1046,7 +1046,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Parar y cerrar"
+            "value": "Detener y cerrar"
           }
         }
       }
@@ -1056,7 +1056,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Dejar de hacer el GIF?"
+            "value": "¿Detener la creación del GIF?"
           }
         }
       }
@@ -2101,12 +2101,12 @@
         }
       }
     },
-    "Microphone toggled": {
+    "Mute shortcut sent": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Micrófono alternado"
+            "value": "Atajo de silencio enviado"
           }
         }
       }
@@ -2201,7 +2201,7 @@
         }
       }
     },
-    "Mouse jiggler off": {
+    "Mouse Jiggler off": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -2211,7 +2211,7 @@
         }
       }
     },
-    "Mouse jiggler on": {
+    "Mouse Jiggler on": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -2221,7 +2221,7 @@
         }
       }
     },
-    "Mouse jiggler, off": {
+    "Mouse Jiggler, off": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -2231,7 +2231,7 @@
         }
       }
     },
-    "Mouse jiggler, on": {
+    "Mouse Jiggler, on": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -2691,12 +2691,12 @@
         }
       }
     },
-    "Permission needed: open Settings › Permissions": {
+    "Open Settings › Permissions to allow it": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Falta un permiso: abre Ajustes › Permisos"
+            "value": "Abre Ajustes › Permisos para permitirlo"
           }
         }
       }
@@ -2711,7 +2711,7 @@
         }
       }
     },
-    "Next track": {
+    "Next Track": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -2956,7 +2956,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Demasiado grande para copiarlo. Guárdalo."
+            "value": "Es demasiado grande para copiarlo. Guárdalo en un archivo."
           }
         }
       }
@@ -3081,7 +3081,7 @@
         }
       }
     },
-    "Play or pause": {
+    "Play or Pause": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -3111,7 +3111,7 @@
         }
       }
     },
-    "Previous track": {
+    "Previous Track": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -3561,32 +3561,32 @@
         }
       }
     },
-    "Speed test failed": {
+    "Couldn't test the speed": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Falló el test de velocidad"
+            "value": "No se pudo medir la velocidad"
           }
         }
       }
     },
-    "Speed test failed. Check the internet connection.": {
+    "Couldn't test the speed. Check your connection.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Falló el test de velocidad. Revisa la conexión a internet."
+            "value": "No se pudo medir la velocidad. Revisa tu conexión."
           }
         }
       }
     },
-    "Speed test failed. Tap to try again.": {
+    "Couldn't test the speed. Tap to try again.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Falló el test de velocidad. Toca para reintentar."
+            "value": "No se pudo medir la velocidad. Toca para reintentar."
           }
         }
       }
@@ -3901,12 +3901,12 @@
         }
       }
     },
-    "Weather: location not allowed. Tap to open the settings.": {
+    "Weather: location access is off. Tap to open Settings.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tiempo: ubicación no permitida. Toca para abrir los ajustes."
+            "value": "Tiempo: sin acceso a la ubicación. Toca para abrir Ajustes."
           }
         }
       }
@@ -4143,12 +4143,12 @@
         }
       }
     },
-    "Weather: location not allowed": {
+    "Weather: location access is off": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tiempo: ubicación no permitida"
+            "value": "Tiempo: sin acceso a la ubicación"
           }
         }
       }
@@ -4163,22 +4163,22 @@
         }
       }
     },
-    "Update Now": {
+    "Update Weather": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Actualizar ahora"
+            "value": "Actualizar el tiempo"
           }
         }
       }
     },
-    "Test Speed Now": {
+    "Run Speed Test": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Medir velocidad ahora"
+            "value": "Medir la velocidad"
           }
         }
       }
@@ -4438,7 +4438,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grabando en %lld segundos"
+            "value": "La grabación empieza en %lld segundos"
           }
         }
       }
@@ -4448,7 +4448,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grabando en 3 segundos"
+            "value": "La grabación empieza en 3 segundos"
           }
         }
       }
@@ -4459,6 +4459,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cerrar al guardar o copiar"
+          }
+        }
+      }
+    },
+    "Keep Making GIF": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir con el GIF"
           }
         }
       }

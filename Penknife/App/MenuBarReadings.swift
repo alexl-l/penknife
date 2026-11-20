@@ -89,7 +89,7 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
                     String(localized: "Weather: \(report.summary), \(TemperatureText.long(celsius: report.celsius))"))
         }
         if status == .noLocation {
-            return ("location.slash", nil, String(localized: "Weather: location not allowed"))
+            return ("location.slash", nil, String(localized: "Weather: location access is off"))
         }
         return ("cloud", nil, String(localized: "Weather: no data yet"))
     }
@@ -253,7 +253,7 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
             let speed = SpeedText(mbps: result!.upload)
             return ("arrow.up", "\(speed.number) \(speed.unit)", String(localized: "Upload \(speed.spoken)"))
         case .failed:
-            return ("wifi.exclamationmark", nil, String(localized: "Speed test failed"))
+            return ("wifi.exclamationmark", nil, String(localized: "Couldn't test the speed"))
         default:
             return ("speedometer", nil, String(localized: "Speed Test"))
         }
@@ -316,7 +316,7 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
             if weather.status == .noLocation {
                 menu.addItem(button(String(localized: "Allow Location…"), #selector(refreshWeather)))
             } else {
-                menu.addItem(button(String(localized: "Update Now"), #selector(refreshWeather)))
+                menu.addItem(button(String(localized: "Update Weather"), #selector(refreshWeather)))
             }
         case .temperature:
             if let celsius = cpu?.read() {
@@ -332,7 +332,7 @@ final class MenuBarReadings: NSObject, NSMenuDelegate {
             }
             if !speedTest.isRunning {
                 if speedTest.result != nil { menu.addItem(.separator()) }
-                menu.addItem(button(String(localized: "Test Speed Now"), #selector(runSpeedTest)))
+                menu.addItem(button(String(localized: "Run Speed Test"), #selector(runSpeedTest)))
             }
         }
     }

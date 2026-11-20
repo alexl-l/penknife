@@ -942,7 +942,7 @@ struct ScreenshotRulesTests {
         #expect(mac.requested == 1)
         #expect(mac.huds.count == 1)
         expectText(mac.huds[0].title, english: "Screen Recording needed", es: "Falta permiso de Grabación de pantalla")
-        expectText(mac.huds[0].detail ?? "", english: "Allow Penknife, then reopen it", es: "Permite Penknife y vuelve a abrirlo")
+        expectText(mac.huds[0].detail ?? "", english: "Allow it in System Settings, then reopen Penknife", es: "Permítelo en Ajustes del Sistema y vuelve a abrir Penknife")
         #expect(mac.huds[0].symbol == "lock.fill" && mac.huds[0].kind == .permission)
         #expect(mac.opened == [URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!])
         #expect(mac.overlays.isEmpty)

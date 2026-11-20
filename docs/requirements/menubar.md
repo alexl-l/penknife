@@ -44,7 +44,7 @@ Code abbreviations: SM = `App/StatusMenu.swift`, MR = `App/MenuBarReadings.swift
   Source: R-30 "SEPARATE menu bar items … each movable with ⌘-drag" · Code: MR:update, draw · Verify: manual — ⌘-drag one, relaunch: it stays there.
 - **MB-10** An item exists only while its module is on and its switch "Show in the menu bar" is on (`menuBar.show.weather` / `.temperature` / `.speedTest`; default on without a Touch Bar, off with one). A switch or a module change shows or hides only that item, at once.
   Source: R-30 acceptance · Code: MR:wanted, isShown, shownByDefault, update; SV:MenuBarToggle · Verify: **auto** — `wanted` for every mix; keys; default (TouchBarRulesTests R-30); manual — each switch shows/hides its item at once.
-- **MB-11** A click on an item opens its own menu: weather (the reading, then "Update Now" or "Allow Location…", WX-11), temperature (the reading or "CPU temperature not available"), speed test (ST-08, "Test Speed Now"). Shortcuts paused while open (MB-03).
+- **MB-11** A click on an item opens its own menu: weather (the reading, then "Update Weather" or "Allow Location…", WX-11), temperature (the reading or "CPU temperature not available"), speed test (ST-08, "Run Speed Test"). Shortcuts paused while open (MB-03).
   Source: R-30 "Click on an item" · Code: MR:menuNeedsUpdate · Verify: manual — open each item's menu.
 - **MB-12** One style for the three, Settings › General "Menu bar readings": Simple (default; outline symbols: `.fill` dropped, regular weight, follows the menu bar), Color (weather in its own colors, `cpu` for the Mac, the temperature orange from 85 °C, CT-07), Bold (filled symbols, medium weight symbol and text, follows the menu bar). Text in monospaced digits. A stored value that isn't one of these reads as Simple. A style change redraws without restarting the speed test sequence (ST-09).
   Source: R-30 "ME GUSTAN LAS 3. QUE EL USUARIO ESCOJA CUÁL QUIERE" · Code: MR:Style, style(in:), symbolLook, draw; GT · Verify: **auto** — `symbolLook` per style and kind; `style(in:)` default and unknown; manual — switch the style: all three items change at once.
@@ -61,7 +61,7 @@ Code abbreviations: SM = `App/StatusMenu.swift`, MR = `App/MenuBarReadings.swift
 ## 2. Open questions and known bugs
 
 For the user:
-- DONE 2026-11-19 (user: "go" = the recommendation; test MB-05 seen to fail first): **O-30 VoiceOver reads the dots in the opposite order of the screen.** The microphone dot is on top, but VoiceOver says "Mouse jiggler on, Microphone muted" (MB-05). [Recommended: read the microphone first, as on screen; tiny change.]
+- DONE 2026-11-19 (user: "go" = the recommendation; test MB-05 seen to fail first): **O-30 VoiceOver reads the dots in the opposite order of the screen.** The microphone dot is on top, but VoiceOver says "Mouse Jiggler on, Microphone muted" (MB-05). [Recommended: read the microphone first, as on screen; tiny change.]
 
 Not measured / noted (nothing to decide yet):
 - An unreadable temperature leaves no line in Penknife's menu (MB-08) but the item's own menu says "CPU temperature not available" (MB-11). Not asked; probably fine.

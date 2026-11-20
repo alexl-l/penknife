@@ -96,9 +96,9 @@ Count (2026-11-18, after S6 and the Touch Bar S2): 85 rules = 35 auto (all teste
   Source: D: Meeting button read in Chrome (~1 s); limits code only · Code: MS:micButtonState, search, withWebTree · Verify: log — ms and element count in the `App mic:` line.
 - **MIC-34** The call's state is never watched between presses: clicking mute inside the app doesn't update Penknife at that moment; the next Penknife press re-aligns both (accepted limit).
   Source: R-28 (11-16) "Not covered (user accepted)" · Code: MS:readMuted (press only) · Verify: manual — click mute in Teams, press F5 → Teams and the Touch Bar/dot end equal.
-- **MIC-35** "Mute the Mac's microphone too" off: no read, the shortcut is sent blind, the Mac's mic is untouched, and the HUD shows the platform name with "Microphone toggled" (`mic.badge.xmark`, blue).
+- **MIC-35** "Mute the Mac's microphone too" off: no read, the shortcut is sent blind, the Mac's mic is untouched, and the HUD shows the platform name with "Mute shortcut sent" (`mic.badge.xmark`, blue).
   Source: R-28 (11-16) setting; HUD text code only · Code: MM:toggle · Verify: auto (S1) — `route(…, alsoMac: false)` → `.meeting(.sendOnly)`; `afterSend(alsoMac: false, …)` → `.showToggled`, also in the Teams consent flow; manual — setting off, press F5 in a Zoom call → "Zoom · Microphone toggled", Touch Bar unchanged.
-- **MIC-36** A desktop-app meeting press without Accessibility sends nothing; it shows the alert "Microphone" — "Permission needed: open Settings › Permissions" / "Micrófono" — "Falta un permiso: abre Ajustes › Permisos" (`lock.fill`, permission kind, as JG-03), plus macOS's prompt at most once per launch (O-3).
+- **MIC-36** A desktop-app meeting press without Accessibility sends nothing; it shows the alert "Microphone" — "Open Settings › Permissions to allow it" / "Micrófono" — "Abre Ajustes › Permisos para permitirlo" (`lock.fill`, permission kind, as JG-03), plus macOS's prompt at most once per launch (O-3).
   Source: D: Accessibility prompt once per launch; silent result code only · Code: MM:toggle, Core/Permissions.swift:ensureAccessibility · Verify: **auto, tested** (S1) — `route(meeting: <any>, axGranted: false)` → `.nothing`.
 
 ### G. Mac mic follows the call
@@ -175,7 +175,7 @@ Count (2026-11-18, after S6 and the Touch Bar S2): 85 rules = 35 auto (all teste
   Source: R-25 (11-13) "ALL ICONS"; D: Touch Bar icons; R-19 · Code: TouchBarModule:updateMicrophone, run; TouchBar/BarLooks.swift:microphone; BarLayout · Verify: **auto** — `BarLooks.microphone(muted:)` (test "TB-20 MIC-65 TB-24 …"); manual — tap it; the symbol flips.
 - **MIC-66** Menu bar dot: top slot, system orange, 4 pt; filled = open, 1 pt ring = muted; same look under Increase Contrast; shown only with "Show microphone and Mouse Jiggler dots" on (default on, `menuBar.statusDots`), the module on and an input device present; redrawn only on a real change; kept beside the red record symbol while recording.
   Source: R-20 MENU BAR DOTS IMPERATIVE (11-13); D: Menu bar dots · Code: StatusMenu:updateIcon, icon, showRecording · Verify: manual — press F5, look at the dot.
-- **MIC-67** VoiceOver: the status item's value states both dots ("Mouse jiggler on, Microphone muted") and VoiceOver is told when it changes from elsewhere.
+- **MIC-67** VoiceOver: the status item's value states both dots ("Mouse Jiggler on, Microphone muted") and VoiceOver is told when it changes from elsewhere.
   Source: R-20 (11-13) · Code: StatusMenu:updateIcon · Verify: manual — VoiceOver on, focus the menu bar icon, press F5.
 - **MIC-68** Microphone alerts belong to the "Microphone" alert type (`alerts.microphone`, on by default); off hides all of them, errors included, but VoiceOver still announces them; top-center capsule; duration = shared setting 1/2/4/8/15 s (default 4).
   Source: R-20 SETTING PER TYPE IMPERATIVE; CHANGED top center (11-18); R-19 · Code: Core/HUD.swift:show, AlertCategory · Verify: manual — turn Microphone alerts off, press F5 → no capsule.
