@@ -161,7 +161,7 @@ private struct SettingsTile: View {
         ZStack {
             if on { shape.fill(tint.color) } else { shape.fill(Color.gray.opacity(0.45)) }
             Image(systemName: symbol)
-                .font(.system(size: size * 0.62, weight: .medium))
+                .font(.system(size: size * 0.62 - 1, weight: .medium))
                 .foregroundStyle(.white.opacity(on ? 1 : 0.8))
         }
         .frame(width: size, height: size)
