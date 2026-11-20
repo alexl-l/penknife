@@ -39,7 +39,7 @@ Optional, off by default: when you unmute in Teams with the shortcut and Teams a
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Clipboard history">
 <h3>Clipboard history</h3>
-Open it with ⌃⌥V, search, pin what you reuse and paste with ⌘1–⌘9. History lives in memory only; pins stay. Passwords and other concealed items are never saved.
+Open it with ⌃⌥V, search, pin what you reuse (with a letter or emoji of your own as its icon, ⌘E) and paste with ⌘1–⌘9. History lives in memory only; pins stay. Passwords and other concealed items are never saved.
 </td>
 </tr>
 <tr>
@@ -48,7 +48,7 @@ Open it with ⌃⌥V, search, pin what you reuse and paste with ⌘1–⌘9. His
 <h3>Screenshots and screen recording</h3>
 Press F1, select an area or a window (press Space), mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Paste the result into a Finder folder as a file. Nothing is uploaded.
 
-Record the full screen, an area or a window as a video or GIF (⌃⌥R), or hold the Screenshot shortcut (F1) for 2 seconds, pick an area and recording starts. Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end before you save.
+Record the full screen, an area or a window as a video or GIF (⌃⌥R), or hold the Screenshot shortcut (F1) for 2 seconds, pick an area and recording starts. Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end and pick a speed (1×, 1.5×, 2× or 4×) before you save.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Music settings">
@@ -62,6 +62,11 @@ Play, pause and skip in the player you choose: Spotify, Apple Music, YouTube Mus
 Drag an area, or press Space and click a window, or press Return for the full screen: recording starts after a 3-2-1. Your marks appear in the file and stay or fade after the time you choose.
 
 <img src="docs/screenshots/recording.gif" width="720" alt="Drawing while recording: a highlight under “Mark up and record your screen” and an arrow to the Download button, which fade after a few seconds">
+
+### Speed it up before you save
+Pick 1.5×, 2× or 4× in the recording window. The preview, the saved video, the GIF and the copy all follow it, the voice keeps its pitch, and the note shows how long the result will last.
+
+<img src="docs/screenshots/recording-speed.gif" width="720" alt="The recording window: the speed menu opens, 2× is chosen and the length changes from 0:14 to 0:07">
 
 ### And in the menu bar
 Mouse Jiggler keeps your Mac awake and your status active: it moves the pointer after 10 seconds without input (or the time you choose) and rests while the Mac is locked. Lock Screen locks your Mac at once. Speed Test shows download, upload and latency in kbps, Mbps or Gbps. Weather, Mac temperature and Speed Test can sit in the menu bar too, on by default on Macs without a Touch Bar. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet and appear at the top center, under the menu bar or the notch, so they never cover Apple's notification banners. You choose which ones appear and for how long (1 to 15 seconds).

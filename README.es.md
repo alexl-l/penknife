@@ -39,7 +39,7 @@ Opcional, desactivado por defecto: si al activar el micrófono en Teams con el a
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">
 <h3>Historial del portapapeles</h3>
-Ábrelo con ⌃⌥V, busca, fija lo que más usas y pega con ⌘1–⌘9. El historial vive solo en memoria; lo fijado se conserva. Nunca guarda contraseñas ni otros elementos ocultos.
+Ábrelo con ⌃⌥V, busca, fija lo que más usas (con una letra o un emoji propio como icono, ⌘E) y pega con ⌘1–⌘9. El historial vive solo en memoria; lo fijado se conserva. Nunca guarda contraseñas ni otros elementos ocultos.
 </td>
 </tr>
 <tr>
@@ -48,7 +48,7 @@ Opcional, desactivado por defecto: si al activar el micrófono en Teams con el a
 <h3>Capturas y grabación de pantalla</h3>
 Pulsa F1, selecciona un área o una ventana (con Espacio), márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. Pega el resultado en una carpeta del Finder como archivo. No se sube nada a internet.
 
-Graba toda la pantalla, un área o una ventana como vídeo o GIF (⌃⌥R), o mantén pulsado el atajo de Captura de pantalla (F1) 2 segundos, elige un área y empieza a grabar. Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final antes de guardar.
+Graba toda la pantalla, un área o una ventana como vídeo o GIF (⌃⌥R), o mantén pulsado el atajo de Captura de pantalla (F1) 2 segundos, elige un área y empieza a grabar. Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final y elige una velocidad (1×, 1,5×, 2× o 4×) antes de guardar.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Ajustes de música">
@@ -62,6 +62,11 @@ Reproduce, pausa y salta canciones en el reproductor que elijas: Spotify, Apple 
 Arrastra una zona, o pulsa Espacio y haz clic en una ventana, o pulsa Intro para toda la pantalla: la grabación empieza tras un 3-2-1. Tus marcas aparecen en el archivo y se quedan o se desvanecen pasado el tiempo que elijas.
 
 <img src="docs/screenshots/recording.gif" width="720" alt="Dibujando mientras se graba: un resaltado bajo “Mark up and record your screen” y una flecha al botón Download, que se desvanecen tras unos segundos">
+
+### Acelérala antes de guardar
+Elige 1,5×, 2× o 4× en la ventana de la grabación. La vista previa, el vídeo guardado, el GIF y la copia la siguen, la voz mantiene su tono y la nota muestra cuánto durará el resultado.
+
+<img src="docs/screenshots/recording-speed.gif" width="720" alt="La ventana de la grabación: se abre el menú de velocidad, se elige 2× y la duración pasa de 0:14 a 0:07">
 
 ### Y en la barra de menús
 Mover ratón mantiene el Mac despierto y tu estado activo: mueve el puntero tras 10 segundos sin actividad (o el tiempo que elijas) y descansa con el Mac bloqueado. Bloquear pantalla bloquea el Mac al momento. Prueba de velocidad muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y Prueba de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
