@@ -104,6 +104,9 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         window.contentMinSize = CGSize(width: 480, height: 270 + Self.controlsHeight)
         playerView.controlsStyle = .inline
         playerView.videoGravity = .resizeAspect
+        // Our speed menu is the only one (REC-50): the player's own would play at a speed the
+        // saved files don't have.
+        playerView.speeds = []
         let duration = Self.time(output.duration)
         let host = NSHostingView(rootView: RecordingEndView(model: model, playerView: playerView, aspect: aspect, duration: duration) { [weak self] in
             self?.run($0)
@@ -692,7 +695,7 @@ private struct RecordingEndView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Group {
                     SpeedMenu(speed: model.speed) { run(.speed($0)) }
-                        .disabled(!model.ready || model.trimming)
+                        .disabled(!model.ready || model.trimming || model.busy)
                     if model.trim != nil {
                         Button { run(.undoTrim) } label: {
                             Image(systemName: "arrow.uturn.backward").frame(width: 16)
