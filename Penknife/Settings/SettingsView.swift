@@ -140,16 +140,15 @@ enum TileColor {
         }
     }
 
-    var gradient: LinearGradient {
-        func color(_ v: UInt32) -> Color {
-            Color(.sRGB, red: Double(v >> 16 & 255) / 255, green: Double(v >> 8 & 255) / 255, blue: Double(v & 255) / 255)
-        }
-        return LinearGradient(colors: [color(stops.top), color(stops.bottom)], startPoint: .top, endPoint: .bottom)
+    /// One solid color: the middle of the Dock icon's gradient (user 2026-11-19: "LOS QUIERO SÓLIDOS").
+    var color: Color {
+        func channel(_ shift: UInt32) -> Double { Double((stops.top >> shift & 255) + (stops.bottom >> shift & 255)) / 510 }
+        return Color(.sRGB, red: channel(16), green: channel(8), blue: channel(0))
     }
 }
 
-/// The macOS 27 System Settings tile (variant A, chosen 2026-11-19) in Dock colors: a light-to-deep
-/// gradient, solid (no gloss, no rim: user 2026-11-19), a larger white symbol. Off: gray.
+/// The macOS 27 System Settings tile (variant A, chosen 2026-11-19) in Dock colors: one solid
+/// color (no gloss, no rim: user 2026-11-19), a larger white symbol. Off: gray.
 private struct SettingsTile: View {
     let symbol: String
     let tint: TileColor
@@ -160,7 +159,7 @@ private struct SettingsTile: View {
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
         ZStack {
-            if on { shape.fill(tint.gradient) } else { shape.fill(Color.gray.opacity(0.45)) }
+            if on { shape.fill(tint.color) } else { shape.fill(Color.gray.opacity(0.45)) }
             Image(systemName: symbol)
                 .font(.system(size: size * 0.62, weight: .medium))
                 .foregroundStyle(.white.opacity(on ? 1 : 0.8))
