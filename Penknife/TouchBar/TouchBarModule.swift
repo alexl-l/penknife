@@ -277,15 +277,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         screenshotLongPressing = false
         if let screenshot = barView.button(Item.screenshot.rawValue) {
             screenshot.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
-            if let seconds = ScreenshotModule.holdSeconds(in: .standard) {
-                // O-33: hold = record (the area picker in record mode); a tap is the screenshot.
-                let press = NSPressGestureRecognizer(target: self, action: #selector(screenshotLongPressed(_:)))
-                press.allowedTouchTypes = .direct
-                press.minimumPressDuration = seconds
-                screenshot.addGestureRecognizer(press)
-                screenshot.setAccessibilityHelp(String(localized: "Hold to record the screen"))
-            }
         }
+        screenshotHold = nil
+        updateScreenshotHold()
         barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock Screen"))
         updateSources()
         updateBrightness()
@@ -348,6 +342,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         let mono = Self.monochromeColor
         if mono != barView.monochromeColor { barView.monochromeColor = mono }
         if BarLayout.visible(isOn: isOn) != shownItems { rebuildButtons() }
+        updateScreenshotHold()
         let player = MusicPlayer.current.id
         if player != playerID {
             playerID = player
@@ -716,6 +711,28 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             jigglerLongPressEnded = Date()
         default: break
         }
+    }
+
+    /// The hold-to-record gesture on the Screenshot button and the hold time it uses (O-33).
+    private var screenshotHold: NSPressGestureRecognizer?
+
+    /// O-33: hold = record (the area picker in record mode); a tap is the screenshot. Follows
+    /// Settings at once: the switch and the hold time.
+    private func updateScreenshotHold() {
+        guard let screenshot = barView?.button(Item.screenshot.rawValue) else { return }
+        let seconds = ScreenshotModule.holdSeconds(in: .standard)
+        guard seconds != screenshotHold?.minimumPressDuration else { return }
+        if let screenshotHold { screenshot.removeGestureRecognizer(screenshotHold) }
+        screenshotHold = nil
+        screenshotLongPressing = false
+        screenshot.setAccessibilityHelp(nil)
+        guard let seconds else { return }
+        let press = NSPressGestureRecognizer(target: self, action: #selector(screenshotLongPressed(_:)))
+        press.allowedTouchTypes = .direct
+        press.minimumPressDuration = seconds
+        screenshot.addGestureRecognizer(press)
+        screenshot.setAccessibilityHelp(String(localized: "Hold to record the screen"))
+        screenshotHold = press
     }
 
     private var screenshotLongPressEnded = Date.distantPast
