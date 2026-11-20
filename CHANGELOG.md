@@ -3,6 +3,14 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.14 — 2026-11-20
+
+Pressing Play from Penknife now opens Apple Music when nothing is playing, and Settings always shows which page you're on.
+
+- **Play opens Apple Music.** With "Any app (media keys)" as the player and nothing playing, Play from the Touch Bar, a shortcut or the menu opens Apple Music, and Block Apple Music no longer closes it. Headphone clicks are still blocked.
+- **Apple Music is the default player.** New users who haven't picked a player start with Apple Music, not Spotify. Your existing choice is never changed.
+- **Settings title.** The window title shows the current page from the moment it opens, instead of "Penknife Settings".
+
 ## 1.13 — 2026-11-20
 
 Change the speed of a recording before you save it, and pin clipboard items with an icon of your own.
