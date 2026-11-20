@@ -5,6 +5,7 @@ import SwiftUI
 /// fixed or fading | microphone, Mac sound | erase all.
 struct RecordingToolbar: View {
     let state: RecordingState
+    var hints: ShortcutHintModel?
     let run: (RecordingCommand) -> Void
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
@@ -19,10 +20,11 @@ struct RecordingToolbar: View {
                     .background(Color(nsColor: .systemRed), in: Circle())
                     .contentShape(Circle())
             }
-            .help(help(String(localized: "Stop"), keys: RecordingPrefs.keys(.recordScreen)))
+            .shortcut("stop", name: String(localized: "Stop"), key: RecordingPrefs.keys(.recordScreen), in: hints)
             .accessibilityLabel(String(localized: "Stop recording"))
             Button { run(.pause) } label: { symbol(state.paused ? "play.fill" : "pause.fill") }
-                .help(state.paused ? String(localized: "Resume") : String(localized: "Pause"))
+                .shortcut("pause", name: state.paused ? String(localized: "Resume") : String(localized: "Pause"),
+                          key: String(localized: "Space"), in: hints)
                 .accessibilityLabel(state.paused ? String(localized: "Resume recording") : String(localized: "Pause recording"))
             Text(state.time)
                 .font(.system(size: 13).monospacedDigit())
@@ -34,19 +36,19 @@ struct RecordingToolbar: View {
             separator
             // Pointer first and chosen at the start: clicks go to the apps. A tool = drawing.
             // The same tools, order, color and size as the screenshot editor (shared views).
-            MarkToolButtons(selected: state.drawing ? state.tool : nil, pointerHelp: pointerHelp,
+            MarkToolButtons(selected: state.drawing ? state.tool : nil, hints: hints, pointerHelp: pointerHelp,
                             pointerHint: String(localized: "Clicks go to the app being recorded")) { tool in
                 run(tool.map { .tool($0) } ?? .pointer)
             }
             separator
-            MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded,
+            MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded, hints: hints,
                              toggle: { run(.toggle($0)) }, color: { run(.color($0)) }, size: { run(.size($0)) })
             fadeMenu
             separator
-            SoundSwitches(state: state, keys: false, run: run)
+            SoundSwitches(state: state, hints: hints, run: run)
             separator
             Button { run(.erase) } label: { symbol("trash") }
-                .help(String(localized: "Erase all drawings"))
+                .shortcut("erase", name: String(localized: "Erase all drawings"), key: "⇧⌫", in: hints)
                 .accessibilityLabel(String(localized: "Erase all drawings"))
         }
         .buttonStyle(.plain)
@@ -60,6 +62,7 @@ struct RecordingToolbar: View {
         .glassEffect(opaque ? .identity : .regular, in: .capsule)
         .gesture(WindowDragGesture())
         .fixedSize()
+        .coordinateSpace(.named(ShortcutHintModel.space))
     }
 
     private var opaque: Bool { reduceTransparency || contrast == .increased }
@@ -84,7 +87,8 @@ struct RecordingToolbar: View {
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
         .frame(width: 64, height: 28)
-        .help(state.fade == 0 ? String(localized: "Drawings: fixed") : String(localized: "Drawings: fade after \(Int(state.fade)) s"))
+        .shortcut("fade", name: state.fade == 0 ? String(localized: "Drawings: fixed") : String(localized: "Drawings: fade after \(Int(state.fade)) s"),
+                  key: "F", in: hints)
         .accessibilityLabel(String(localized: "Drawings"))
         .accessibilityValue(state.fade == 0 ? String(localized: "Fixed") : String(localized: "Fade after \(Int(state.fade)) s"))
     }
@@ -118,21 +122,21 @@ struct RecordingToolbar: View {
 /// the tooltips, in the countdown capsule (O-18, user's pick A). Same look in both.
 struct SoundSwitches: View {
     let state: RecordingState
-    let keys: Bool
+    var hints: ShortcutHintModel?
     let run: (RecordingCommand) -> Void
 
     var body: some View {
         Button { run(.microphone) } label: { symbol(state.microphone ? "mic" : "mic.slash", selected: state.microphone) }
-            .help(withKey(state.microphone ? String(localized: "Microphone: on") : String(localized: "Microphone: off"), "M"))
+            .shortcut("microphone", name: state.microphone ? String(localized: "Microphone: on") : String(localized: "Microphone: off"),
+                      key: "M", in: hints)
             .accessibilityLabel(String(localized: "Microphone"))
             .accessibilityValue(state.microphone ? String(localized: "On") : String(localized: "Off"))
         Button { run(.macSound) } label: { symbol(state.macSound ? "speaker.wave.2" : "speaker.slash", selected: state.macSound) }
-            .help(withKey(state.macSound ? String(localized: "Mac sound: on") : String(localized: "Mac sound: off"), "S"))
+            .shortcut("macSound", name: state.macSound ? String(localized: "Mac sound: on") : String(localized: "Mac sound: off"),
+                      key: "S", in: hints)
             .accessibilityLabel(String(localized: "Mac sound"))
             .accessibilityValue(state.macSound ? String(localized: "On") : String(localized: "Off"))
     }
-
-    private func withKey(_ text: String, _ key: String) -> String { keys ? "\(text) (\(key))" : text }
 
     private func symbol(_ name: String, selected: Bool) -> some View {
         Image(systemName: name)

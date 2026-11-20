@@ -17,20 +17,6 @@ final class CaptureEditorState {
     var recordOnly = false
     var microphone = RecordingPrefs.microphone
     var macSound = RecordingPrefs.macSound
-    /// The line under the toolbar (O-15).
-    var caption: Caption?
-
-    enum Caption: Equatable {
-        /// The shape keys, whenever no mark is selected.
-        case keys
-        /// How to move and change the selected mark.
-        case edit(CaptureTool)
-    }
-
-    static func caption(selected: CaptureTool?, typing: Bool) -> Caption? {
-        if typing { return nil }
-        return selected.map { .edit($0) } ?? .keys
-    }
 
     typealias Expansion = StyleRow
 
@@ -51,19 +37,12 @@ enum CaptureCommand {
 /// undo, redo | copy, save. Icons only, with tooltips and VoiceOver labels.
 struct CaptureToolbar: View {
     let state: CaptureEditorState
+    var hints: ShortcutHintModel?
     let run: (CaptureCommand) -> Void
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        VStack(spacing: 6) {
-            capsule
-            if let caption = state.caption { ToolbarCaption(caption: caption) }
-        }
-        .fixedSize()
-    }
-
-    private var capsule: some View {
         editorControls
         .buttonStyle(.plain)
         .padding(8)
@@ -76,37 +55,38 @@ struct CaptureToolbar: View {
         }
         .glassEffect(opaque ? .identity : .regular, in: .capsule)
         .fixedSize()
+        .coordinateSpace(.named(ShortcutHintModel.space))
     }
 
     private var editorControls: some View {
         HStack(spacing: 4) {
-            MarkToolButtons(selected: state.tool,
+            MarkToolButtons(selected: state.tool, hints: hints,
                             pointerHelp: String(localized: "Pointer: move the selection or a drawing"),
                             pointerHint: String(localized: "Drag to move the selection; click a drawing to change it")) { tool in
                 run(tool.map { .tool($0) } ?? .pointer)
             }
             separator
-            MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded,
+            MarkStyleButtons(colorIndex: state.colorIndex, sizeIndex: state.sizeIndex, expanded: state.expanded, hints: hints,
                              toggle: { run(.toggle($0)) }, color: { run(.color($0)) }, size: { run(.size($0)) })
             separator
             Button { run(.undo) } label: { symbol("arrow.uturn.backward") }
                 .disabled(!state.canUndo)
-                .help(String(localized: "Undo (⌘Z)"))
+                .shortcut("undo", name: String(localized: "Undo"), key: "⌘Z", in: hints)
                 .accessibilityLabel(String(localized: "Undo"))
             Button { run(.redo) } label: { symbol("arrow.uturn.forward") }
                 .disabled(!state.canRedo)
-                .help(String(localized: "Redo (⇧⌘Z)"))
+                .shortcut("redo", name: String(localized: "Redo"), key: "⇧⌘Z", in: hints)
                 .accessibilityLabel(String(localized: "Redo"))
             separator
             Button { run(.copy) } label: { symbol("doc.on.doc") }
-                .help(String(localized: "Copy (⌘C)"))
+                .shortcut("copy", name: String(localized: "Copy"), key: "⌘C", in: hints)
                 .accessibilityLabel(String(localized: "Copy"))
             Button { run(.save) } label: { symbol("square.and.arrow.down") }
-                .help(String(localized: "Save (⌘S)"))
+                .shortcut("save", name: String(localized: "Save"), key: "⌘S", in: hints)
                 .accessibilityLabel(String(localized: "Save"))
             separator
             Button { run(.record) } label: { symbol("record.circle") }
-                .help(String(localized: "Record Video (⇧⌘R)"))
+                .shortcut("record", name: String(localized: "Record video"), key: "⇧⌘R", in: hints)
                 .accessibilityLabel(String(localized: "Record video"))
         }
     }
@@ -149,6 +129,7 @@ struct CapsuleSymbol: View {
 /// Pointer first, then every tool in `CaptureTool` order. `selected` nil = the Pointer.
 struct MarkToolButtons: View {
     let selected: CaptureTool?
+    var hints: ShortcutHintModel?
     let pointerHelp: String
     let pointerHint: String
     let choose: (CaptureTool?) -> Void
@@ -156,13 +137,13 @@ struct MarkToolButtons: View {
     var body: some View {
         HStack(spacing: 4) {
             Button { choose(nil) } label: { CapsuleSymbol(name: "cursorarrow", selected: selected == nil) }
-                .help(pointerHelp)
+                .shortcut("pointer", name: String(localized: "Pointer"), key: "Q", in: hints)
                 .accessibilityLabel(String(localized: "Pointer"))
                 .accessibilityHint(pointerHint)
                 .accessibilityAddTraits(selected == nil ? .isSelected : [])
             ForEach(CaptureTool.allCases) { tool in
                 Button { choose(tool) } label: { CapsuleSymbol(name: tool.symbol, selected: selected == tool) }
-                    .help("\(tool.title) (\(tool.key))")
+                    .shortcut("tool.\(tool)", name: tool.title, key: tool.key, in: hints)
                     .accessibilityLabel(tool.title)
                     .accessibilityAddTraits(selected == tool ? .isSelected : [])
             }
@@ -177,6 +158,7 @@ struct MarkStyleButtons: View {
     let colorIndex: Int
     let sizeIndex: Int
     let expanded: StyleRow?
+    var hints: ShortcutHintModel?
     let toggle: (StyleRow) -> Void
     let color: (Int) -> Void
     let size: (Int) -> Void
@@ -189,7 +171,7 @@ struct MarkStyleButtons: View {
                 Button { toggle(.colors) } label: {
                     swatch(colorIndex, size: 18)
                 }
-                .help(String(localized: "Color (1–8)"))
+                .shortcut("colors", name: String(localized: "Color"), key: "C", in: hints)
                 .accessibilityLabel(String(localized: "Color: \(CapturePalette.name(colorIndex))"))
             } else {
                 ForEach(CapturePalette.colors.indices, id: \.self) { index in
@@ -202,7 +184,7 @@ struct MarkStyleButtons: View {
                                 }
                             }
                     }
-                    .help("\(CapturePalette.name(index)) (\(index + 1))")
+                    .shortcut("color.\(index)", name: CapturePalette.name(index), key: "\(index + 1)", in: hints)
                     .accessibilityLabel(CapturePalette.name(index))
                     .accessibilityAddTraits(index == colorIndex ? .isSelected : [])
                 }
@@ -211,7 +193,7 @@ struct MarkStyleButtons: View {
                 Button { toggle(.sizes) } label: {
                     weight(sizeIndex)
                 }
-                .help(String(localized: "Size (- and +, or scroll)"))
+                .shortcut("sizes", name: String(localized: "Size"), key: "W", in: hints)
                 .accessibilityLabel(String(localized: "Size: \(CaptureSize.name(sizeIndex))"))
             } else {
                 ForEach(0..<CaptureSize.count, id: \.self) { index in
@@ -221,7 +203,7 @@ struct MarkStyleButtons: View {
                             .foregroundStyle(selected ? Color.white : Color.primary)
                             .background(selected ? Color.accentColor : .clear, in: Circle())
                     }
-                    .help(CaptureSize.name(index))
+                    .shortcut("size.\(index)", name: CaptureSize.name(index), key: "\(index + 1)", in: hints)
                     .accessibilityLabel(CaptureSize.name(index))
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
@@ -254,57 +236,6 @@ final class CaptureHintModel {
     var visible = false
     var windowMode = false
     var recording = false
-}
-
-/// Under the editor's toolbar (O-15): small key caps so the keyboard is discoverable.
-/// VoiceOver hears the same in the overlay's announcements.
-struct ToolbarCaption: View {
-    let caption: CaptureEditorState.Caption
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    var body: some View {
-        HStack(spacing: 10) { items }
-            .font(.system(size: 11))
-            .padding(.horizontal, 10)
-            .frame(height: 24)
-            .background {
-                if opaque {
-                    Capsule().fill(Color(nsColor: .windowBackgroundColor))
-                        .overlay(Capsule().strokeBorder(Color.primary.opacity(contrast == .increased ? 1 : 0.15)))
-                }
-            }
-            .glassEffect(opaque ? .identity : .regular, in: .capsule)
-            .fixedSize()
-            .accessibilityHidden(true)
-    }
-
-    private var opaque: Bool { reduceTransparency || contrast == .increased }
-
-    @ViewBuilder private var items: some View {
-        switch caption {
-        case .keys:
-            ForEach([CaptureTool.arrow, .line, .rectangle, .ellipse, .text, .blur], id: \.self) { tool in
-                item(tool.key, tool.title)
-            }
-        case .edit(let tool):
-            item("← →", String(localized: "Move"))
-            if tool != .text { item("⌥", tool == .arrow || tool == .line ? String(localized: "Tip") : String(localized: "Size")) }
-            item("⌘D", String(localized: "Duplicate"))
-            item("esc", String(localized: "Done"))
-        }
-    }
-
-    private func item(_ key: String, _ text: String) -> some View {
-        HStack(spacing: 4) {
-            Text(key)
-                .font(.system(size: 10, weight: .semibold))
-                .frame(minWidth: 16, minHeight: 16)
-                .padding(.horizontal, 3)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
-            Text(text).foregroundStyle(.secondary)
-        }
-    }
 }
 
 struct CaptureHint: View {

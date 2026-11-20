@@ -3471,6 +3471,16 @@
         }
       }
     },
+    "Space": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espacio"
+          }
+        }
+      }
+    },
     "Space for images to paste as files": {
       "localizations": {
         "es": {

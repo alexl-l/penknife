@@ -33,6 +33,10 @@ final class RecordingSession {
     private var countdownPanel: OverlayPanel?
     /// The capsule with "Recording in 3" and the sound switches (O-18).
     private var capsulePanel: OverlayPanel?
+    /// SS-62: every button's key, above the toolbar.
+    private let hints = ShortcutHintModel()
+    private var hintsPanel: OverlayPanel?
+    private var hintObservers: [NSObjectProtocol] = []
     /// A switch touched during the countdown restarts it at 3, once (O-18).
     private var countdownRestarted = false
     private var strokePanel: OverlayPanel?
@@ -125,12 +129,13 @@ final class RecordingSession {
     /// What a ⌘ key does while drawing (B-13): ⌘Z undoes the newest drawing; while a text is
     /// typed the Edit menu's keys reach it (undo, cut, copy, paste, select all); every other ⌘ key
     /// stays here, so ⌘Q or ⌘, can't quit Penknife or open Settings in the middle of a recording.
-    enum CommandKey: Equatable { case undo, duplicate, toText, swallow }
+    enum CommandKey: Equatable { case undo, duplicate, stop, toText, swallow }
     static func commandKey(_ key: String, typing: Bool) -> CommandKey {
         if typing { return ["z", "x", "c", "v", "a"].contains(key) ? .toText : .swallow }
         switch key {
         case "z": return .undo
         case "d": return .duplicate   // SS-61, same as the editor
+        case ".": return .stop        // ⌘. (R is the rectangle), besides the global Record Screen
         default: return .swallow
         }
     }
@@ -332,7 +337,8 @@ final class RecordingSession {
     }
 
     private func showToolbar() {
-        let host = FirstClickHostingView(rootView: RecordingToolbar(state: state) { [weak self] in self?.run($0) })
+        let host = HintTrackingHostingView(rootView: RecordingToolbar(state: state, hints: hints) { [weak self] in self?.run($0) })
+        host.hints = hints
         let size = host.fittingSize
         let panel = OverlayPanel(frame: CGRect(origin: .zero, size: size), level: NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 2))
         panel.becomesKeyOnlyIfNeeded = true
@@ -341,6 +347,7 @@ final class RecordingSession {
         toolbarPanel = panel
         placeToolbar(size)
         panel.orderFrontRegardless()
+        showHints(over: panel)
     }
 
     /// The blur marks (R-32): blurred in every frame of the file by the writer, frosted on screen.
@@ -377,6 +384,30 @@ final class RecordingSession {
     }
 
     /// The capsule's width changes when a choice row opens or closes: it stays centered where it is.
+    /// SS-62: the keys above the toolbar, in a window that never takes the pointer; it follows
+    /// the toolbar when it moves (dragged) or changes size (a row opens).
+    private func showHints(over toolbar: OverlayPanel) {
+        let panel = OverlayPanel(frame: .zero, level: NSWindow.Level(rawValue: NSWindow.Level.statusBar.rawValue + 2))
+        panel.ignoresMouseEvents = true
+        panel.contentView = PassThroughHostingView(rootView: ShortcutHints(model: hints))
+        hintsPanel = panel
+        toolbar.addChildWindow(panel, ordered: .above)
+        placeHints()
+        let center = NotificationCenter.default
+        hintObservers = [NSWindow.didMoveNotification, NSWindow.didResizeNotification].map { name in
+            center.addObserver(forName: name, object: toolbar, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.placeHints() }
+            }
+        }
+    }
+
+    private func placeHints() {
+        guard let toolbar = toolbarPanel, let hintsPanel else { return }
+        let side = ShortcutHintModel.overhang
+        hintsPanel.setFrame(CGRect(x: toolbar.frame.minX - side, y: toolbar.frame.maxY,
+                                   width: toolbar.frame.width + side * 2, height: ShortcutHintModel.headroom), display: true)
+    }
+
     private func resizeToolbar() {
         DispatchQueue.main.async { [weak self] in
             guard let self, let panel = toolbarPanel, let host = panel.contentView else { return }
@@ -546,6 +577,7 @@ final class RecordingSession {
             canvas?.add(mark, fade: state.fade)
         }
         view.announce = { [weak self] in self?.announce($0) }
+        view.onModifiers = { [weak self] in self?.hints.modifiersChanged($0) }
         view.onScroll = { [weak self] step in
             guard let self else { return }
             let next = min(max(state.sizeIndex + step, 0), CaptureSize.count - 1)
@@ -562,6 +594,7 @@ final class RecordingSession {
     /// Keys while drawing (the text being typed gets its own first, except Esc and ⌘ keys).
     private func handleKey(_ event: NSEvent) -> Bool {
         guard event.type == .keyDown, let input else { return false }
+        hints.keyPressed()
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 {
@@ -586,6 +619,9 @@ final class RecordingSession {
             case .duplicate:
                 input.duplicateSelected()
                 return true
+            case .stop:
+                stop()
+                return true
             }
         }
         guard !input.isTyping else { return false }
@@ -602,7 +638,11 @@ final class RecordingSession {
             return true
         }
         guard flags.isDisjoint(with: [.control, .option]) else { return false }
-        // Delete removes the selected mark, else the newest (all of them: the toolbar's trash button).
+        // ⇧⌫ erases all drawings (the trash button); Delete removes the selected mark, else the newest.
+        if event.keyCode == 51 || event.keyCode == 117, flags.contains(.shift) {
+            run(.erase)
+            return true
+        }
         if event.keyCode == 51 || event.keyCode == 117 {
             if !input.deleteSelected(), canvas?.undo() == true { announce(String(localized: "Undone")) }
             return true
@@ -619,6 +659,14 @@ final class RecordingSession {
         case .swallow?: return true
         default: break
         }
+        if let command = Self.drawingKey(key, keyCode: event.keyCode, isRepeat: event.isARepeat,
+                                         sizesOpen: state.expanded == .sizes, fade: state.fade) {
+            if case .fade(let seconds) = command {
+                announce(seconds == 0 ? String(localized: "Drawings: fixed") : String(localized: "Drawings: fade after \(Int(seconds)) s"))
+            }
+            run(command)
+            return true
+        }
         if let digit = Int(key), (1...CapturePalette.colors.count).contains(digit) {
             run(.color(digit - 1))
             return true
@@ -632,6 +680,29 @@ final class RecordingSession {
             return true
         }
         return false
+    }
+
+    /// The toolbar's other buttons while drawing (every button has its key, user IMPERATIVE
+    /// 2026-11-19; same letters as the editor where both have the button): Q Pointer, C colors,
+    /// W sizes (then 1–4), F next fade, M microphone, S Mac sound, Space pause. ⇧⌫ and ⌘. are
+    /// handled with Delete and the ⌘ keys.
+    static func drawingKey(_ key: String, keyCode: UInt16, isRepeat: Bool, sizesOpen: Bool, fade: Double) -> RecordingCommand? {
+        if keyCode == 49 { return isRepeat ? nil : .pause }
+        switch CaptureKeys.rowKey(key) {
+        case .pointer?: return .pointer
+        case .toggleRow(let row)?: return .toggle(row)
+        default: break
+        }
+        if sizesOpen, let digit = Int(key), (1...CaptureSize.count).contains(digit) { return .size(digit - 1) }
+        guard !isRepeat else { return nil }
+        switch key.lowercased() {
+        case "f":
+            let fades = RecordingPrefs.fades
+            return .fade(fades[((fades.firstIndex(of: fade) ?? 0) + 1) % fades.count])
+        case "m": return .microphone
+        case "s": return .macSound
+        default: return nil
+        }
     }
 
     // MARK: End
@@ -736,7 +807,10 @@ final class RecordingSession {
             state.drawing = false
             appBeforeDrawing?.activate()
         }
-        for panel in [countdownPanel, capsulePanel, strokePanel, blurPanel, inputPanel, framePanel, toolbarPanel] {
+        hintObservers.forEach(NotificationCenter.default.removeObserver)
+        hintObservers = []
+        hints.reset()
+        for panel in [countdownPanel, capsulePanel, strokePanel, blurPanel, inputPanel, framePanel, hintsPanel, toolbarPanel] {
             panel?.orderOut(nil)
             panel?.close()
         }
@@ -750,6 +824,7 @@ final class RecordingSession {
         framePanel = nil
         frameView = nil
         toolbarPanel = nil
+        hintsPanel = nil
         RecordingIndicator.shared.hide()
     }
 

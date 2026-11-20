@@ -15,6 +15,8 @@ struct CaptureKeyContext: Equatable {
     var markCount = 0
     var selectedMark: Int?
     var sizeIndex = 0
+    /// The size row is open: 1–4 pick a size there instead of a color (SS-62).
+    var sizesOpen = false
 }
 
 /// What a key does in the overlay. The canvas performs it exactly as it did inline.
@@ -44,6 +46,10 @@ enum CaptureKeyAction: Equatable {
     case nextTarget(forward: Bool)
     case nudgeSelection(dx: CGFloat, dy: CGFloat, resize: Bool)
     case tool(CaptureTool)
+    /// Q: the Pointer (SS-62).
+    case pointer
+    /// C opens or closes the colors, W the sizes (SS-62).
+    case toggleRow(StyleRow)
     case color(Int)
     case size(Int)
 }
@@ -52,6 +58,17 @@ enum CaptureKeyAction: Equatable {
 enum CaptureKeys {
     /// Tools whose mark Return can place by keyboard (O-15); pen, highlighter and eraser are freehand.
     static let placeable: Set<CaptureTool> = [.arrow, .line, .rectangle, .ellipse, .blur]
+
+    /// Every button has its key (user, IMPERATIVE 2026-11-19): Q the Pointer, C the colors, W the
+    /// sizes. Shared by the editor and drawing while recording.
+    static func rowKey(_ key: String) -> CaptureKeyAction? {
+        switch key.lowercased() {
+        case "q": .pointer
+        case "c": .toggleRow(.colors)
+        case "w": .toggleRow(.sizes)
+        default: nil
+        }
+    }
 
     /// A tool's letter, shared by the editor and drawing while recording (SS-27, REC-19): a
     /// shape's letter places it (a held key, one), the others only choose the tool.
@@ -107,6 +124,8 @@ enum CaptureKeys {
         }
         guard c.hasSelection, flags.isDisjoint(with: [.control, .option]) else { return nil }
         if let action = toolKey(key, isRepeat: isRepeat) { return action }
+        if let action = rowKey(key) { return action }
+        if c.sizesOpen, let digit = Int(key), (1...CaptureSize.count).contains(digit) { return .size(digit - 1) }
         if let digit = Int(key), (1...CapturePalette.colors.count).contains(digit) { return .color(digit - 1) }
         if key == "-" { return .size(max(c.sizeIndex - 1, 0)) }
         if key == "+" || key == "=" { return .size(min(c.sizeIndex + 1, CaptureSize.count - 1)) }

@@ -1302,12 +1302,41 @@ struct ScreenshotRulesTests {
         #expect(editor.undo() != nil && editor.marks.count == 1)
     }
 
-    @Test("SS-60 O-15 the caption: shape keys whenever no mark is selected; how to change the selected one")
-    func caption() {
-        typealias S = CaptureEditorState
-        #expect(S.caption(selected: nil, typing: false) == .keys)
-        #expect(S.caption(selected: .line, typing: false) == .edit(.line))
-        #expect(S.caption(selected: nil, typing: true) == nil)
+    @Test("SS-62 every button has its key: Q Pointer, C colors, W sizes; with the sizes open 1–4 pick a size")
+    func everyButtonHasAKey() {
+        let c = CaptureKeyContext(hasSelection: true)
+        func key(_ k: String, _ c: CaptureKeyContext) -> CaptureKeyAction? {
+            CaptureKeys.action(keyCode: 0, characters: k, flags: [], isRepeat: false, context: c)
+        }
+        #expect(key("q", c) == .pointer)
+        #expect(key("C", c) == .toggleRow(.colors))
+        #expect(key("w", c) == .toggleRow(.sizes))
+        #expect(key("3", c) == .color(2))
+        var open = c
+        open.sizesOpen = true
+        #expect(key("3", open) == .size(2))
+        #expect(key("6", open) == .color(5))
+        #expect(key("q", CaptureKeyContext(hasSelection: false)) == nil)
+    }
+
+    @Test("SS-62 hints: the pointer finds its button; only ⌘ alone shows every key")
+    @MainActor func hints() {
+        let items: [String: ShortcutHintModel.Item] = [
+            "a": .init(name: "Arrow", key: "V", frame: CGRect(x: 8, y: 8, width: 28, height: 28)),
+            "b": .init(name: "Line", key: "L", frame: CGRect(x: 40, y: 8, width: 28, height: 28)),
+        ]
+        #expect(ShortcutHintModel.item(at: CGPoint(x: 50, y: 20), in: items) == "b")
+        #expect(ShortcutHintModel.item(at: CGPoint(x: 38, y: 20), in: items) == nil)
+        #expect(ShortcutHintModel.isCommandAlone([.command]))
+        #expect(ShortcutHintModel.isCommandAlone([.command, .capsLock]))
+        #expect(!ShortcutHintModel.isCommandAlone([.command, .shift]))
+        #expect(!ShortcutHintModel.isCommandAlone([]))
+        let model = ShortcutHintModel()
+        model.items = items
+        model.hover(at: CGPoint(x: 10, y: 10))
+        #expect(model.hovered == "a")
+        model.hover(at: nil)
+        #expect(model.hovered == nil)
     }
 
     @Test("REC-19 O-15 SS-61 drawing while recording uses the editor's letters and ⌘D")
@@ -1318,6 +1347,28 @@ struct ScreenshotRulesTests {
         #expect(CaptureKeys.toolKey("x", isRepeat: false) == nil)
         #expect(RecordingSession.commandKey("d", typing: false) == .duplicate)
         #expect(RecordingSession.commandKey("d", typing: true) == .swallow)
+    }
+
+    @Test("REC-19 SS-62 every recording button has its key while drawing")
+    func recordingButtonKeys() {
+        typealias S = RecordingSession
+        func key(_ k: String, code: UInt16 = 0, sizes: Bool = false, fade: Double = 0) -> RecordingCommand? {
+            S.drawingKey(k, keyCode: code, isRepeat: false, sizesOpen: sizes, fade: fade)
+        }
+        #expect(key(" ", code: 49) == .pause)
+        #expect(S.drawingKey(" ", keyCode: 49, isRepeat: true, sizesOpen: false, fade: 0) == nil)
+        #expect(key("q") == .pointer)
+        #expect(key("c") == .toggle(.colors))
+        #expect(key("w") == .toggle(.sizes))
+        #expect(key("2", sizes: true) == .size(1))
+        #expect(key("2") == nil)   // a color, handled after
+        #expect(key("m") == .microphone)
+        #expect(key("s") == .macSound)
+        let fades = RecordingPrefs.fades
+        #expect(key("f", fade: fades[0]) == .fade(fades[1]))
+        #expect(key("f", fade: fades.last!) == .fade(fades[0]))
+        #expect(key("l") == nil)   // a tool, handled before
+        #expect(S.commandKey(".", typing: false) == .stop)
     }
 
     @Test("REC-05 O-18 during the countdown M flips the microphone, S the Mac sound; other keys do nothing")

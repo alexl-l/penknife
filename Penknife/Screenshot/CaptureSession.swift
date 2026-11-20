@@ -225,7 +225,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var hintWork: DispatchWorkItem?
     private var hintDone = false
 
-    private var toolbar: NSHostingView<CaptureToolbar>?
+    private var toolbar: HintTrackingHostingView<CaptureToolbar>?
+    /// Every button's key, on demand (SS-62): the pointer over a button, or ⌘ held.
+    private let hints = ShortcutHintModel()
+    private var hintsView: NSView?
     private var textView: NSTextView?
     private var textOrigin = CGPoint.zero
     private lazy var ciContext = CIContext()
@@ -392,6 +395,12 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     // MARK: Pointer
 
     override func cursorUpdate(with event: NSEvent) { updateCursor(convert(event.locationInWindow, from: nil)) }
+
+    /// ⌘ held alone shows every button's key (SS-62).
+    override func flagsChanged(with event: NSEvent) {
+        hints.modifiersChanged(event.modifierFlags)
+        super.flagsChanged(with: event)
+    }
 
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
@@ -574,7 +583,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         guard index != selectedMark else { return }
         redrawMark(selectedMark)
         selectedMark = index
-        defer { updateCaption() }
         guard let index, annotations.indices.contains(index) else { return }
         redrawMark(index)
         let mark = annotations[index]
@@ -604,16 +612,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         announce(tool == .arrow || tool == .line
             ? String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows move its tip.")
             : String(localized: "\(tool.title) placed in the middle. Arrows move it, Option arrows change its size."))
-    }
-
-    /// The line under the toolbar (O-15, SS-60): the shape keys whenever no mark is selected; how
-    /// to move and change the selected mark; nothing while a text is typed.
-    private func updateCaption() {
-        let selected = selectedMark.flatMap { annotations.indices.contains($0) ? annotations[$0].tool : nil }
-        let caption = CaptureEditorState.caption(selected: selected, typing: textView != nil)
-        guard caption != state.caption else { return }
-        state.caption = caption
-        relayoutToolbar()
     }
 
     /// A copy of the mark next to it (12 pt down and right, inside the selection), selected, so
@@ -943,16 +941,21 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private func showToolbar() {
         guard selection != nil else { return }
         if toolbar == nil {
-            let view = NSHostingView(rootView: CaptureToolbar(state: state) { [weak self] in self?.run($0) })
+            let view = HintTrackingHostingView(rootView: CaptureToolbar(state: state, hints: hints) { [weak self] in self?.run($0) })
+            view.hints = hints
             addSubview(view)
             toolbar = view
-            state.caption = CaptureEditorState.caption(selected: nil, typing: textView != nil)
+            let above = PassThroughHostingView(rootView: ShortcutHints(model: hints))
+            addSubview(above)
+            hintsView = above
         }
         layoutToolbar()
     }
 
     private func hideToolbar() {
         toolbar?.isHidden = true
+        hintsView?.isHidden = true
+        hints.reset()
     }
 
     /// Below the selection; above when there's no room; inside its bottom when neither fits.
@@ -960,6 +963,11 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         guard let toolbar, let selection else { return }
         toolbar.frame = CaptureGeometry.toolbarFrame(selection: selection, size: toolbar.fittingSize, bounds: bounds)
         toolbar.isHidden = false
+        // Right above the toolbar (this view is flipped: up is a smaller y).
+        let room = ShortcutHintModel.headroom, side = ShortcutHintModel.overhang
+        hintsView?.frame = CGRect(x: toolbar.frame.minX - side, y: toolbar.frame.minY - room,
+                                  width: toolbar.frame.width + side * 2, height: room)
+        hintsView?.isHidden = false
     }
 
     private func run(_ command: CaptureCommand) {
@@ -1006,13 +1014,11 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .pointer:
             state.tool = nil
             selectMark(nil)
-            updateCaption()
             updateHoveredMark(mouseLocation)
             announce(String(localized: "No tool: drag to move the selection"))
         case .tool(let tool):
             state.tool = state.tool == tool ? nil : tool
             selectMark(nil)
-            updateCaption()
             updateHoveredMark(mouseLocation)
             announce(state.tool.map { $0.title } ?? String(localized: "No tool: drag to move the selection"))
         default: break
@@ -1049,10 +1055,12 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     /// Keys while no text is being typed. Returns false to let the event through.
     func handleKey(_ event: NSEvent) -> Bool {
+        hints.keyPressed()
         let context = CaptureKeyContext(
             hasSelection: selection != nil, recordMode: state.recordMode, fixedSelection: fixedSelection,
             windowMode: windowMode, capturing: capturing, typing: textView != nil, tool: state.tool,
-            markCount: annotations.count, selectedMark: selectedMark, sizeIndex: state.sizeIndex)
+            markCount: annotations.count, selectedMark: selectedMark, sizeIndex: state.sizeIndex,
+            sizesOpen: state.expanded == .sizes)
         guard let action = CaptureKeys.action(keyCode: event.keyCode, characters: event.charactersIgnoringModifiers,
                                               flags: event.modifierFlags, isRepeat: event.type == .keyDown && event.isARepeat,
                                               context: context) else { return false }
@@ -1108,6 +1116,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 ? String(localized: "\(Int(moved.width * scale)) by \(Int(moved.height * scale)) pixels")
                 : String(localized: "Selection moved"))
         case .tool(let tool): run(.tool(tool))
+        case .pointer: run(.pointer)
+        case .toggleRow(let row): run(.toggle(row))
         case .color(let index): run(.color(index))
         case .size(let index): run(.size(index))
         }
@@ -1232,7 +1242,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         textView = view
         textOrigin = point
         window?.makeFirstResponder(view)
-        updateCaption()
     }
 
     private var textSize = CaptureSize.defaultIndex
@@ -1280,7 +1289,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         updateUndoState()
         textScale = 1
         needsDisplay = true
-        updateCaption()
     }
 
     // MARK: Undo
@@ -1316,7 +1324,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private func updateUndoState() {
         state.canUndo = editor.canUndo
         state.canRedo = editor.canRedo
-        updateCaption()
     }
 
     // MARK: Output

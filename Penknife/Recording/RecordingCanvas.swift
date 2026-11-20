@@ -247,6 +247,13 @@ final class DrawingInputView: NSView, NSTextViewDelegate {
     var announce: ((String) -> Void)?
     /// The scroll wheel: +1 thicker, -1 thinner (as in the screenshot editor).
     var onScroll: ((Int) -> Void)?
+    /// ⌘ held alone shows the toolbar's keys (SS-62).
+    var onModifiers: ((NSEvent.ModifierFlags) -> Void)?
+
+    override func flagsChanged(with event: NSEvent) {
+        onModifiers?(event.modifierFlags)
+        super.flagsChanged(with: event)
+    }
     private var scrollAccumulator: CGFloat = 0
 
     private enum Drag {
@@ -785,7 +792,7 @@ struct CountdownCapsule: View {
                 .accessibilityHidden(true)
             Divider().frame(height: 18).padding(.horizontal, 2)
             HStack(spacing: 4) {
-                SoundSwitches(state: state, keys: true, run: run)
+                SoundSwitches(state: state, run: run)
             }
         }
         .padding(.leading, 16)

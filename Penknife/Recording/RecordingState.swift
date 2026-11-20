@@ -67,7 +67,7 @@ final class RecordingState {
     static let tools = CaptureTool.allCases
 }
 
-enum RecordingCommand {
+enum RecordingCommand: Equatable {
     case stop, pause, pointer, tool(CaptureTool), toggle(StyleRow), color(Int), size(Int), fade(Double), microphone, macSound, erase
 }
 
