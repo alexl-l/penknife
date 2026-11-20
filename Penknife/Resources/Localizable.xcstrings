@@ -4572,6 +4572,76 @@
           }
         }
       }
+    },
+    "Speed %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocidad %@"
+          }
+        }
+      }
+    },
+    "(%@ of %@)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(%1$@ de %2$@)"
+          }
+        }
+      }
+    },
+    "(%@ · trimmed from %@) · %@ → %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "(%1$@ · recortado de %2$@) · %3$@ → %4$@"
+          }
+        }
+      }
+    },
+    "Playback speed": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocidad de reproducción"
+          }
+        }
+      }
+    },
+    "Normal speed (1×)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Velocidad normal (1×)"
+          }
+        }
+      }
+    },
+    "Normal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Normal"
+          }
+        }
+      }
+    },
+    "%@ faster": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ más rápido"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

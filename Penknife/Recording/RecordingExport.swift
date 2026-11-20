@@ -77,6 +77,56 @@ nonisolated enum RecordingExport {
         try await session.export(to: output, as: .mp4)
     }
 
+    /// `range` of `movie` (all of it when nil) played `speed` times faster (REC-50). The video is
+    /// copied as it is, only retimed (no new encoding); the sound is sped up keeping its pitch,
+    /// which needs it encoded again (measured 2026-11-20: a 9 s part takes about 0.2 s, and a
+    /// 440 Hz tone stays 440 Hz at 1.5×, 2× and 4×).
+    @concurrent
+    static func speed(_ movie: URL, range: CMTimeRange?, speed: Double, to output: URL) async throws {
+        let asset = AVURLAsset(url: movie)
+        let part = if let range { range } else { CMTimeRange(start: .zero, duration: try await asset.load(.duration)) }
+        let length = CMTimeMultiplyByFloat64(part.duration, multiplier: 1 / speed)
+        let composition = AVMutableComposition()
+        guard let videoTrack = try await asset.loadTracks(withMediaType: .video).first,
+              let video = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            throw RecordingError.export
+        }
+        try video.insertTimeRange(part, of: videoTrack, at: .zero)
+        video.scaleTimeRange(CMTimeRange(start: .zero, duration: part.duration), toDuration: length)
+
+        if let soundTrack = try await asset.loadTracks(withMediaType: .audio).first {
+            let sound = output.deletingPathExtension().appendingPathExtension("m4a")
+            let soundComposition = AVMutableComposition()
+            guard let track = soundComposition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid),
+                  let session = AVAssetExportSession(asset: soundComposition, presetName: AVAssetExportPresetAppleM4A) else {
+                throw RecordingError.export
+            }
+            try track.insertTimeRange(part, of: soundTrack, at: .zero)
+            track.scaleTimeRange(CMTimeRange(start: .zero, duration: part.duration), toDuration: length)
+            session.audioTimePitchAlgorithm = .spectral
+            try? FileManager.default.removeItem(at: sound)
+            try await session.export(to: sound, as: .m4a)
+            defer { try? FileManager.default.removeItem(at: sound) }
+            let soundAsset = AVURLAsset(url: sound)
+            if let fast = try await soundAsset.loadTracks(withMediaType: .audio).first,
+               let target = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid) {
+                try target.insertTimeRange(CMTimeRange(start: .zero, duration: min(try await soundAsset.load(.duration), length)), of: fast, at: .zero)
+            }
+            try await export(composition, to: output)
+        } else {
+            try await export(composition, to: output)
+        }
+    }
+
+    private static func export(_ composition: AVComposition, to output: URL) async throws {
+        try? FileManager.default.removeItem(at: output)
+        guard let session = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetPassthrough) else {
+            throw RecordingError.export
+        }
+        session.shouldOptimizeForNetworkUse = true
+        try await session.export(to: output, as: .mp4)
+    }
+
     /// An endless-loop GIF of `movie`, at most `maxSize` pixels, `frameRate` frames a second.
     /// Each frame keeps only what changed (`GIFEncoder`); frames that don't change make the frame
     /// before them last longer, which keeps still screens small.

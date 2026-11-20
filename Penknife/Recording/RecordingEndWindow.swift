@@ -25,6 +25,8 @@ final class RecordingResult {
     var thumbnails: [NSImage] = []
     /// The part kept (R-33); nil = all of it.
     var trim: CMTimeRange?
+    /// How many times faster the video plays and is saved (REC-50): 1, 1.5, 2 or 4.
+    var speed = 1.0
     /// Saved or copied at least once: closing doesn't ask.
     var kept = false
     var failed = false
@@ -33,7 +35,7 @@ final class RecordingResult {
 }
 
 enum RecordingEndCommand: Equatable {
-    case saveVideo, saveGIF, copy, trim, undoTrim, cancelGIF
+    case saveVideo, saveGIF, copy, trim, undoTrim, cancelGIF, speed(Double)
     case trimDone, trimCancel, trimPlay, trimScrub(Double), trimReleased
 }
 
@@ -61,8 +63,8 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
     /// The playhead while trimming (20 times a second, only then), and the filmstrip's frames.
     private var timeObserver: Any?
     private var thumbnailTask: Task<Void, Never>?
-    /// The trimmed file and the part it holds (made once per trim).
-    private var trimmedMovie: (url: URL, range: CMTimeRange)?
+    /// The trimmed or sped-up file, and the part and speed it holds (made once per change).
+    private var trimmedMovie: (url: URL, range: CMTimeRange?, speed: Double)?
     private var trimCount = 0
     /// Closed while saving or copying: it closes when that ends.
     private var closeWhenDone = false
@@ -139,7 +141,10 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
                 let soundKept = try await RecordingExport.movie(output, to: movie)
                 guard let self else { return }
                 self.soundLost = !soundKept
-                let player = AVPlayer(url: movie)
+                let item = AVPlayerItem(url: movie)
+                // A faster speed keeps the voice's pitch (REC-50).
+                item.audioTimePitchAlgorithm = .spectral
+                let player = AVPlayer(playerItem: item)
                 model.player = player
                 playerView.player = player
                 updateNote()
@@ -171,6 +176,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         case .copy: copyVideo()
         case .trim: trim()
         case .undoTrim: undoTrim()
+        case .speed(let speed): setSpeed(speed)
         default: break
         }
     }
@@ -299,32 +305,68 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         announce(String(localized: "Trim undone"))
     }
 
+    // MARK: Speed (REC-50)
+
+    /// The player plays at the new speed from where it is (playing on if it was playing); the
+    /// files are made at that speed when saved, made into a GIF or copied.
+    private func setSpeed(_ speed: Double) {
+        guard speed != model.speed, let player = model.player else { return }
+        model.speed = speed
+        player.defaultRate = Float(speed)
+        if player.rate != 0 { player.rate = Float(speed) }
+        updateNote()
+        announce(String(localized: "Speed \(Self.speedName(speed))"))
+    }
+
+    /// "1×", "1.5×" ("1,5×" in Spanish), "2×", "4×".
+    static func speedName(_ speed: Double) -> String {
+        speed.formatted(.number.precision(.fractionLength(0...1))) + "×"
+    }
+
     /// The sound couldn't be prepared: the video is kept without it, and the note says so (B-16).
     private var soundLost = false
     private var noSound: String { soundLost ? " · " + String(localized: "No sound (it couldn't be prepared)") : "" }
 
-    /// Length and size, or the trimmed length with what it was cut from.
+    /// Length and size, or the trimmed length with what it was cut from; at another speed, the
+    /// length it will last and the speed (the size is only known once made, so it isn't shown).
     private func updateNote() {
         let full = Self.time(length)
+        let speed = model.speed, fast = speed != 1
+        let kept = model.trim?.duration ?? length
+        let lasts = Self.time(fast ? CMTimeMultiplyByFloat64(kept, multiplier: 1 / speed) : kept)
+        let name = Self.speedName(speed)
         guard let trim = model.trim else {
-            model.trimNote = ""
-            let size = (try? movie.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0
-            model.note = "\(full) · \(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))" + noSound
+            if fast {
+                model.note = lasts + noSound
+                model.trimNote = String(localized: "(\(name) of \(full))")
+            } else {
+                model.trimNote = ""
+                let size = (try? movie.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0
+                model.note = "\(full) · \(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))" + noSound
+            }
             return
         }
-        model.note = Self.time(trim.duration) + noSound
+        model.note = lasts + noSound
         let from = Self.time(trim.start), to = Self.time(trim.end)
-        model.trimNote = String(localized: "(trimmed from \(full)) · \(from) → \(to)")
+        model.trimNote = fast ? String(localized: "(\(name) · trimmed from \(full)) · \(from) → \(to)")
+                              : String(localized: "(trimmed from \(full)) · \(from) → \(to)")
     }
 
-    /// The file to save, turn into a GIF or copy: the trimmed part when there is a trim.
+    /// The file to save, turn into a GIF or copy: the trimmed part when there is a trim, at the
+    /// chosen speed (REC-50).
     private func outputMovie() async throws -> URL {
-        guard let trim = model.trim else { return movie }
-        if let trimmedMovie, trimmedMovie.range == trim { return trimmedMovie.url }
+        let trim = model.trim, speed = model.speed
+        guard trim != nil || speed != 1 else { return movie }
+        if let trimmedMovie, trimmedMovie.range == trim, trimmedMovie.speed == speed { return trimmedMovie.url }
         trimCount += 1
         let url = folder.appendingPathComponent("Recording trimmed \(trimCount).mp4")
-        try await RecordingExport.trim(movie, range: trim, to: url)
-        trimmedMovie = (url, trim)
+        if speed == 1, let trim {
+            try await RecordingExport.trim(movie, range: trim, to: url)
+        } else {
+            try await RecordingExport.speed(movie, range: trim, speed: speed, to: url)
+        }
+        if let old = trimmedMovie?.url { try? FileManager.default.removeItem(at: old) }
+        trimmedMovie = (url, trim, speed)
         return url
     }
 
@@ -649,6 +691,8 @@ private struct RecordingEndView: View {
                     .truncationMode(.middle)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Group {
+                    SpeedMenu(speed: model.speed) { run(.speed($0)) }
+                        .disabled(!model.ready || model.trimming)
                     if model.trim != nil {
                         Button { run(.undoTrim) } label: {
                             Image(systemName: "arrow.uturn.backward").frame(width: 16)
@@ -667,6 +711,35 @@ private struct RecordingEndView: View {
             }
         }
         .animation(.easeInOut(duration: 0.15), value: model.trim != nil)
+    }
+}
+
+/// The playback speed (REC-50, user's pick A): a small borderless menu left of Trim, a speedometer
+/// and the speed; tinted when it isn't 1×. The choice has a checkmark.
+private struct SpeedMenu: View {
+    let speed: Double
+    let choose: (Double) -> Void
+    static let speeds = [1, 1.5, 2, 4]
+
+    var body: some View {
+        Menu {
+            Picker(String(localized: "Playback speed"), selection: Binding(get: { speed }, set: choose)) {
+                ForEach(Self.speeds, id: \.self) { value in
+                    Text(value == 1 ? String(localized: "Normal speed (1×)") : RecordingEndWindow.speedName(value)).tag(value)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } label: {
+            Label(RecordingEndWindow.speedName(speed), systemImage: "speedometer")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .foregroundStyle(speed == 1 ? Color.secondary : Color.accentColor)
+        .tint(speed == 1 ? nil : .accentColor)
+        .help(String(localized: "Playback speed"))
+        .accessibilityLabel(String(localized: "Playback speed"))
+        .accessibilityValue(speed == 1 ? String(localized: "Normal") : String(localized: "\(RecordingEndWindow.speedName(speed)) faster"))
     }
 }
 
