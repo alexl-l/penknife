@@ -17,7 +17,7 @@ One tiny menu bar app for your Mac. Free and open source.
 
 <img src="docs/screenshots/mute-meet.gif" width="720" alt="Penknife shortcut mutes Google Meet; the call's mic button switches to muted"><br><br>
 <img src="docs/screenshots/mute-teams.gif" width="720" alt="Penknife shortcut mutes Microsoft Teams; the call's mic button switches to muted"><br>
-<sub>Press one Penknife shortcut. The call mutes, and its own button updates.</sub>
+<sub>Press one shortcut. The call mutes and its own mic button updates.</sub>
 
 </div>
 
@@ -46,14 +46,14 @@ Open it with ⌃⌥V, search, pin what you reuse and paste with ⌘1–⌘9. His
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
 <h3>Screenshots and screen recording</h3>
-Select an area or a window, mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Paste the result into a Finder folder as a file. Nothing is uploaded.
+Press F1, select an area or a window (press Space), mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Paste the result into a Finder folder as a file. Nothing is uploaded.
 
-Record the full screen, an area or a window as a video or GIF (⌃⌥R). Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end before you save.
+Record the full screen, an area or a window as a video or GIF (⌃⌥R), or hold the Screenshot shortcut (F1) for 2 seconds, pick an area and recording starts. Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end before you save.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Music settings">
 <h3>Music</h3>
-Play, pause and skip in the player you choose: Spotify, Apple Music, YouTube Music, Amazon Music or any other app. Headphone clicks go to that player, and Apple Music no longer opens by itself.
+Play, pause and skip in the player you choose: Spotify, Apple Music, YouTube Music, Amazon Music or any other app. Headphone clicks go to that player, and Apple Music stays closed until you open it.
 </td>
 </tr>
 </table>
@@ -64,7 +64,7 @@ Drag an area, or press Space and click a window, or press Return for the full sc
 <img src="docs/screenshots/recording.gif" width="720" alt="Drawing while recording: a highlight under “Mark up and record your screen” and an arrow to the Download button, which fade after a few seconds">
 
 ### And in the menu bar
-Mouse jiggler to keep your Mac awake and your status active (it moves after 10 seconds without input, or the time you choose, and rests while the Mac is locked), lock screen and a speed test that shows download, upload and latency in kbps, Mbps or Gbps. Weather, Mac temperature and the speed test can sit in the menu bar too, on by default on Macs without a Touch Bar. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet and appear at the top center, under the menu bar or the notch, so they never cover Apple's notification banners. You choose which ones appear and for how long (1 to 15 seconds).
+Mouse Jiggler keeps your Mac awake and your status active: it moves the pointer after 10 seconds without input (or the time you choose) and rests while the Mac is locked. Lock Screen locks your Mac at once. Speed Test shows download, upload and latency in kbps, Mbps or Gbps. Weather, Mac temperature and Speed Test can sit in the menu bar too, on by default on Macs without a Touch Bar. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet and appear at the top center, under the menu bar or the notch, so they never cover Apple's notification banners. You choose which ones appear and for how long (1 to 15 seconds).
 
 ### Settings
 One window in the style of System Settings: turn any module on or off and give it its own shortcut. Penknife opens at login (you can turn that off) and follows your system language, English or Spanish.
@@ -72,13 +72,13 @@ One window in the style of System Settings: turn any module on or off and give i
 <img src="docs/screenshots/settings.png" alt="Penknife Settings">
 
 ### Have a Touch Bar?
-Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, speed test and time, one tap away. Icons follow the current state: tap the battery for percentage or icon, hold it to change colors. You choose which buttons appear and in what order. When an app shows a prompt, the bar steps aside so you see the app's own buttons. Coming from MTMR? Quit it before turning on the Touch Bar, or the two bars will keep replacing each other.
+Penknife adds its own: brightness, keyboard light, volume, music, weather, CPU temperature, battery, Speed Test and time, one tap away. Icons follow the current state: tap the battery for percentage or icon, hold it to change colors. You choose which buttons appear and in what order. When an app shows a prompt, the bar steps aside so you see the app's own buttons. Coming from MTMR? Quit it before turning on the Touch Bar, or the two bars will keep replacing each other.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Penknife's Touch Bar in rainbow mode">
 
 <img src="docs/screenshots/touchbar.png" alt="Penknife's Touch Bar">
 
-A little extra: hold the mouse jiggler button for 3 seconds and slice fruit on the Touch Bar.
+A little extra: hold the Mouse Jiggler button for 3 seconds and slice fruit on the Touch Bar.
 
 <img src="docs/screenshots/touchbar-game.png" alt="Slicing game on the Touch Bar">
 
@@ -87,7 +87,7 @@ A little extra: hold the mouse jiggler button for 3 seconds and slice fruit on t
 Prefer Homebrew? Run `brew trust alexl-l/tap && brew install --cask alexl-l/tap/penknife`. Otherwise:
 
 1. [Download the latest release](https://github.com/alexl-l/penknife/releases/latest), unzip it and move `Penknife.app` to `/Applications`.
-2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings → Privacy & Security** and click **Open Anyway**.
+2. Open it. Penknife is not notarized (there is no paid Apple Developer account), so macOS blocks it the first time: go to **System Settings › Privacy & Security** and click **Open Anyway**.
 
    **No Open Anyway, or the warning keeps coming back?** This happens on Macs managed by a company or school, where a profile blocks apps that aren't notarized. Remove the "downloaded from the internet" mark in Terminal and open Penknife again:
    ```
@@ -107,12 +107,12 @@ Prefer Homebrew? Run `brew trust alexl-l/tap && brew install --cask alexl-l/tap/
 <details>
 <summary><b>Permissions</b></summary>
 
-Penknife asks only for what the modules you turn on need:
+Penknife asks only for what the modules you turn on need. Settings › Permissions shows the state of each:
 
-- **Accessibility**: shortcuts that act on other apps, media keys, the mouse jiggler, and reading a meeting's mute button so the call and your Mac stay in sync.
+- **Accessibility**: shortcuts that act on other apps, media keys, Mouse Jiggler, and reading a meeting's mute button so the call and your Mac stay in sync.
 - **Automation (Apple Events)**: to control Spotify and Apple Music.
 - **Location** (optional): local weather.
-- **Screen Recording**: screenshots and screen recordings.
+- **Screen & System Audio Recording**: screenshots and screen recordings (with Mac sound).
 - **Microphone** (optional): only if you switch it on while recording.
 
 </details>
@@ -133,10 +133,10 @@ Safari needs nothing. If the button can't be read, Penknife still sends the meet
 <details>
 <summary><b>My shortcut unmutes but doesn't mute (or does nothing in the meeting)</b></summary>
 
-Penknife mutes a meeting by pressing the keys set for that app in Settings → Microphone. If the app uses different keys, nothing happens in the call. This is common after changing the shortcut inside Teams, Zoom or Slack.
+Penknife mutes a meeting by pressing the keys set for that app in Settings › Microphone. If the app uses different keys, nothing happens in the call. This is common after changing the shortcut inside Teams, Zoom or Slack.
 
 1. Open the meeting app's settings and look up its mute shortcut (in Teams: Settings → General → Keyboard shortcuts).
-2. In Penknife, open Settings → Microphone, find the app and record the same keys.
+2. In Penknife, open Settings › Microphone, find the app and record the same keys.
 3. Join a call and press your Penknife shortcut. The call's mute button should change.
 
 </details>
@@ -144,7 +144,7 @@ Penknife mutes a meeting by pressing the keys set for that app in Settings → M
 <details>
 <summary><b>"Hey Siri" opens my microphone when the Mac plays a sound</b></summary>
 
-With "Hey Siri" on, macOS can open the microphone for a few seconds when the Mac plays a sound, even if you are muted. Penknife's "Keep the microphone muted" (Settings → Microphone, on by default) mutes it again within a moment. If you call Siri yourself, it still hears you. If you'd rather Siri didn't listen while you're muted, you can change "Listen for" in Siri settings.
+With "Hey Siri" on, macOS can open the microphone for a few seconds when the Mac plays a sound, even if you are muted. Penknife's "Keep the microphone muted" (Settings › Microphone, on by default) mutes it again within a moment. If you call Siri yourself, it still hears you. If you'd rather Siri didn't listen while you're muted, you can change "Listen for" in Siri settings.
 
 </details>
 
@@ -154,7 +154,7 @@ With "Hey Siri" on, macOS can open the microphone for a few seconds when the Mac
 Penknife has no account, no analytics and no tracking.
 
 - **Weather** sends only coordinates rounded to about 11 km to [Open-Meteo](https://open-meteo.com/). Open-Meteo sees your IP address.
-- **Speed test** runs macOS's own `networkQuality` tool, which contacts Apple's test servers.
+- **Speed Test** runs macOS's own `networkQuality` tool, which contacts Apple's test servers.
 - **Clipboard history**, **screenshots** and **screen recordings** stay on your Mac.
 
 </details>

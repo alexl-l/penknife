@@ -17,7 +17,7 @@ Una app diminuta de la barra de menús para tu Mac. Gratis y de código abierto.
 
 <img src="docs/screenshots/mute-meet.gif" width="720" alt="Un atajo de Penknife silencia Google Meet; el botón del micrófono de la llamada pasa a silenciado"><br><br>
 <img src="docs/screenshots/mute-teams.gif" width="720" alt="Un atajo de Penknife silencia Microsoft Teams; el botón del micrófono de la llamada pasa a silenciado"><br>
-<sub>Un atajo de Penknife silencia la llamada, y su propio botón se actualiza.</sub>
+<sub>Pulsa un atajo: la llamada se silencia y su botón del micrófono se actualiza.</sub>
 
 </div>
 
@@ -34,7 +34,7 @@ Un atajo silencia la reunión en la que estás: Teams, Google Meet, Zoom, Slack 
 
 Silenciado se queda silenciado: si "Oye Siri" abre el micrófono del Mac porque el Mac ha reproducido un sonido, Penknife lo vuelve a silenciar en un momento ("Mantener el micrófono silenciado" en Ajustes, activado por defecto).
 
-Opcional, desactivado por defecto: si al activar el micro en Teams con el atajo Teams te pide consentimiento, Penknife puede aceptarlo por ti. Sigues siendo responsable del consentimiento; consulta la política de tu empresa. Penknife no está afiliado a Microsoft.
+Opcional, desactivado por defecto: si al activar el micrófono en Teams con el atajo, Teams te pide consentimiento, Penknife puede aceptarlo por ti. Sigues siendo responsable del consentimiento; consulta la política de tu empresa. Penknife no está afiliado a Microsoft.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">
@@ -46,14 +46,14 @@ Opcional, desactivado por defecto: si al activar el micro en Teams con el atajo 
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
 <h3>Capturas y grabación de pantalla</h3>
-Selecciona una zona o una ventana, márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. Pega el resultado en una carpeta del Finder como archivo. No se sube nada a internet.
+Pulsa F1, selecciona un área o una ventana (con Espacio), márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. Pega el resultado en una carpeta del Finder como archivo. No se sube nada a internet.
 
-Graba toda la pantalla, una zona o una ventana como vídeo o GIF (⌃⌥R). Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final antes de guardar.
+Graba toda la pantalla, un área o una ventana como vídeo o GIF (⌃⌥R), o mantén pulsado el atajo de Captura de pantalla (F1) 2 segundos, elige un área y empieza a grabar. Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final antes de guardar.
 </td>
 <td width="50%" valign="top">
 <img src="docs/screenshots/settings-music.png" alt="Ajustes de música">
 <h3>Música</h3>
-Reproduce, pausa y salta canciones en el reproductor que elijas: Spotify, Apple Music, YouTube Music, Amazon Music o cualquier otra app. Los clics de los auriculares van a ese reproductor, y Apple Music ya no se abre solo.
+Reproduce, pausa y salta canciones en el reproductor que elijas: Spotify, Apple Music, YouTube Music, Amazon Music o cualquier otra app. Los clics de los auriculares van a ese reproductor, y Apple Music no se abre hasta que tú lo abres.
 </td>
 </tr>
 </table>
@@ -64,7 +64,7 @@ Arrastra una zona, o pulsa Espacio y haz clic en una ventana, o pulsa Intro para
 <img src="docs/screenshots/recording.gif" width="720" alt="Dibujando mientras se graba: un resaltado bajo “Mark up and record your screen” y una flecha al botón Download, que se desvanecen tras unos segundos">
 
 ### Y en la barra de menús
-Mover el ratón para mantener el Mac despierto y tu estado activo (lo mueve tras 10 segundos sin actividad, o el tiempo que elijas, y descansa mientras el Mac está bloqueado), bloquear la pantalla y una prueba de velocidad que muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y la prueba de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
+Mover ratón mantiene el Mac despierto y tu estado activo: mueve el puntero tras 10 segundos sin actividad (o el tiempo que elijas) y descansa con el Mac bloqueado. Bloquear pantalla bloquea el Mac al momento. Prueba de velocidad muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y Prueba de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
 
 ### Ajustes
 Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo. Penknife se abre al iniciar sesión (puedes desactivarlo) y sigue el idioma del sistema, español o inglés.
@@ -72,13 +72,13 @@ Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módu
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
 ### ¿Tienes Touch Bar?
-Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, prueba de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app. ¿Vienes de MTMR? Ciérralo antes de activar la Touch Bar, o las dos barras se irán sustituyendo una a otra.
+Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, Prueba de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app. ¿Vienes de MTMR? Ciérralo antes de activar la Touch Bar, o las dos barras se irán sustituyendo una a otra.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Touch Bar de Penknife en modo arcoíris">
 
 <img src="docs/screenshots/touchbar.png" alt="Touch Bar de Penknife">
 
-Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta en la Touch Bar.
+Un extra: mantén pulsado el botón de Mover ratón 3 segundos y corta fruta en la Touch Bar.
 
 <img src="docs/screenshots/touchbar-game.png" alt="Juego de cortar fruta en la Touch Bar">
 
@@ -87,7 +87,7 @@ Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta 
 ¿Prefieres Homebrew? Ejecuta `brew trust alexl-l/tap && brew install --cask alexl-l/tap/penknife`. Si no:
 
 1. [Descarga la última versión](https://github.com/alexl-l/penknife/releases/latest), descomprímela y mueve `Penknife.app` a `/Aplicaciones`.
-2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema → Privacidad y seguridad** y pulsa **Abrir igualmente**.
+2. Ábrela. Penknife no está notarizada (no hay cuenta de pago de Apple Developer), así que macOS la bloquea la primera vez: ve a **Ajustes del Sistema › Privacidad y seguridad** y pulsa **Abrir igualmente**.
 
    **¿No aparece Abrir igualmente o el aviso vuelve a salir?** Pasa en Macs gestionados por una empresa o un colegio, donde un perfil bloquea las apps sin notarizar. Quita la marca de "descargado de internet" en Terminal y vuelve a abrir Penknife:
    ```
@@ -107,12 +107,12 @@ Un extra: mantén pulsado el botón de mover el ratón 3 segundos y corta fruta 
 <details>
 <summary><b>Permisos</b></summary>
 
-Penknife pide solo lo que necesitan los módulos que actives:
+Penknife pide solo lo que necesitan los módulos que actives. Ajustes › Permisos muestra el estado de cada uno:
 
-- **Accesibilidad**: atajos que actúan sobre otras apps, teclas multimedia, mover el ratón y leer el botón de silencio de la reunión para que la llamada y el Mac coincidan.
+- **Accesibilidad**: atajos que actúan sobre otras apps, teclas multimedia, Mover ratón y leer el botón de silencio de la reunión para que la llamada y el Mac coincidan.
 - **Automatización (Apple Events)**: para controlar Spotify y Apple Music.
-- **Ubicación** (opcional): el tiempo local.
-- **Grabación de pantalla**: capturas y grabaciones de pantalla.
+- **Localización** (opcional): el tiempo local.
+- **Grabación de pantalla y del audio del sistema**: capturas y grabaciones de pantalla (con el sonido del Mac).
 - **Micrófono** (opcional): solo si lo activas al grabar.
 
 </details>
@@ -133,10 +133,10 @@ Safari no necesita nada. Si no se puede leer el botón, Penknife envía igualmen
 <details>
 <summary><b>Mi atajo quita el silencio, pero no silencia (o no hace nada en la reunión)</b></summary>
 
-Penknife silencia la reunión pulsando las teclas que tiene esa app en Ajustes → Micrófono. Si la app usa otras teclas, en la llamada no pasa nada. Suele ocurrir tras cambiar el atajo dentro de Teams, Zoom o Slack.
+Penknife silencia la reunión pulsando las teclas que tiene esa app en Ajustes › Micrófono. Si la app usa otras teclas, en la llamada no pasa nada. Suele ocurrir tras cambiar el atajo dentro de Teams, Zoom o Slack.
 
 1. Abre los ajustes de la app de reuniones y busca su atajo para silenciar (en Teams: Configuración → General → Métodos abreviados de teclado).
-2. En Penknife, abre Ajustes → Micrófono, busca la app y graba las mismas teclas.
+2. En Penknife, abre Ajustes › Micrófono, busca la app y graba las mismas teclas.
 3. Entra en una llamada y pulsa tu atajo de Penknife. El botón de silencio de la llamada debe cambiar.
 
 </details>
@@ -144,7 +144,7 @@ Penknife silencia la reunión pulsando las teclas que tiene esa app en Ajustes �
 <details>
 <summary><b>"Oye Siri" abre mi micrófono cuando el Mac reproduce un sonido</b></summary>
 
-Con "Oye Siri" activado, macOS puede abrir el micrófono unos segundos cuando el Mac reproduce un sonido, aunque estés silenciado. "Mantener el micrófono silenciado" (Ajustes → Micrófono, activado por defecto) lo vuelve a silenciar en un momento. Si llamas tú a Siri, te sigue oyendo. Si prefieres que Siri no escuche mientras estás silenciado, puedes cambiar "Al oír" en los ajustes de Siri.
+Con "Oye Siri" activado, macOS puede abrir el micrófono unos segundos cuando el Mac reproduce un sonido, aunque estés silenciado. "Mantener el micrófono silenciado" (Ajustes › Micrófono, activado por defecto) lo vuelve a silenciar en un momento. Si llamas tú a Siri, te sigue oyendo. Si prefieres que Siri no escuche mientras estás silenciado, puedes cambiar "Al oír" en los ajustes de Siri.
 
 </details>
 
@@ -154,7 +154,7 @@ Con "Oye Siri" activado, macOS puede abrir el micrófono unos segundos cuando el
 Penknife no tiene cuenta, ni analíticas, ni rastreo.
 
 - **El tiempo** envía a [Open-Meteo](https://open-meteo.com/) solo coordenadas redondeadas a unos 11 km. Open-Meteo ve tu dirección IP.
-- **La prueba de velocidad** usa la herramienta `networkQuality` de macOS, que contacta con servidores de prueba de Apple.
+- **Prueba de velocidad** usa la herramienta `networkQuality` de macOS, que contacta con servidores de prueba de Apple.
 - **El historial del portapapeles**, **las capturas** y **las grabaciones de pantalla** se quedan en tu Mac.
 
 </details>
