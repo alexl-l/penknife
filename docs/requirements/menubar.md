@@ -21,7 +21,7 @@ Code abbreviations: SM = `App/StatusMenu.swift`, MR = `App/MenuBarReadings.swift
 
 ### B. Status dots (R-20, IMPERATIVE)
 
-- **MB-04** Two 4 pt dots stacked beside the logo, always in these slots: TOP = microphone (orange: filled = open, 1 pt ring = muted), BOTTOM = mouse jiggler (system blue: filled = on, ring = off). A dot shows only while "Show status dots in the menu bar" is on (`menuBar.statusDots`, default on) and its module is on; the microphone dot also needs an input device (without one it would claim an open mic). One, the other, both or none.
+- **MB-04** Two 6 pt dots (as Apple's; 4 pt until 2026-11-19) stacked beside the logo, always in these slots: TOP = microphone (orange: filled = open, 1.25 pt ring = muted), BOTTOM = mouse jiggler (system blue: filled = on, ring = off). A dot shows only while "Show status dots in the menu bar" is on (`menuBar.statusDots`, default on) and its module is on; the microphone dot also needs an input device (without one it would claim an open mic). One, the other, both or none.
   Source: R-20 MENU BAR DOTS (variant 3, 2026-11-13); JG-13 · Code: SM:dots, dotsOn, updateIcon · Verify: **auto** — `dots(shown:microphone:jiggler:)` for every case; `dotsOn(in:)` nothing stored → on; manual — F12: the bottom dot fills; mute: the top dot becomes a ring.
 - **MB-05** Look and cost: the logo in the menu bar's text color plus a fixed 6 pt column (dots 2 pt apart, 3 pt from the logo), so the icon keeps its width whatever the dots show; it follows light, dark and tinted menu bars. VoiceOver value "Microphone muted, Mouse jiggler on" (microphone first, as on screen; O-30) and a value-changed announcement when it changes from elsewhere (Touch Bar, Teams, Control Center). Redrawn only on a real change; no timer: the jiggler and the modules by observation, the microphone by CoreAudio listeners that run only while the mic dot can show; other settings writes are ignored.
   Source: R-20; R-11; R-19 · Code: SM:icon, updateIcon, dotsValue, trackState, micWatcher · Verify: **auto** — `dotsValue` order and empty case; manual — light/dark menu bar: logo and dots legible, width doesn't jump.
@@ -65,7 +65,7 @@ For the user:
 
 Not measured / noted (nothing to decide yet):
 - An unreadable temperature leaves no line in Penknife's menu (MB-08) but the item's own menu says "CPU temperature not available" (MB-11). Not asked; probably fine.
-- For later (REQUIREMENTS "For later"): bigger dots ("hacer los dots más grandes"), to confirm with the user before designing.
+- DONE 2026-11-19: bigger dots. `ux-ui-designer` variants shown live (4/5/6/7 pt, 6 pt with 3 pt gap); user: "2, como la de apple" = 6 pt dots, 2 pt gap, 1.25 pt ring, same 6 pt column (item width unchanged).
 
 ## 3. Rejected / out of scope (do not rebuild)
 

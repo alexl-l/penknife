@@ -172,11 +172,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     }
 
     /// The logo in the menu bar text color plus a fixed 6 pt column for the dots, so the icon keeps
-    /// its width. 4 pt dots, 2 pt apart, 3 pt from the logo. Drawn when the menu bar draws, so it
+    /// its width. 6 pt dots as Apple's (1.25 pt ring when off), 2 pt apart, 3 pt from the logo. Drawn when the menu bar draws, so it
     /// follows light, dark and tinted menu bars. `tinted` false keeps the glyph's own colors.
     private static func icon(glyph: NSImage, tinted: Bool = true, micOpen: Bool?, jigglerOn: Bool?) -> NSImage {
         let glyphSize = glyph.size
-        let dot: CGFloat = 4, gap: CGFloat = 2, spacing: CGFloat = 3, column: CGFloat = 6, trailing: CGFloat = 2
+        let dot: CGFloat = 6, ring: CGFloat = 1.25, gap: CGFloat = 2, spacing: CGFloat = 3, column: CGFloat = 6, trailing: CGFloat = 2
         let size = NSSize(width: glyphSize.width + spacing + column + trailing, height: glyphSize.height)
         let image = NSImage(size: size, flipped: false) { _ in
             let glyphRect = NSRect(origin: .zero, size: glyphSize)
@@ -198,9 +198,9 @@ final class StatusMenu: NSObject, NSMenuDelegate {
                     NSBezierPath(ovalIn: rect).fill()
                 } else {
                     color.setStroke()
-                    let ring = NSBezierPath(ovalIn: rect.insetBy(dx: 0.5, dy: 0.5))
-                    ring.lineWidth = 1
-                    ring.stroke()
+                    let path = NSBezierPath(ovalIn: rect.insetBy(dx: ring / 2, dy: ring / 2))
+                    path.lineWidth = ring
+                    path.stroke()
                 }
             }
             return true
