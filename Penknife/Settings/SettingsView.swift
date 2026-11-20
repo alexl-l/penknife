@@ -149,7 +149,7 @@ enum TileColor {
 }
 
 /// The macOS 27 System Settings tile (variant A, chosen 2026-11-19) in Dock colors: a light-to-deep
-/// gradient, a faint light from the top, a hairline rim of light, a larger white symbol. Off: gray.
+/// gradient, solid (no gloss, no rim: user 2026-11-19), a larger white symbol. Off: gray.
 private struct SettingsTile: View {
     let symbol: String
     let tint: TileColor
@@ -159,21 +159,14 @@ private struct SettingsTile: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
-        let dark = scheme == .dark
         ZStack {
             if on { shape.fill(tint.gradient) } else { shape.fill(Color.gray.opacity(0.45)) }
-            shape.fill(LinearGradient(stops: [.init(color: .white.opacity(0.12), location: 0),
-                                              .init(color: .white.opacity(0), location: 0.5),
-                                              .init(color: .black.opacity(0.06), location: 1)],
-                                      startPoint: .top, endPoint: .bottom))
-            shape.strokeBorder(.white.opacity(dark ? 0.35 : 0.25), lineWidth: size > 20 ? 0.75 : 0.5)
-                .blendMode(dark ? .plusLighter : .normal)
             Image(systemName: symbol)
                 .font(.system(size: size * 0.62, weight: .medium))
                 .foregroundStyle(.white.opacity(on ? 1 : 0.8))
         }
         .frame(width: size, height: size)
-        .shadow(color: .black.opacity(dark ? 0 : 0.12), radius: 0.5, y: 0.5)
+        .shadow(color: .black.opacity(scheme == .dark ? 0 : 0.12), radius: 0.5, y: 0.5)
         .accessibilityHidden(true)
     }
 }
