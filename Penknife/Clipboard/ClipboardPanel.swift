@@ -156,10 +156,11 @@ final class ClipboardPanelModel {
 
 /// A floating panel that takes the keyboard without activating Penknife, so the app you were in
 /// stays in front and receives the paste. Esc or clicking elsewhere closes it.
-final class ClipboardPanel: NSPanel, NSWindowDelegate {
+final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
     private let model: ClipboardPanelModel
     private weak var module: ClipboardModule?
     private let onClose: () -> Void
+    private weak var hosting: NSView?
 
     init(module: ClipboardModule, onClose: @escaping () -> Void) {
         self.module = module
@@ -183,8 +184,9 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
                                  togglePin: { [weak self] id in self?.togglePin(id) },
                                  remove: { [weak self] id in self?.remove(id) },
                                  clear: { [weak self] in self?.confirmClear() },
-                                 editorClosed: { [weak self] in self?.editorClosed() })
+                                 showEditor: { [weak self] id, rect in self?.showIconEditor(id, at: rect) })
         let hosting = NSHostingView(rootView: view)
+        self.hosting = hosting
         hosting.sizingOptions = []
         let workspace = NSWorkspace.shared
         if workspace.accessibilityDisplayShouldReduceTransparency || workspace.accessibilityDisplayShouldIncreaseContrast {
@@ -318,12 +320,77 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
         close()
     }
 
-    /// The icon editor closed: the panel takes the keyboard back, so typing searches again.
-    fileprivate func editorClosed() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.isVisible, self.model.editingIcon == nil, !self.isKeyWindow else { return }
-            self.makeKey()
+    // MARK: Icon editor (CB-33)
+
+    private var iconPopover: NSPopover?
+    private var iconMonitors: [Any] = []
+    private static let emojiViewer = "com.apple.CharacterPaletteIM"
+
+    /// A native popover that closes only when Penknife says so: SwiftUI's closes as soon as the
+    /// emoji viewer (another process) takes the keyboard (measured 2026-11-20).
+    fileprivate func showIconEditor(_ id: ClipItem.ID, at rect: CGRect) {
+        guard iconPopover == nil else { return }
+        guard let hosting, let item = model.store.item(id), item.pinned else {
+            model.editingIcon = nil
+            return
         }
+        let popover = NSPopover()
+        popover.behavior = .applicationDefined
+        popover.animates = false
+        popover.contentViewController = NSHostingController(
+            rootView: IconEditor(store: model.store, id: id, appIcon: model.icon(for: item)))
+        popover.delegate = self
+        iconPopover = popover
+        popover.show(relativeTo: rect, of: hosting, preferredEdge: .maxX)
+        popover.contentViewController?.view.window?.makeKey()
+        watchWhileEditing()
+    }
+
+    /// Esc or a click on the panel closes the editor; a click in another app closes the panel too,
+    /// as without the editor (CB-24); clicks in the emoji viewer are left alone.
+    private func watchWhileEditing() {
+        if let keys = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+            guard let self, event.keyCode == 53, self.iconPopover != nil else { return event }
+            self.closeIconEditor()
+            return nil
+        }) { iconMonitors.append(keys) }
+        if let clicks = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] event in
+            if let self, event.window === self { self.closeIconEditor() }
+            return event
+        }) { iconMonitors.append(clicks) }
+        if let outside = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] _ in
+            guard let self, !Self.inEmojiViewer(NSEvent.mouseLocation) else { return }
+            self.closeIconEditor()
+            self.close()
+        }) { iconMonitors.append(outside) }
+    }
+
+    /// Whether a screen point (bottom-left origin) is on one of the emoji viewer's windows.
+    private static func inEmojiViewer(_ point: NSPoint) -> Bool {
+        let viewers = Set(NSRunningApplication.runningApplications(withBundleIdentifier: emojiViewer).map(\.processIdentifier))
+        guard !viewers.isEmpty, let primary = NSScreen.screens.first,
+              let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
+        else { return false }
+        let flipped = CGPoint(x: point.x, y: primary.frame.maxY - point.y)
+        return info.contains { window in
+            guard let pid = window[kCGWindowOwnerPID as String] as? pid_t, viewers.contains(pid),
+                  let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                  let rect = CGRect(dictionaryRepresentation: bounds) else { return false }
+            return rect.contains(flipped)
+        }
+    }
+
+    fileprivate func closeIconEditor() {
+        iconPopover?.close()
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        iconMonitors.forEach(NSEvent.removeMonitor)
+        iconMonitors.removeAll()
+        iconPopover = nil
+        model.editingIcon = nil
+        // The panel takes the keyboard back, so typing searches again.
+        if isVisible, !closing { makeKey() }
     }
 
     private var closing = false
@@ -331,6 +398,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     override func close() {
         guard !closing else { return }
         closing = true
+        iconPopover?.close()
         super.close()
         contentView = nil
         onClose()
@@ -375,7 +443,7 @@ struct ClipboardView: View {
     let togglePin: (ClipItem.ID) -> Void
     let remove: (ClipItem.ID) -> Void
     let clear: () -> Void
-    let editorClosed: () -> Void
+    let showEditor: (ClipItem.ID, CGRect) -> Void
     @FocusState private var searchFocused: Bool
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
@@ -529,7 +597,7 @@ struct ClipboardView: View {
         .accessibilityAction(named: Text(item.pinned ? "Unpin" : "Pin")) { togglePin(item.id) }
         .accessibilityAction(named: Text("Copy")) { use(item.id, false) }
         .accessibilityAction(named: Text("Delete")) { remove(item.id) }
-        .modifier(IconEditorAnchor(item: item, model: model, closed: editorClosed))
+        .modifier(IconEditorAnchor(item: item, model: model, show: showEditor))
     }
 
     private var footer: some View {
@@ -596,20 +664,22 @@ struct PinIconView: View {
     }
 }
 
-/// Opens the icon editor as a popover on the row being edited.
+/// Tells the panel where the row being edited is, so the editor opens beside it.
 private struct IconEditorAnchor: ViewModifier {
     let item: ClipItem
-    @Bindable var model: ClipboardPanelModel
-    let closed: () -> Void
+    let model: ClipboardPanelModel
+    let show: (ClipItem.ID, CGRect) -> Void
 
     func body(content: Content) -> some View {
-        content.popover(isPresented: Binding(
-            get: { model.editingIcon == item.id },
-            set: { if !$0, model.editingIcon == item.id { model.editingIcon = nil; closed() } }
-        ), arrowEdge: .trailing) {
-            IconEditor(store: model.store, id: item.id, appIcon: model.icon(for: item))
-        }
-        .accessibilityAction(named: Text("Customize Icon")) { if item.pinned { model.editingIcon = item.id } }
+        content
+            .background {
+                if model.editingIcon == item.id {
+                    GeometryReader { geometry in
+                        Color.clear.onAppear { show(item.id, geometry.frame(in: .global)) }
+                    }
+                }
+            }
+            .accessibilityAction(named: Text("Customize Icon")) { if item.pinned { model.editingIcon = item.id } }
     }
 }
 
