@@ -342,7 +342,11 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
         popover.delegate = self
         iconPopover = popover
         popover.show(relativeTo: rect, of: hosting, preferredEdge: .maxX)
-        popover.contentViewController?.view.window?.makeKey()
+        let window = popover.contentViewController?.view.window
+        window?.makeKey()
+        // Opens with nothing focused: the field takes the focus only when clicked, tabbed to or
+        // when 🙂 is used (user, 2026-11-20: "no me gusta que el foco siempre se quede en la caja").
+        DispatchQueue.main.async { window?.makeFirstResponder(nil) }
         watchWhileEditing()
     }
 
@@ -732,6 +736,8 @@ struct IconEditor: View {
                         let one = PinIcon.oneGlyph(old: old, new: new)
                         if one != new { glyph = one; return }
                         save()
+                        // One character is all it takes: the field lets the focus go (user, 2026-11-20).
+                        if !new.isEmpty { focused = false }
                     }
                 Button {
                     focused = true
@@ -769,7 +775,6 @@ struct IconEditor: View {
             let current = store.item(id)?.icon
             glyph = current?.glyph ?? ""
             color = current?.color
-            focused = true
         }
     }
 
