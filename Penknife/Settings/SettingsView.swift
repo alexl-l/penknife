@@ -118,9 +118,8 @@ enum SettingsPage: Hashable {
     }
 }
 
-/// Tinted glass icon (variant C, chosen 2026-11-19): a translucent tile with a touch of its
-/// color and a thin rim of it, the symbol in its color (a bit lighter in dark mode). Off: a
-/// gray tile and a faint symbol.
+/// The macOS 27 System Settings tile (variant A, chosen 2026-11-19): its color with a soft light
+/// from the top and a hairline rim of light, a larger white symbol. Off: a gray tile.
 private struct SettingsTile: View {
     let symbol: String
     let tint: Color
@@ -130,16 +129,21 @@ private struct SettingsTile: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
+        let dark = scheme == .dark
         ZStack {
-            shape.fill(.ultraThinMaterial)
-            shape.fill(on ? tint.opacity(0.16) : Color.gray.opacity(0.10))
-            shape.strokeBorder(on ? tint.opacity(0.35) : Color.gray.opacity(0.25), lineWidth: size > 20 ? 0.75 : 0.5)
+            shape.fill(on ? tint : Color.gray.opacity(0.45))
+            shape.fill(LinearGradient(stops: [.init(color: .white.opacity(0.22), location: 0),
+                                              .init(color: .white.opacity(0), location: 0.5),
+                                              .init(color: .black.opacity(0.06), location: 1)],
+                                      startPoint: .top, endPoint: .bottom))
+            shape.strokeBorder(.white.opacity(dark ? 0.35 : 0.25), lineWidth: size > 20 ? 0.75 : 0.5)
+                .blendMode(dark ? .plusLighter : .normal)
             Image(systemName: symbol)
-                .font(.system(size: size * 0.6, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(on ? AnyShapeStyle(scheme == .dark ? tint.mix(with: .white, by: 0.25) : tint) : AnyShapeStyle(.tertiary))
+                .font(.system(size: size * 0.62, weight: .medium))
+                .foregroundStyle(.white.opacity(on ? 1 : 0.8))
         }
         .frame(width: size, height: size)
+        .shadow(color: .black.opacity(dark ? 0 : 0.12), radius: 0.5, y: 0.5)
         .accessibilityHidden(true)
     }
 }
