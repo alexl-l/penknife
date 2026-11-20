@@ -3,6 +3,22 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.13</title>
+            <pubDate>Fri, 20 Nov 2026 00:53:07 -0500</pubDate>
+            <sparkle:version>266</sparkle:version>
+            <sparkle:shortVersionString>1.13</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Recording speed.** The recording window has a speed menu: 1×, 1.5×, 2× or 4×. It applies to the preview, the saved video, the GIF and the copy. The voice keeps its pitch, it works with trim, and the note shows how long the result will last.</li>
+<li>**Your own icon for pinned items.** Give a pinned clipboard item a letter or an emoji on a background color. Right-click and choose Customize Icon…, or press ⌘E.</li>
+<li>**A more compact clipboard panel.** Pinned items stay fixed at the top. Rows and icons are smaller, and the panel height follows the number of items.</li>
+<li>**Clearer wording.** Settings, menus, alerts, the Touch Bar and recording now say things more plainly, in English and Spanish. In Spanish, the speed test is now "Prueba de velocidad".</li>
+<li>**Smaller fixes.** Settings shows every page name in full in the sidebar. Recording no longer keeps a little memory after each 3-2-1 countdown.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.13/Penknife-1.13.zip" length="6686803" type="application/octet-stream" sparkle:edSignature="Qt9TzwugLJlnuHY9TqC45Uf5Q/EAOwGEudueyamFmbhVSTCDsF+mNoB+C62OdxUtfv+JLLDSCfqAsxMkJCloCg=="/>
+        </item>
+        <item>
             <title>1.12</title>
             <pubDate>Thu, 19 Nov 2026 22:05:57 -0500</pubDate>
             <sparkle:version>240</sparkle:version>
@@ -41,20 +57,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.11/Penknife-1.11.zip" length="6081296" type="application/octet-stream" sparkle:edSignature="+UevYeyliKkKShX/0ISgG6GHWTt9HlPyskCl+6VFgkTxhiGbhQBM7o5cPpCrnKtp8bOcpsqY5m3m9UgeArxeBg=="/>
-        </item>
-        <item>
-            <title>1.10</title>
-            <pubDate>Wed, 18 Nov 2026 14:13:52 -0500</pubDate>
-            <sparkle:version>109</sparkle:version>
-            <sparkle:shortVersionString>1.10</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Teams unmute works when recording starts mid-meeting.** With "Remember my choice for Teams' unmute dialog" on, unmuting with Penknife's shortcut now works even if someone starts recording after the meeting began. Before, Teams' "recording started" notice stayed open and you stayed muted. Meetings that start already recording are unchanged, and Penknife still only answers the consent dialog that its own unmute opens.</li>
-<li>**Accurate mic icon with Siri.** The Touch Bar button and the menu bar dot now show the microphone as open while Siri is listening to you, also while music plays. Before, they could say muted while Siri heard you.</li>
-<li>**Microphone off means off.** Turning the Microphone module off now stops all of its background listening.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.10/Penknife-1.10.zip" length="6011886" type="application/octet-stream" sparkle:edSignature="anqnSHwzJuGcAY69HtJ/MOobEit/w/z8eU5OKoNwQYXs1hKf3Cn4fT3eGEdjdA1oicuvz+PO4jBFYcy4U4o9Cw=="/>
         </item>
     </channel>
 </rss>
