@@ -3,6 +3,16 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.13 — 2026-11-20
+
+Change the speed of a recording before you save it, and pin clipboard items with an icon of your own.
+
+- **Recording speed.** The recording window has a speed menu: 1×, 1.5×, 2× or 4×. It applies to the preview, the saved video, the GIF and the copy. The voice keeps its pitch, it works with trim, and the note shows how long the result will last.
+- **Your own icon for pinned items.** Give a pinned clipboard item a letter or an emoji on a background color. Right-click and choose Customize Icon…, or press ⌘E.
+- **A more compact clipboard panel.** Pinned items stay fixed at the top. Rows and icons are smaller, and the panel height follows the number of items.
+- **Clearer wording.** Settings, menus, alerts, the Touch Bar and recording now say things more plainly, in English and Spanish. In Spanish, the speed test is now "Prueba de velocidad".
+- **Smaller fixes.** Settings shows every page name in full in the sidebar. Recording no longer keeps a little memory after each 3-2-1 countdown.
+
 ## 1.12 — 2026-11-19
 
 Hold the Screenshot shortcut to record your screen, and every button in the editor and recording toolbar now has a key.
