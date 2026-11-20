@@ -16,7 +16,10 @@ final class SettingsWindowController: NSWindowController {
         let window = SettingsWindow(contentViewController: host)
         super.init(window: window)
 
-        window.title = String(localized: "Penknife Settings")
+        // The page's title from the start: SwiftUI's navigationTitle reaches the window only when
+        // the page changes, so a fixed title stayed until another page was picked (GN-13).
+        let page = UserDefaults.standard.string(forKey: "settings.selectedPage").flatMap(SettingsPage.init(rawValue:))
+        window.title = (page ?? .general).title
         window.styleMask = [.titled, .closable, .resizable, .fullSizeContentView]
         window.toolbarStyle = .unified
         window.isReleasedWhenClosed = false

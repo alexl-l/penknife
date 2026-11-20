@@ -60,11 +60,12 @@ struct MusicPlayer: Hashable, Identifiable {
         MusicPlayer(id: defaults.string(forKey: key) ?? defaultID(installed: installed))
     }
 
-    /// Until the user chooses: the first installed known player, else "any app".
+    /// Until the user chooses: Apple Music (user, 2026-11-20: "por defecto debería estar apple"),
+    /// else the first installed known player, else "any app".
     static var defaultID: String { defaultID(installed: isInstalled) }
 
     static func defaultID(installed: (String) -> Bool) -> String {
-        known.first(where: installed) ?? anyAppID
+        (["com.apple.Music"] + known).first(where: installed) ?? anyAppID
     }
 
     /// Installed known players, the current one (even if it is another app) and "any app".
@@ -133,6 +134,8 @@ final class MusicModule: Module {
                 HUD.shared.showPermissionNeeded(.music) // O-25
                 return
             }
+            // With nothing playing, macOS opens Apple Music for this key: it is the user's (MU-10).
+            Self.lastMediaKey = Date()
             switch command {
             case .playPause, .play, .pause: EventPoster.media(.play)
             case .next: EventPoster.media(.next)
@@ -154,6 +157,9 @@ final class MusicModule: Module {
             }
         }
     }
+
+    /// When Penknife last sent a media key itself (a press, a tap, a shortcut; never a headphone click).
+    static var lastMediaKey = Date.distantPast
 
     /// The Automation permission for this player was refused (errAEEventNotPermitted, -1743).
     nonisolated static func isNotPermitted(_ error: NSDictionary) -> Bool {
@@ -222,8 +228,10 @@ enum AppleMusicLaunch {
     /// A launch this close after an audio route change (headphones) is automatic.
     static let routeWindow: TimeInterval = 4
 
-    static func byUser(click: TimeInterval, key: TimeInterval, route: TimeInterval) -> Bool {
-        min(click, key) <= inputWindow && route > routeWindow
+    /// `command`: since Penknife's own media key (a press in Penknife always counts, MU-10).
+    static func byUser(click: TimeInterval, key: TimeInterval, route: TimeInterval,
+                       command: TimeInterval = .infinity) -> Bool {
+        command <= inputWindow || (min(click, key) <= inputWindow && route > routeWindow)
     }
 }
 
@@ -311,8 +319,9 @@ final class BlockAppleMusicModule: Module {
         let click = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .leftMouseDown)
         let key = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: .keyDown)
         let route = Date().timeIntervalSince(lastRouteChange)
-        let byUser = AppleMusicLaunch.byUser(click: click, key: key, route: route)
-        let reason = String(format: "click %.1f s ago, key %.1f s ago, audio route change %.1f s ago", click, key, route)
+        let command = Date().timeIntervalSince(MusicModule.lastMediaKey)
+        let byUser = AppleMusicLaunch.byUser(click: click, key: key, route: route, command: command)
+        let reason = String(format: "click %.1f s ago, key %.1f s ago, Penknife media key %.1f s ago, audio route change %.1f s ago", click, key, command, route)
         guard !byUser else {
             log.info("Apple Music opened by the user, kept (\(reason, privacy: .public))")
             return

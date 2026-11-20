@@ -113,7 +113,8 @@ struct MusicRulesTests {
 
         #expect(MusicPlayer.defaultID(installed: Self.only([Self.music])) == Self.music)
         #expect(MusicPlayer.defaultID(installed: Self.only([])) == "mediaKeys")
-        #expect(MusicPlayer.defaultID(installed: Self.only([Self.music, Self.spotify])) == Self.spotify)
+        #expect(MusicPlayer.defaultID(installed: Self.only([Self.music, Self.spotify])) == Self.music)
+        #expect(MusicPlayer.defaultID(installed: Self.only([Self.amazon, Self.spotify])) == Self.spotify)
 
         let none = Self.only([Self.amazon])
         #expect(MusicPlayer.current(in: MemoryDefaults(), installed: none).bundleID == Self.amazon)
@@ -130,6 +131,9 @@ struct MusicRulesTests {
         #expect(!AppleMusicLaunch.byUser(click: 0.5, key: 60, route: 1))
         #expect(AppleMusicLaunch.byUser(click: 1.5, key: 60, route: 4.1))
         #expect(!AppleMusicLaunch.byUser(click: 1.5, key: 60, route: 4.0))
+        // Penknife's own media key (Touch Bar tap, shortcut, menu) counts, even after headphones.
+        #expect(AppleMusicLaunch.byUser(click: 60, key: 60, route: 1, command: 0.4))
+        #expect(!AppleMusicLaunch.byUser(click: 60, key: 60, route: 100, command: 2))
         #expect([Self.music, Self.iTunes].allSatisfy { MusicPlayer(bundleID: $0).isAppleMusic })
         #expect(!MusicPlayer(bundleID: Self.spotify).isAppleMusic && !MusicPlayer.anyApp.isAppleMusic)
     }
