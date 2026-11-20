@@ -4472,6 +4472,106 @@
           }
         }
       }
+    },
+    "Customize Icon…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizar icono…"
+          }
+        }
+      }
+    },
+    "Customize Icon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personalizar icono"
+          }
+        }
+      }
+    },
+    "Icon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Icono"
+          }
+        }
+      }
+    },
+    "Icon letter or emoji": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Letra o emoji del icono"
+          }
+        }
+      }
+    },
+    "Emoji & Symbols (⌃⌘Space)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emojis y símbolos (⌃⌘Espacio)"
+          }
+        }
+      }
+    },
+    "Emoji & Symbols": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emojis y símbolos"
+          }
+        }
+      }
+    },
+    "No color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin color"
+          }
+        }
+      }
+    },
+    "No letter and no color = the app's icon": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin letra ni color = icono de la app"
+          }
+        }
+      }
+    },
+    "Teal": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turquesa"
+          }
+        }
+      }
+    },
+    "Gray": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gris"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

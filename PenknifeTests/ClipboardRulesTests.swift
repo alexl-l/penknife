@@ -497,6 +497,8 @@ struct ClipboardRulesTests {
         #expect(action(51, nil, .command) == .delete)
         #expect(action(51) == nil)                                                 // ⌫ edits the search
         #expect(action(35, "p", .command) == .togglePin)
+        #expect(action(14, "e", .command) == .editIcon)
+        #expect(action(14, "e") == nil)                                           // e is typed
         #expect(action(35, "P", [.command, .shift]) == .togglePin)
         #expect(action(20, "3", .command) == .row(2))
         #expect(action(18, "1", .command) == .row(0))
@@ -645,6 +647,53 @@ struct ClipboardRulesTests {
         }
     }
 
+    @Test("CB-33 a pinned item's icon: one letter or emoji, a color, or neither")
+    func pinIconRules() {
+        // Neither = the app's icon.
+        #expect(PinIcon(glyph: "", color: nil) == nil)
+        #expect(PinIcon(glyph: "  ", color: nil) == nil)
+        #expect(PinIcon(glyph: nil, color: .green)?.glyph == nil)
+        // One character, uppercased; an emoji made of several scalars is one.
+        #expect(PinIcon(glyph: "c", color: .blue)?.glyph == "C")
+        #expect(PinIcon(glyph: "👨‍👩‍👧", color: nil)?.glyph == "👨‍👩‍👧")
+        #expect(PinIcon(glyph: "👨‍👩‍👧", color: nil)?.isEmoji == true)
+        #expect(PinIcon(glyph: "🇨🇴", color: nil)?.isEmoji == true)
+        #expect(PinIcon(glyph: "🏠", color: .orange)?.isEmoji == true)
+        #expect(PinIcon(glyph: "g", color: nil)?.isEmoji == false)
+        #expect(PinIcon(glyph: "7", color: nil)?.isEmoji == false)
+        // Typing replaces what was there; a paste keeps its first character.
+        #expect(PinIcon.oneGlyph(old: "C", new: "Cg") == "G")
+        #expect(PinIcon.oneGlyph(old: "C", new: "gC") == "G")
+        #expect(PinIcon.oneGlyph(old: "C", new: "🏠") == "🏠")
+        #expect(PinIcon.oneGlyph(old: "", new: "hola") == "H")
+        #expect(PinIcon.oneGlyph(old: "C", new: "C🙏") == "🙏")
+        #expect(PinIcon.oneGlyph(old: "", new: "") == "")
+    }
+
+    @Test("CB-33 the icon is saved with the pin, survives a relaunch, stays when unpinned")
+    func pinIconSaved() throws {
+        let box = TempStore()
+        let store = box.store!
+        store.add(.text("casa"))
+        let id = try #require(store.history.first?.id)
+        store.setIcon(id, PinIcon(glyph: "🏠", color: .orange))
+        #expect(store.item(id)?.icon == nil)                  // only pinned items get one
+        store.togglePin(id)
+        store.setIcon(id, PinIcon(glyph: "🏠", color: .orange))
+        box.reload()
+        #expect(box.store.item(id)?.icon == PinIcon(glyph: "🏠", color: .orange))
+        // Unpinned: kept; pinned again: back.
+        box.store.togglePin(id)
+        #expect(box.store.item(id)?.icon?.glyph == "🏠")
+        box.store.togglePin(id)
+        #expect(box.store.item(id)?.icon?.color == .orange)
+        // Back to the app's icon.
+        box.store.setIcon(id, nil)
+        box.reload()
+        #expect(box.store.item(id)?.icon == nil)
+        #expect(box.store.item(id)?.pinned == true)
+    }
+
     @Test("CB-31 every visible string has Spanish")
     func spanish() {
         let keys = ["Clipboard History", "Image", "%lld files: %@", "Search", "Search the clipboard history",
@@ -653,7 +702,10 @@ struct ClipboardRulesTests {
                     "Pinned items are kept.", "Clear", "Copied", "To paste it, open Settings › Permissions", "Text",
                     "Files", "%@, pinned", "Deleted", "History cleared", "Unpinned", "History size",
                     "Paste when you choose", "Keep formatting", "Where it opens",
-                    "Center of the screen", "At the pointer", "In use: %@", "Image %@ at %@"]
+                    "Center of the screen", "At the pointer", "In use: %@", "Image %@ at %@",
+                    "Customize Icon…", "Customize Icon", "Icon", "Icon letter or emoji", "Emoji & Symbols (⌃⌘Space)",
+                    "Emoji & Symbols", "No color", "No letter and no color = the app's icon", "Red", "Orange", "Yellow",
+                    "Green", "Teal", "Blue", "Purple", "Gray"]
         for key in keys {
             #expect(ScreenshotRulesTests.spanish[key]?.isEmpty == false, "no Spanish for \(key)")
         }

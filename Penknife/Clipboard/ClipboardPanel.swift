@@ -28,6 +28,8 @@ enum ClipboardKeyAction: Equatable {
     case clear
     case delete
     case togglePin
+    /// ⌘E: the selected pinned item's own icon (CB-33).
+    case editIcon
     /// ⌘1–⌘9: paste that visible row (0-based).
     case row(Int)
 }
@@ -47,6 +49,7 @@ enum ClipboardKeys {
         }
         guard command, let key = characters?.lowercased() else { return nil }
         if key == "p" { return .togglePin }
+        if key == "e" { return .editIcon }
         if let digit = Int(key), (1...9).contains(digit) { return .row(digit - 1) }
         return nil
     }
@@ -67,6 +70,8 @@ final class ClipboardPanelModel {
         }
     }
     var selection: ClipItem.ID?
+    /// The pinned item whose icon editor is open (CB-33); the panel stays open meanwhile.
+    var editingIcon: ClipItem.ID?
     /// Where VoiceOver announcements are posted (the panel; NSApp may be ignored while inactive).
     @ObservationIgnored weak var announcer: NSWindow?
     /// Rows scrolled by the keyboard slide under a resting pointer; hover is ignored meanwhile.
@@ -177,7 +182,8 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
                                  use: { [weak self] id, paste in self?.module?.use(id, paste: paste) },
                                  togglePin: { [weak self] id in self?.togglePin(id) },
                                  remove: { [weak self] id in self?.remove(id) },
-                                 clear: { [weak self] in self?.confirmClear() })
+                                 clear: { [weak self] in self?.confirmClear() },
+                                 editorClosed: { [weak self] in self?.editorClosed() })
         let hosting = NSHostingView(rootView: view)
         hosting.sizingOptions = []
         let workspace = NSWorkspace.shared
@@ -245,7 +251,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     // MARK: Keyboard
 
     override func sendEvent(_ event: NSEvent) {
-        if event.type == .keyDown, attachedSheet == nil, handle(event) { return }
+        if event.type == .keyDown, attachedSheet == nil, model.editingIcon == nil, handle(event) { return }
         super.sendEvent(event)
     }
 
@@ -264,6 +270,9 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
             // With nothing selected, ⌘P goes on to the search field.
             guard let id = model.selection else { return false }
             togglePin(id)
+        case .editIcon:
+            guard let id = model.selection, model.store.item(id)?.pinned == true else { return false }
+            model.editingIcon = id
         case .row(let index):
             let rows = model.rows
             if rows.indices.contains(index) { module?.use(rows[index].id, paste: true) }
@@ -304,8 +313,17 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     // MARK: Closing
 
     func windowDidResignKey(_ notification: Notification) {
-        guard attachedSheet == nil else { return }
+        // The icon editor and the emoji viewer take the keyboard: the panel stays (CB-33).
+        guard attachedSheet == nil, model.editingIcon == nil else { return }
         close()
+    }
+
+    /// The icon editor closed: the panel takes the keyboard back, so typing searches again.
+    fileprivate func editorClosed() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.isVisible, self.model.editingIcon == nil, !self.isKeyWindow else { return }
+            self.makeKey()
+        }
     }
 
     private var closing = false
@@ -357,6 +375,7 @@ struct ClipboardView: View {
     let togglePin: (ClipItem.ID) -> Void
     let remove: (ClipItem.ID) -> Void
     let clear: () -> Void
+    let editorClosed: () -> Void
     @FocusState private var searchFocused: Bool
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
@@ -448,7 +467,9 @@ struct ClipboardView: View {
         let selected = model.selection == item.id
         return HStack(spacing: 8) {
             Group {
-                if let icon = model.icon(for: item) {
+                if item.pinned, let custom = item.icon {
+                    PinIconView(icon: custom, size: 16)
+                } else if let icon = model.icon(for: item) {
                     Image(nsImage: icon).resizable().aspectRatio(contentMode: item.kind == .image ? .fill : .fit)
                 } else {
                     Image(systemName: "doc.on.clipboard").foregroundStyle(.secondary)
@@ -495,6 +516,9 @@ struct ClipboardView: View {
             Button("Paste") { use(item.id, true) }
             Button("Copy") { use(item.id, false) }
             Button(item.pinned ? "Unpin" : "Pin") { togglePin(item.id) }
+            if item.pinned {
+                Button("Customize Icon…") { model.editingIcon = item.id }
+            }
             Divider()
             Button("Delete") { remove(item.id) }
         }
@@ -505,6 +529,7 @@ struct ClipboardView: View {
         .accessibilityAction(named: Text(item.pinned ? "Unpin" : "Pin")) { togglePin(item.id) }
         .accessibilityAction(named: Text("Copy")) { use(item.id, false) }
         .accessibilityAction(named: Text("Delete")) { remove(item.id) }
+        .modifier(IconEditorAnchor(item: item, model: model, closed: editorClosed))
     }
 
     private var footer: some View {
@@ -512,6 +537,7 @@ struct ClipboardView: View {
             hint("↩", "Paste")
             hint("⌘P", "Pin")
             hint("⌘⌫", "Delete")
+            if model.pinned.contains(where: { $0.id == model.selection }) { hint("⌘E", "Icon") }
             Spacer()
             Button("Clear History…", action: clear)
                 .buttonStyle(.borderless)
@@ -531,5 +557,171 @@ struct ClipboardView: View {
             Text(title)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+
+// MARK: - Pinned item icon (CB-33)
+
+/// A pinned item's own icon: a bare emoji, or a tile (its color, light gray without one) with the
+/// letter or emoji on it; a color alone is a flat tile.
+struct PinIconView: View {
+    let icon: PinIcon
+    let size: CGFloat
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        if icon.isEmoji, icon.color == nil, let glyph = icon.glyph {
+            Text(glyph).font(.system(size: size * 0.875)).frame(width: size, height: size)
+        } else {
+            let fill = icon.color.map { Color(nsColor: $0.color) } ?? Color(nsColor: .quaternarySystemFill)
+            RoundedRectangle(cornerRadius: size / 4, style: .continuous)
+                .fill(fill)
+                .overlay {
+                    if contrast == .increased {
+                        RoundedRectangle(cornerRadius: size / 4, style: .continuous)
+                            .strokeBorder(Color(nsColor: .labelColor).opacity(0.3), lineWidth: 1)
+                    }
+                }
+                .overlay {
+                    if let glyph = icon.glyph {
+                        Text(glyph)
+                            .font(.system(size: size * (icon.isEmoji ? 0.69 : 0.66), weight: .semibold, design: .rounded))
+                            .foregroundStyle(icon.color == nil ? Color.primary
+                                             : icon.color == .yellow ? Color.black.opacity(0.85) : .white)
+                    }
+                }
+                .frame(width: size, height: size)
+        }
+    }
+}
+
+/// Opens the icon editor as a popover on the row being edited.
+private struct IconEditorAnchor: ViewModifier {
+    let item: ClipItem
+    @Bindable var model: ClipboardPanelModel
+    let closed: () -> Void
+
+    func body(content: Content) -> some View {
+        content.popover(isPresented: Binding(
+            get: { model.editingIcon == item.id },
+            set: { if !$0, model.editingIcon == item.id { model.editingIcon = nil; closed() } }
+        ), arrowEdge: .trailing) {
+            IconEditor(store: model.store, id: item.id, appIcon: model.icon(for: item))
+        }
+        .accessibilityAction(named: Text("Customize Icon")) { if item.pinned { model.editingIcon = item.id } }
+    }
+}
+
+/// One view (user, 2026-11-20): a letter or emoji, a color ("no color" first); neither = the app's
+/// icon. Changes apply at once; Esc or a click outside closes it.
+struct IconEditor: View {
+    let store: ClipboardStore
+    let id: ClipItem.ID
+    let appIcon: NSImage?
+    @State private var glyph = ""
+    @State private var color: PinColor?
+    @FocusState private var focused: Bool
+
+    private var icon: PinIcon? { PinIcon(glyph: glyph, color: color) }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Group {
+                if let icon {
+                    PinIconView(icon: icon, size: 32)
+                } else if let appIcon {
+                    Image(nsImage: appIcon).resizable().frame(width: 32, height: 32)
+                } else {
+                    Image(systemName: "doc.on.clipboard").font(.system(size: 24)).foregroundStyle(.secondary)
+                        .frame(width: 32, height: 32)
+                }
+            }
+            .accessibilityHidden(true)
+
+            HStack(spacing: 8) {
+                TextField("Icon", text: $glyph)
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 17))
+                    .frame(width: 64)
+                    .focused($focused)
+                    .accessibilityLabel("Icon letter or emoji")
+                    .overlay(alignment: .trailing) {
+                        if !glyph.isEmpty {
+                            Button { glyph = "" } label: {
+                                Image(systemName: "xmark.circle.fill").font(.system(size: 12)).foregroundStyle(.tertiary)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.trailing, 5)
+                            .help("Clear")
+                            .accessibilityLabel("Clear")
+                        }
+                    }
+                    .onChange(of: glyph) { old, new in
+                        let one = PinIcon.oneGlyph(old: old, new: new)
+                        if one != new { glyph = one; return }
+                        save()
+                    }
+                Button {
+                    focused = true
+                    NSApp.orderFrontCharacterPalette(nil)
+                } label: {
+                    Image(systemName: "face.smiling")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .help("Emoji & Symbols (⌃⌘Space)")
+                .accessibilityLabel("Emoji & Symbols")
+            }
+
+            HStack(spacing: 10) {
+                swatch(nil, name: String(localized: "No color")) {
+                    Circle().strokeBorder(Color(nsColor: .secondaryLabelColor), lineWidth: 1.5)
+                        .overlay {
+                            Rectangle().fill(Color(nsColor: .secondaryLabelColor))
+                                .frame(width: 1.5, height: 22).rotationEffect(.degrees(-45))
+                        }
+                        .clipShape(Circle())
+                }
+                ForEach(PinColor.allCases, id: \.self) { choice in
+                    swatch(choice, name: choice.name) { Circle().fill(Color(nsColor: choice.color)) }
+                }
+            }
+
+            Text("No letter and no color = the app's icon")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .frame(width: 360)
+        .onAppear {
+            let current = store.item(id)?.icon
+            glyph = current?.glyph ?? ""
+            color = current?.color
+            focused = true
+        }
+    }
+
+    private func save() {
+        store.setIcon(id, icon)
+    }
+
+    private func swatch(_ choice: PinColor?, name: String, @ViewBuilder _ fill: () -> some View) -> some View {
+        let chosen = color == choice
+        return Button {
+            color = choice
+            save()
+        } label: {
+            fill()
+                .frame(width: 22, height: 22)
+                .padding(2)
+                .overlay { if chosen { Circle().strokeBorder(.primary, lineWidth: 2) } }
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .help(name)
+        .accessibilityLabel(name)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }

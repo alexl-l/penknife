@@ -4,6 +4,64 @@ import Observation
 
 /// One copied thing: text (plain, plus rich text when the app offered it), an image, or files
 /// (kept as references to the originals, never copied).
+/// The colors a pinned item's own icon can have: system colors, so they follow light and dark.
+enum PinColor: String, Codable, CaseIterable {
+    case red, orange, yellow, green, teal, blue, purple, gray
+
+    var color: NSColor {
+        switch self {
+        case .red: .systemRed
+        case .orange: .systemOrange
+        case .yellow: .systemYellow
+        case .green: .systemGreen
+        case .teal: .systemTeal
+        case .blue: .systemBlue
+        case .purple: .systemPurple
+        case .gray: .systemGray
+        }
+    }
+
+    var name: String {
+        switch self {
+        case .red: String(localized: "Red")
+        case .orange: String(localized: "Orange")
+        case .yellow: String(localized: "Yellow")
+        case .green: String(localized: "Green")
+        case .teal: String(localized: "Teal")
+        case .blue: String(localized: "Blue")
+        case .purple: String(localized: "Purple")
+        case .gray: String(localized: "Gray")
+        }
+    }
+}
+
+/// A pinned item's own icon (CB-33): one letter or emoji, a color, or both. Neither = the app's icon.
+struct PinIcon: Codable, Equatable {
+    var glyph: String?
+    var color: PinColor?
+
+    /// nil when there is nothing to show (no glyph and no color): the row uses the app's icon.
+    init?(glyph: String?, color: PinColor?) {
+        let first = glyph?.trimmingCharacters(in: .whitespacesAndNewlines).first.map { String($0).uppercased() }
+        guard first != nil || color != nil else { return nil }
+        self.glyph = first
+        self.color = color
+    }
+
+    /// The field keeps one letter or emoji: what was typed replaces what was there (first one of a paste).
+    static func oneGlyph(old: String, new: String) -> String {
+        guard new.count > 1 else { return new.uppercased() }
+        let added = new.hasPrefix(old) ? new.dropFirst(old.count) : new.hasSuffix(old) ? new.dropLast(old.count) : Substring(new)
+        return (added.first.map { String($0) } ?? "").uppercased()
+    }
+
+    /// An emoji is drawn bare, or on its color; a letter always sits on a tile (gray with no color).
+    var isEmoji: Bool {
+        guard let scalar = glyph?.unicodeScalars.first else { return false }
+        return scalar.properties.isEmojiPresentation || (glyph?.unicodeScalars.count ?? 0) > 1 && scalar.properties.isEmoji
+    }
+}
+
 struct ClipItem: Identifiable, Codable, Equatable {
     enum Kind: String, Codable { case text, image, files }
 
@@ -20,6 +78,8 @@ struct ClipItem: Identifiable, Codable, Equatable {
     var source: String?
     var date: Date
     var pinned = false
+    /// The icon the user gave it while pinned (CB-33); kept when unpinned, shown only while pinned.
+    var icon: PinIcon?
     /// Content fingerprint, to move a repeated copy to the top instead of storing it twice.
     var key: String
 
@@ -75,6 +135,7 @@ struct ClipItem: Identifiable, Codable, Equatable {
         source = try values.decodeIfPresent(String.self, forKey: .source)
         date = try values.decodeIfPresent(Date.self, forKey: .date) ?? .now
         pinned = try values.decodeIfPresent(Bool.self, forKey: .pinned) ?? true
+        icon = try? values.decodeIfPresent(PinIcon.self, forKey: .icon)
         key = ""
         key = contentKey
     }
@@ -177,8 +238,11 @@ final class ClipboardStore {
             pinned[index].date = item.date
             return
         }
+        var item = item
         if let index = history.firstIndex(where: { $0.key == item.key }) {
-            usedBytes -= history.remove(at: index).bytes
+            let old = history.remove(at: index)
+            usedBytes -= old.bytes
+            item.icon = old.icon
         }
         let size = item.bytes
         guard size <= limit() else { return }
@@ -295,6 +359,13 @@ final class ClipboardStore {
             item.pinned = true
             pinned.append(item)
         }
+        savePins()
+    }
+
+    /// A pinned item's own icon (CB-33); nil = back to the app's icon. Saved with the pins.
+    func setIcon(_ id: ClipItem.ID, _ icon: PinIcon?) {
+        guard let index = pinned.firstIndex(where: { $0.id == id }), pinned[index].icon != icon else { return }
+        pinned[index].icon = icon
         savePins()
     }
 
