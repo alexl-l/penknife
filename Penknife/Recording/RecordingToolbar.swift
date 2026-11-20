@@ -32,12 +32,21 @@ struct RecordingToolbar: View {
             if state.counting {
                 // O-32: the 3-2-1 in the time's place; VoiceOver hears it in the session's
                 // announcements, not at every second.
-                Text(String(localized: "Recording in \(max(state.countdown, 1))"))
-                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                    .contentTransition(reduceMotion ? .opacity : .numericText(countsDown: true))
-                    .animation(.easeInOut(duration: 0.25), value: state.countdown)
-                    .padding(.horizontal, 6)
-                    .accessibilityLabel(String(localized: "Recording in \(max(state.countdown, 1)) seconds"))
+                // The digit is its own view, pushed in from the top (user's pick A, 2026-11-20).
+                // Not `.numericText`: it rasterized the glyphs at every frame and CoreGraphics
+                // kept them, ~0.65 MB per countdown never freed (measured, REC-51).
+                let count = max(state.countdown, 1)
+                HStack(spacing: 4) {
+                    Text("Recording in")
+                    Text(count, format: .number).id(count)
+                        .transition(reduceMotion ? .opacity : .push(from: .top))
+                }
+                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .clipped()
+                .animation(.easeInOut(duration: 0.25), value: state.countdown)
+                .padding(.horizontal, 6)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(String(localized: "Recording in \(count) seconds"))
             } else {
                 Text(state.time)
                     .font(.system(size: 13).monospacedDigit())

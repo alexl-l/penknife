@@ -971,12 +971,12 @@
         }
       }
     },
-    "Recording in %lld": {
+    "Recording in": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grabación en %lld"
+            "value": "Grabación en"
           }
         }
       }
