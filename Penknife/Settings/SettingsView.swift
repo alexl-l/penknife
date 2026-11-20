@@ -108,9 +108,9 @@ enum SettingsPage: Hashable {
     }
 
     /// Graphite for General and About, so they don't read as a module that is off (gray).
-    var tint: Color {
+    var tint: TileColor {
         switch self {
-        case .general, .about: Color(white: 0.42)
+        case .general, .about: .graphite
         case .permissions: .blue
         case .shortcuts: .indigo
         case .module(let id): id.tint
@@ -118,11 +118,41 @@ enum SettingsPage: Hashable {
     }
 }
 
-/// The macOS 27 System Settings tile (variant A, chosen 2026-11-19): its color with a soft light
-/// from the top and a hairline rim of light, a larger white symbol. Off: a gray tile.
+/// Tile colors as in Apple's Dock icons (2026-11-19, user: the system colors looked "chillones"):
+/// lighter on top, deeper below, the hue shifting a little, measured from App Store, Mail,
+/// Messages and System Settings in the Dock; the rest follow the same rule.
+enum TileColor {
+    case blue, green, orange, red, pink, purple, indigo, teal, cyan, brown, graphite
+
+    private var stops: (top: UInt32, bottom: UInt32) {
+        switch self {
+        case .blue: (0x3AACF8, 0x2F74E4)
+        case .green: (0x8DE88C, 0x55C45C)
+        case .orange: (0xFFB84A, 0xF7861C)
+        case .red: (0xFF7D6E, 0xE5413A)
+        case .pink: (0xFF7FA0, 0xE83C6A)
+        case .purple: (0xCB8EFA, 0x9752E4)
+        case .indigo: (0x8C88FF, 0x5650E2)
+        case .teal: (0x62DAE0, 0x26A9BE)
+        case .cyan: (0x72D2FF, 0x36A0EA)
+        case .brown: (0xCFA77E, 0x99714D)
+        case .graphite: (0xB8B8BC, 0x828287)
+        }
+    }
+
+    var gradient: LinearGradient {
+        func color(_ v: UInt32) -> Color {
+            Color(.sRGB, red: Double(v >> 16 & 255) / 255, green: Double(v >> 8 & 255) / 255, blue: Double(v & 255) / 255)
+        }
+        return LinearGradient(colors: [color(stops.top), color(stops.bottom)], startPoint: .top, endPoint: .bottom)
+    }
+}
+
+/// The macOS 27 System Settings tile (variant A, chosen 2026-11-19) in Dock colors: a light-to-deep
+/// gradient, a faint light from the top, a hairline rim of light, a larger white symbol. Off: gray.
 private struct SettingsTile: View {
     let symbol: String
-    let tint: Color
+    let tint: TileColor
     var on = true
     var size: CGFloat = 18
     @Environment(\.colorScheme) private var scheme
@@ -131,8 +161,8 @@ private struct SettingsTile: View {
         let shape = RoundedRectangle(cornerRadius: size * 0.27, style: .continuous)
         let dark = scheme == .dark
         ZStack {
-            shape.fill(on ? tint : Color.gray.opacity(0.45))
-            shape.fill(LinearGradient(stops: [.init(color: .white.opacity(0.22), location: 0),
+            if on { shape.fill(tint.gradient) } else { shape.fill(Color.gray.opacity(0.45)) }
+            shape.fill(LinearGradient(stops: [.init(color: .white.opacity(0.12), location: 0),
                                               .init(color: .white.opacity(0), location: 0.5),
                                               .init(color: .black.opacity(0.06), location: 1)],
                                       startPoint: .top, endPoint: .bottom))
@@ -160,7 +190,7 @@ private struct ModuleTile: View {
 }
 
 private extension ModuleID {
-    var tint: Color {
+    var tint: TileColor {
         switch self {
         case .jiggler: .blue
         case .microphone: .orange
@@ -172,7 +202,7 @@ private extension ModuleID {
         case .cpuTemperature: .orange
         case .weather: .cyan
         case .speedTest: .green
-        case .touchBar: .gray
+        case .touchBar: .graphite
         case .dialogs: .brown
         }
     }
