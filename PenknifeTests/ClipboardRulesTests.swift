@@ -569,26 +569,19 @@ struct ClipboardRulesTests {
         #expect(store.thumbnails.isEmpty)
     }
 
-    @Test("CB-21 B-24 one list: headers only with pins, ⌘ numbers in order, a pinned row keeps its id")
-    func entries() {
-        let a = ClipItem.text("a"), b = ClipItem.text("b"), c = ClipItem.text("c")
-        func shape(_ list: [PanelEntry]) -> [String] {
-            list.map {
-                switch $0 {
-                case .pinnedHeader: "P"
-                case .historyHeader: "H"
-                case .row(let item, let number): "\(item.text!)\(number)"
-                }
-            }
-        }
-        #expect(shape(PanelEntry.list(pinned: [], history: [a, b])) == ["a0", "b1"])
-        #expect(shape(PanelEntry.list(pinned: [c], history: [a, b])) == ["P", "c0", "H", "a1", "b2"])
-        #expect(shape(PanelEntry.list(pinned: [c], history: [])) == ["P", "c0"])
-        // Pinning moves the row inside the same list, under the same id (one ForEach).
-        let before = PanelEntry.list(pinned: [], history: [a, b]).map(\.id)
-        let after = PanelEntry.list(pinned: [b], history: [a]).map(\.id)
-        #expect(before.contains(.row(b.id)) && after.contains(.row(b.id)))
-        #expect(Set(after).count == after.count)
+    @Test("CB-20 CB-21 panel height: grows with the items, pinned area capped at five rows")
+    func panelHeight() {
+        // Few items: the minimum; many: 72 % of the visible screen, never above 680 pt.
+        #expect(PanelLayout.height(pinned: 0, history: 3, visible: 900) == 300)
+        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 900) == 648)
+        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 1400) == 680)
+        // 2 pins + 5 history: chrome 82 + rows 7 × 28 + two headers + line + padding.
+        #expect(PanelLayout.height(pinned: 2, history: 5, visible: 900) == 335)
+        // Past five pins the pinned area stops growing (it scrolls inside).
+        #expect(PanelLayout.pinnedArea(5) == PanelLayout.pinnedArea(12))
+        #expect(PanelLayout.pinnedArea(5) == 140)
+        // A small screen still gets the minimum.
+        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 400) == 300)
     }
 
     @Test("CB-22 ↑↓ stop at the ends; delete keeps the place")

@@ -160,7 +160,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
         self.module = module
         self.onClose = onClose
         model = ClipboardPanelModel(store: module.store)
-        super.init(contentRect: NSRect(x: 0, y: 0, width: 480, height: 460),
+        super.init(contentRect: NSRect(x: 0, y: 0, width: PanelLayout.width, height: PanelLayout.minHeight),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .floating
         isOpaque = false
@@ -214,6 +214,9 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
     override var canBecomeMain: Bool { false }
 
     func show() {
+        let visible = (NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main)?.visibleFrame.height ?? 900
+        setContentSize(NSSize(width: PanelLayout.width,
+                              height: PanelLayout.height(pinned: model.pinned.count, history: model.history.count, visible: visible)))
         position()
         makeKeyAndOrderFront(nil)
     }
@@ -318,27 +321,33 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate {
 
 // MARK: - View
 
-/// What the list shows, in order: section headers (only when something is pinned) and rows with
-/// their position for ⌘1–⌘9 (CB-21).
-enum PanelEntry: Identifiable {
-    case pinnedHeader, historyHeader
-    case row(ClipItem, number: Int)
+/// Sizes of the panel's list (CB-21): rows, headers, and how far the pinned area grows before it
+/// scrolls on its own.
+enum PanelLayout {
+    static let rowHeight: CGFloat = 28
+    static let headerHeight: CGFloat = 22
+    static let pinnedRows = 5
+    /// Search field, footer and their lines.
+    static let chrome: CGFloat = 82
+    static let width: CGFloat = 480
+    static let minHeight: CGFloat = 300
+    static let maxHeight: CGFloat = 680
 
-    enum ID: Hashable { case pinnedHeader, historyHeader, row(ClipItem.ID) }
-
-    var id: ID {
-        switch self {
-        case .pinnedHeader: .pinnedHeader
-        case .historyHeader: .historyHeader
-        case .row(let item, _): .row(item.id)
-        }
+    /// The pinned area: its rows up to `pinnedRows`; past that it scrolls inside.
+    static func pinnedArea(_ count: Int) -> CGFloat {
+        CGFloat(min(count, pinnedRows)) * rowHeight
     }
 
-    static func list(pinned: [ClipItem], history: [ClipItem]) -> [PanelEntry] {
-        let rows = (pinned + history).enumerated().map { PanelEntry.row($1, number: $0) }
-        guard !pinned.isEmpty else { return rows }
-        return [.pinnedHeader] + rows.prefix(pinned.count)
-            + (history.isEmpty ? [] : [.historyHeader]) + rows.dropFirst(pinned.count)
+    /// Height when the panel opens, from what it shows then; it doesn't change while open, so the
+    /// window doesn't jump while typing a search (CB-20). Never above 72 % of the visible screen.
+    static func height(pinned: Int, history: Int, visible: CGFloat) -> CGFloat {
+        var content = CGFloat(history) * rowHeight + 12
+        if pinned > 0 {
+            content += headerHeight + pinnedArea(pinned) + 1
+            if history > 0 { content += headerHeight }
+        }
+        let top = min(maxHeight, (visible * 0.72).rounded(.down))
+        return min(max(chrome + content, minHeight), max(top, minHeight))
     }
 }
 
@@ -384,24 +393,43 @@ struct ClipboardView: View {
         .onAppear { searchFocused = true }
     }
 
+    /// "Pinned" stays at the top and never scrolls away; only "History" scrolls. Past five pins the
+    /// pinned area scrolls on its own. Headers show only when something is pinned (CB-21).
     private var list: some View {
+        let pinned = model.pinned
+        let history = model.history
+        return VStack(spacing: 0) {
+            if !pinned.isEmpty {
+                header("Pinned")
+                scrolling(pinned, first: 0, label: "Pinned")
+                    .frame(height: PanelLayout.pinnedArea(pinned.count))
+                    .scrollDisabled(pinned.count <= PanelLayout.pinnedRows)
+                Divider().padding(.top, 4)
+                if !history.isEmpty { header("History") }
+            }
+            if history.isEmpty {
+                Spacer(minLength: 0)
+            } else {
+                scrolling(history, first: pinned.count, label: "History")
+            }
+        }
+    }
+
+    private func scrolling(_ items: [ClipItem], first: Int, label: LocalizedStringKey) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                // One list, headers included: pinning moves a row inside it. With a ForEach per
-                // section the moved row kept its old look (still blue, old ⌘ number) (B-24).
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(PanelEntry.list(pinned: model.pinned, history: model.history)) { entry in
-                        switch entry {
-                        case .pinnedHeader: header("Pinned")
-                        case .historyHeader: header("History")
-                        case .row(let item, let number): row(item, number: number)
-                        }
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        row(item, number: first + index)
                     }
                 }
-                .padding(8)
+                .padding(.horizontal, 6)
+                .padding(.vertical, first == 0 ? 0 : 6)
             }
+            .accessibilityLabel(label)
             .onChange(of: model.selection) { _, id in
-                if let id { proxy.scrollTo(PanelEntry.ID.row(id)) }
+                // Each area scrolls only to its own rows; the other one ignores the id.
+                if let id, items.contains(where: { $0.id == id }) { proxy.scrollTo(id) }
             }
         }
     }
@@ -410,15 +438,15 @@ struct ClipboardView: View {
         Text(title)
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
-            .padding(.top, 6)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, minHeight: PanelLayout.headerHeight, alignment: .bottomLeading)
             .padding(.bottom, 2)
             .accessibilityAddTraits(.isHeader)
     }
 
-    private func row(_ item: ClipItem, number: Int?) -> some View {
+    private func row(_ item: ClipItem, number: Int) -> some View {
         let selected = model.selection == item.id
-        return HStack(spacing: 10) {
+        return HStack(spacing: 8) {
             Group {
                 if let icon = model.icon(for: item) {
                     Image(nsImage: icon).resizable().aspectRatio(contentMode: item.kind == .image ? .fill : .fit)
@@ -426,8 +454,8 @@ struct ClipboardView: View {
                     Image(systemName: "doc.on.clipboard").foregroundStyle(.secondary)
                 }
             }
-            .frame(width: 18, height: 18)
-            .clipShape(RoundedRectangle(cornerRadius: item.kind == .image ? 4 : 0))
+            .frame(width: 16, height: 16)
+            .clipShape(RoundedRectangle(cornerRadius: item.kind == .image ? 3 : 0))
             .accessibilityHidden(true)
 
             Text(item.kind == .image ? String(localized: "Image") : item.title)
@@ -437,25 +465,25 @@ struct ClipboardView: View {
 
             if item.pinned {
                 Image(systemName: "pin.fill")
-                    .font(.caption)
+                    .font(.system(size: 10))
                     .foregroundStyle(selected ? selectedText : .secondary)
                     .accessibilityHidden(true)
             }
-            if let number, number < 9 {
+            if number < 9 {
                 Text("⌘\(number + 1)")
-                    .font(.callout.monospacedDigit())
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(selected ? selectedText : .secondary)
                     .accessibilityHidden(true)
             }
         }
         .foregroundStyle(selected ? selectedText : .primary)
         .padding(.horizontal, 10)
-        .frame(minHeight: 34)
-        .background(selected ? Color(nsColor: .selectedContentBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: 8))
+        .frame(height: PanelLayout.rowHeight)
+        .background(selected ? Color(nsColor: .selectedContentBackgroundColor) : .clear, in: RoundedRectangle(cornerRadius: 6))
         .overlay {
             // Selection not only by color (Increase Contrast / Differentiate Without Color).
             if selected, contrast == .increased || differentiate {
-                RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .labelColor), lineWidth: 2)
+                RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .labelColor), lineWidth: 2)
             }
         }
         .contentShape(Rectangle())
