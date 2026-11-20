@@ -3,6 +3,23 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.12 — 2026-11-19
+
+Hold the Screenshot shortcut to record your screen, and every button in the editor and recording toolbar now has a key.
+
+- **Hold to record.** Hold the Screenshot shortcut (F1 by default) or the Touch Bar Screenshot button (2 seconds by default), pick the area, and the 3-2-1 countdown starts. Choose 1, 1.5, 2 or 3 seconds, or turn it off. The Touch Bar follows your settings at once.
+- **Toolbar during the countdown.** The recording toolbar now shows while the 3-2-1 runs. Stop cancels the recording. Switch the microphone and Mac sound with M and S, and the first change restarts the count.
+- **A key for every button.** Every button in the screenshot editor and the recording toolbar has a keyboard key, shown on hover or while you hold ⌘. Drawing while you record uses the same keys as the editor, and a shape's letter places it. ⌘D duplicates a mark. ⇧⌘R stops a recording while Penknife has the keyboard, and ⌃⌥D switches Mouse and Edit in one press.
+- **Close after saving.** A new setting, off by default, closes the recording window after you save the video or GIF, or copy it.
+- **Safer recordings.** Quitting Penknife asks before it discards a recording you have not saved. If the sound fails, the video is kept without sound. ⌃⌥P opens the menu while you record.
+- **Microphone just works.** Recording with the microphone unmutes a muted Mac mic, then mutes it again afterwards. With no microphone connected, the Touch Bar button and the menu item are dimmed.
+- **Screenshot fixes.** The toolbar stays on screen for a window that extends past the bottom edge. Main-menu keys no longer leave the editor. Recording from the editor now captures the right part of the screen.
+- **New Permissions page.** Settings lists the five macOS permissions Penknife can use, with the state of each, and permission alerts point to it. New alerts cover missing meeting and media key access, a refused Automation request, and a microphone that can't be muted.
+- **Settings and menu bar look.** Sidebar icons now look like macOS System Settings tiles, in solid colors. The menu bar status dots are bigger, at 6 pt like Apple's.
+- **Smoother Touch Bar.** The bar comes back at once when you close a dialog with its button on the Touch Bar. Sliders follow your finger and keep their level when you lift outside the slider.
+- **Clipboard history.** The panel opens at once even with many screenshots. Web formatting is kept, and files that no longer exist leave the list. The Clipboard page shows the space pasted images use.
+- **Smaller fixes.** Launch at login now follows System Settings, so removing it there turns the choice off. Mouse Jiggler stops when you move the mouse. The speed test reports a crash of its tool as a failure, and weather older than 2 hours shows as no data.
+
 ## 1.11 — 2026-11-18
 
 Unmute works on microphones the Mac can only mute by volume, and the Touch Bar uses less power when buttons are hidden.
