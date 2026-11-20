@@ -43,7 +43,8 @@ final class RecordingState {
     var elapsed = 0
     var paused = false
     var drawing = false
-    var tool: CaptureTool = .pen
+    /// nil = Edit with no tool: clicks select and move the drawings (REC-16, user's pick A).
+    var tool: CaptureTool?
     var colorIndex = CapturePalette.defaultIndex
     var sizeIndex = CaptureSize.defaultIndex
     /// Which choice row (colors or sizes) is open in the capsule.

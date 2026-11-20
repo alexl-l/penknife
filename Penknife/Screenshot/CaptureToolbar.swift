@@ -111,24 +111,32 @@ enum StyleRow { case colors, sizes }
 // The tools, color and size are THE SAME views in the screenshot editor and while recording
 // (user, 2026-11-17: "las herramientas y el orden NO DEBEN CAMBIAR ENTRE VIDEO Y CAPTURA").
 
-/// A capsule's symbol button face: white on the accent color when chosen.
+/// A capsule's symbol button face: white on the accent color when chosen; `ringed` = an accent
+/// ring (the recording's Edit slot while a tool is armed); `dimmed` = not usable now.
 struct CapsuleSymbol: View {
     let name: String
     var selected = false
+    var ringed = false
+    var dimmed = false
 
     var body: some View {
         Image(systemName: name)
             .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(selected ? Color.white : Color.primary)
+            .foregroundStyle(selected ? Color.white : ringed ? Color.accentColor : Color.primary.opacity(dimmed ? 0.35 : 1))
             .frame(width: 28, height: 28)
             .background(selected ? Color.accentColor : .clear, in: Circle())
+            .overlay { if ringed && !selected { Circle().strokeBorder(Color.accentColor, lineWidth: 1.5) } }
             .contentShape(Circle())
     }
 }
 
 /// Pointer first, then every tool in `CaptureTool` order. `selected` nil = the Pointer.
+/// `mouse` (recording only, REC-16 user's pick A): the same slot is Mouse ⇄ Edit; true = Mouse
+/// (clicks go to the apps, tools dimmed), false = Edit (`cursorarrow.rays`, filled with no tool,
+/// ringed while a tool is armed). nil = the editor's plain Pointer.
 struct MarkToolButtons: View {
     let selected: CaptureTool?
+    var mouse: Bool? = nil
     var hints: ShortcutHintModel?
     let pointerHelp: String
     let pointerHint: String
@@ -136,13 +144,16 @@ struct MarkToolButtons: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Button { choose(nil) } label: { CapsuleSymbol(name: "cursorarrow", selected: selected == nil) }
-                .shortcut("pointer", name: String(localized: "Pointer"), key: "Q", in: hints)
-                .accessibilityLabel(String(localized: "Pointer"))
+            Button { choose(nil) } label: {
+                CapsuleSymbol(name: mouse == false ? "cursorarrow.rays" : "cursorarrow",
+                              selected: mouse != true && selected == nil, ringed: mouse == false && selected != nil)
+            }
+                .shortcut("pointer", name: pointerName, key: "Q", in: hints)
+                .accessibilityLabel(pointerName)
                 .accessibilityHint(pointerHint)
-                .accessibilityAddTraits(selected == nil ? .isSelected : [])
+                .accessibilityAddTraits(mouse == nil && selected == nil ? .isSelected : [])
             ForEach(CaptureTool.allCases) { tool in
-                Button { choose(tool) } label: { CapsuleSymbol(name: tool.symbol, selected: selected == tool) }
+                Button { choose(tool) } label: { CapsuleSymbol(name: tool.symbol, selected: selected == tool, dimmed: mouse == true) }
                     .shortcut("tool.\(tool)", name: tool.title, key: tool.key, in: hints)
                     .accessibilityLabel(tool.title)
                     .accessibilityAddTraits(selected == tool ? .isSelected : [])
@@ -150,6 +161,14 @@ struct MarkToolButtons: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel(String(localized: "Tools"))
+    }
+
+    private var pointerName: String {
+        switch mouse {
+        case true?: String(localized: "Mouse: clicks go to your apps")
+        case false?: String(localized: "Edit: select and move drawings")
+        case nil: String(localized: "Pointer")
+        }
     }
 }
 

@@ -306,7 +306,8 @@ final class DrawingInputView: NSView, NSTextViewDelegate {
         }
         if state.tool == .eraser { MarkEditing.eraserCursor(size: state.sizeIndex).set(); return }
         if hovered != nil { NSCursor.openHand.set(); return }
-        (state.tool == .text ? NSCursor.iBeam : NSCursor.crosshair).set()
+        guard let tool = state.tool else { NSCursor.arrow.set(); return }
+        (tool == .text ? NSCursor.iBeam : NSCursor.crosshair).set()
     }
 
     /// The mark a click would select: outlined faintly.
@@ -503,12 +504,14 @@ final class DrawingInputView: NSView, NSTextViewDelegate {
             return
         }
         select(nil)
-        if state.tool == .text {
+        // Edit with no tool: a click on empty space only lets the selection go.
+        guard let tool = state.tool else { return }
+        if tool == .text {
             beginText(at: point)
             return
         }
-        current = Annotation(tool: state.tool, color: state.color, size: state.sizeIndex, points: [point, point],
-                             liveBlur: state.tool == .blur)
+        current = Annotation(tool: tool, color: state.color, size: state.sizeIndex, points: [point, point],
+                             liveBlur: tool == .blur)
         canvas.setCurrent(current)
         drag = .drawing
     }

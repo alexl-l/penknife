@@ -34,10 +34,12 @@ struct RecordingToolbar: View {
                     ? String(localized: "Paused at \(state.time)")
                     : String(localized: "Recording time \(state.time)"))
             separator
-            // Pointer first and chosen at the start: clicks go to the apps. A tool = drawing.
-            // The same tools, order, color and size as the screenshot editor (shared views).
-            MarkToolButtons(selected: state.drawing ? state.tool : nil, hints: hints, pointerHelp: pointerHelp,
-                            pointerHint: String(localized: "Clicks go to the app being recorded")) { tool in
+            // The Mouse ⇄ Edit slot first, Mouse at the start: clicks go to the apps. Edit has no
+            // tool until one is picked (REC-16). The same tools, order, color and size as the
+            // screenshot editor (shared views).
+            MarkToolButtons(selected: state.drawing ? state.tool : nil, mouse: !state.drawing, hints: hints, pointerHelp: pointerHelp,
+                            pointerHint: state.drawing ? String(localized: "Press again to give the clicks back to your apps")
+                                                       : String(localized: "Clicks go to the app being recorded")) { tool in
                 run(tool.map { .tool($0) } ?? .pointer)
             }
             separator

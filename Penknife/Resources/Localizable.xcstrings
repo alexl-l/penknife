@@ -751,16 +751,6 @@
         }
       }
     },
-    "Drawing off": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dibujo desactivado"
-          }
-        }
-      }
-    },
     "Keep the microphone muted": {
       "localizations": {
         "es": {
@@ -1287,16 +1277,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dibujo sobre la grabación"
-          }
-        }
-      }
-    },
-    "Drawing on. Esc stops drawing.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dibujo activado. Esc para dejar de dibujar."
           }
         }
       }
@@ -4329,6 +4309,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Permitir…"
+          }
+        }
+      }
+    },
+    "Edit: select and move drawings": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edición: seleccionar y mover dibujos"
+          }
+        }
+      }
+    },
+    "Edit on. Esc goes back to the mouse.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edición activada. Esc vuelve al ratón."
+          }
+        }
+      }
+    },
+    "Mouse: clicks go to your apps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ratón: los clics van a tus apps"
+          }
+        }
+      }
+    },
+    "Press again to give the clicks back to your apps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulsa otra vez para devolver los clics a tus apps"
           }
         }
       }

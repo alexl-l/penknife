@@ -1368,6 +1368,15 @@ struct ScreenshotRulesTests {
         #expect(ShortcutHints.caps("⇧⌫") == ["⇧⌫"])
     }
 
+    @Test("REC-16 the pointer slot: Mouse → Edit with no tool → Mouse; a tool is disarmed first")
+    @MainActor func mouseEditSlot() {
+        typealias S = RecordingSession
+        #expect(S.pointerStep(drawing: false, tool: nil) == .edit)
+        #expect(S.pointerStep(drawing: true, tool: nil) == .mouse)
+        #expect(S.pointerStep(drawing: true, tool: .pen) == .disarm)
+        #expect(RecordingState().tool == nil)  // nothing armed at the start (no Pen by surprise)
+    }
+
     @Test("REC-19 SS-62 every recording button has its key while drawing")
     func recordingButtonKeys() {
         typealias S = RecordingSession

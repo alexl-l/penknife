@@ -319,7 +319,8 @@ final class RecordingSession {
         startClock()
         drawShortcut = Task { [weak self] in
             for await _ in KeyboardShortcuts.events(.keyUp, for: .recordingDraw) {
-                self?.setDrawing(!(self?.state.drawing ?? true))
+                // Mouse ⇄ Edit, never with a tool armed (user: "no me gusta que sea el pen").
+                self?.run(.pointer)
             }
         }
         // The countdown took the keyboard: give it back.
@@ -472,12 +473,17 @@ final class RecordingSession {
         switch command {
         case .stop: stop()
         case .pause: togglePause()
-        case .pointer: setDrawing(false)
+        case .pointer:
+            // The Mouse ⇄ Edit slot (REC-16, user's pick A): Mouse → Edit with no tool; a tool
+            // armed → disarmed; Edit with no tool → Mouse.
+            switch Self.pointerStep(drawing: state.drawing, tool: state.tool) {
+            case .edit: setDrawing(true)
+            case .disarm: armTool(nil)
+            case .mouse: setDrawing(false)
+            }
         case .tool(let tool):
-            state.tool = tool
-            input?.toolChanged()
+            armTool(tool)
             setDrawing(true)
-            announce(tool.title)
         case .toggle(let row):
             state.expanded = state.expanded == row ? nil : row
             resizeToolbar()
@@ -553,7 +559,20 @@ final class RecordingSession {
         }
     }
 
-    /// Drawing on: the pointer and keys draw on the region. Off: they reach the apps.
+    enum PointerStep: Equatable { case edit, disarm, mouse }
+    static func pointerStep(drawing: Bool, tool: CaptureTool?) -> PointerStep {
+        guard drawing else { return .edit }
+        return tool == nil ? .mouse : .disarm
+    }
+
+    private func armTool(_ tool: CaptureTool?) {
+        guard tool != state.tool else { return }
+        state.tool = tool
+        input?.toolChanged()
+        announce(tool?.title ?? String(localized: "Edit: select and move drawings"))
+    }
+
+    /// Edit on: the pointer and keys act on the region (a tool or none). Mouse: they reach the apps.
     func setDrawing(_ on: Bool) {
         guard on != state.drawing, !on || stage == .recording else { return }
         state.drawing = on
@@ -564,14 +583,15 @@ final class RecordingSession {
             let panel = inputPanel ?? makeInputPanel()
             panel.orderFrontRegardless()
             panel.makeKey()
-            announce(String(localized: "Drawing on. Esc stops drawing."))
+            if state.tool == nil { announce(String(localized: "Edit on. Esc goes back to the mouse.")) }
         } else {
             input?.endText()
             input?.cancelMark()
             inputPanel?.orderOut(nil)
             appBeforeDrawing?.activate()
             appBeforeDrawing = nil
-            announce(String(localized: "Drawing off"))
+            state.tool = nil  // back in Edit, nothing armed
+            announce(String(localized: "Mouse: clicks go to your apps"))
         }
     }
 
@@ -607,11 +627,13 @@ final class RecordingSession {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let key = event.charactersIgnoringModifiers?.lowercased() ?? ""
         if event.keyCode == 53 {
-            // Esc: ends the text, then lets the selected mark go, then stops drawing.
+            // Esc: ends the text, then lets the selected mark go, then disarms the tool, then Mouse.
             if input.isTyping {
                 input.endText()
             } else if input.hasSelection {
                 input.select(nil)
+            } else if state.tool != nil {
+                armTool(nil)
             } else {
                 setDrawing(false)
             }
