@@ -24,13 +24,13 @@ final class ShortcutHintModel {
     /// The hints view is this much wider than the toolbar on each side (a label over the first
     /// or last button can stick out).
     static let overhang: CGFloat = 70
-    /// ⌘ held alone this long shows the keys (a quick ⌘Z never flashes them).
-    static let commandDelay: TimeInterval = 0.3
 
     var items: [String: Item] = [:]
     private(set) var hovered: String?
     private(set) var commandHeld = false
-    @ObservationIgnored private var commandWork: DispatchWorkItem?
+    /// A ⌘ shortcut (⌘Z…) was pressed: the keys stay hidden until ⌘ is let go.
+    @ObservationIgnored private var commandUsed = false
+    @ObservationIgnored private var commandDown = false
 
     /// The pointer in the toolbar (its coordinates, top-left origin), nil when it left.
     func hover(at point: CGPoint?) {
@@ -47,28 +47,26 @@ final class ShortcutHintModel {
         flags.intersection([.command, .shift, .option, .control]) == .command
     }
 
+    /// At once, no delay (user: "tarda mucho en aparecer los sc, no es inmediato y esperaba
+    /// eso", 2026-11-19). A ⌘ shortcut hides them again in the same instant.
     func modifiersChanged(_ flags: NSEvent.ModifierFlags) {
-        commandWork?.cancel()
-        commandWork = nil
-        guard Self.isCommandAlone(flags) else {
-            if commandHeld { commandHeld = false }
-            return
-        }
-        let work = DispatchWorkItem { [weak self] in
-            MainActor.assumeIsolated { self?.commandHeld = true }
-        }
-        commandWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.commandDelay, execute: work)
+        let alone = Self.isCommandAlone(flags)
+        let command = flags.contains(.command)
+        if command && !commandDown { commandUsed = false }  // a fresh ⌘ press
+        commandDown = command
+        let show = alone && !commandUsed
+        if show != commandHeld { commandHeld = show }
     }
 
-    /// A key went down with ⌘ (⌘Z…): don't show the keys for this press.
+    /// A key went down: a ⌘ shortcut (⌘Z…) hides the keys until ⌘ is released.
     func keyPressed() {
-        commandWork?.cancel()
-        commandWork = nil
+        commandUsed = true
+        if commandHeld { commandHeld = false }
     }
 
     func reset() {
-        keyPressed()
+        commandUsed = false
+        commandDown = false
         hovered = nil
         commandHeld = false
     }
@@ -111,20 +109,19 @@ struct ShortcutHints: View {
     let model: ShortcutHintModel
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack(alignment: .topLeading) {
             if model.commandHeld {
                 ForEach(model.items.sorted { $0.value.frame.minX < $1.value.frame.minX }, id: \.key) { _, item in
-                    KeyCap(key: item.key)
+                    // With ⌘ already down, only the ⌘ key of a button with several (Stop: ⇧⌘R).
+                    KeyCap(key: Self.caps(item.key).last { $0.contains("⌘") } ?? Self.caps(item.key)[0])
                         .position(x: item.frame.midX + ShortcutHintModel.overhang, y: ShortcutHintModel.headroom - 14)
                 }
-                .transition(.opacity)
             } else if let id = model.hovered, let item = model.items[id] {
                 HStack(spacing: 5) {
                     Text(item.name).font(.system(size: 12, weight: .medium))
-                    KeyCap(key: item.key)
+                    ForEach(Self.caps(item.key), id: \.self) { KeyCap(key: $0) }
                 }
                 .padding(.horizontal, 8)
                 .frame(height: 24)
@@ -140,11 +137,16 @@ struct ShortcutHints: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: model.commandHeld)
         .accessibilityHidden(true)
     }
 
     private var opaque: Bool { reduceTransparency || contrast == .increased }
+
+    /// "⌃⌥R ⇧⌘R" → two key caps; "V" → one.
+    static func caps(_ key: String) -> [String] {
+        let parts = key.split(separator: " ").map(String.init)
+        return parts.isEmpty ? [key] : parts
+    }
 }
 
 /// A key cap: "V", "⌘Z", "⇧⌫".

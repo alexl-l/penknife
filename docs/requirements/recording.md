@@ -131,6 +131,8 @@ Count (2026-11-19, step A: rules only, no recording test yet): 47 rules = 15 aut
   Source: R-29 acceptance "VoiceOver labels on every control"; R-19 · Code: RS:announce; RT; RC:DrawingInputView; RE:announce, RecordingEndView, TrimBar; SMN:showRecording · Verify: manual — VoiceOver on, ⌃⌥R, Return: it reads the countdown once and "Recording"; Stop: "Recording ready …".
 - **REC-47** Every visible or spoken recording string (countdown, toolbar, help tags, announcements, HUDs, menu bar labels, end window, trim bar, file names) exists in English and Spanish (Spain wording).
   Source: Phases (es/en); R-16 · Code: Resources/Localizable.xcstrings · Verify: **auto** — the catalog test "MIC-71 TB-63" (every key has an `es` value).
+- **REC-48** ⇧⌘R stops the recording while Penknife has the keyboard (drawing mode, also while typing a text), as it starts one in the editor (user 2026-11-19: "el mismo comando que activa la grabación la para. shift command r"). Never global: other apps keep their own ⇧⌘R while recording (user: "no quiero interrumpir la grabación con un shortcut que usa otra app"); with the pointer on the apps, Stop is ⌃⌥R (Record Screen, global, customizable; REC-01) or the button. ⌘. stays as an alias. The Stop button's label (SS-62) shows two key caps "⌃⌥R ⇧⌘R"; holding ⌘ shows only ⇧⌘R.
+  Source: user 2026-11-19; `accessibility-reviewer` (local only, two caps) · Code: RS:commandKey, stopKeys; RT (stop); ShortcutHints.caps · Verify: **auto** — test "REC-19 O-15 SS-61 …" (⇧⌘R cases); manual — record, ⌃⌥D, ⇧⌘R: the recording stops.
 
 ## 2. Open decisions, questions and known bugs
 

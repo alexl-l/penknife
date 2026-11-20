@@ -130,7 +130,10 @@ final class RecordingSession {
     /// typed the Edit menu's keys reach it (undo, cut, copy, paste, select all); every other ⌘ key
     /// stays here, so ⌘Q or ⌘, can't quit Penknife or open Settings in the middle of a recording.
     enum CommandKey: Equatable { case undo, duplicate, stop, toText, swallow }
-    static func commandKey(_ key: String, typing: Bool) -> CommandKey {
+    static func commandKey(_ key: String, shift: Bool = false, typing: Bool) -> CommandKey {
+        // ⇧⌘R stops (user: "el mismo comando que activa la grabación la para"), also while typing.
+        // Only here, never global: other apps keep their own ⇧⌘R (REC-48).
+        if key == "r", shift { return .stop }
         if typing { return ["z", "x", "c", "v", "a"].contains(key) ? .toText : .swallow }
         switch key {
         case "z": return .undo
@@ -138,6 +141,12 @@ final class RecordingSession {
         case ".": return .stop        // ⌘. (R is the rectangle), besides the global Record Screen
         default: return .swallow
         }
+    }
+
+    /// The Stop button's keys (REC-48): the global Record Screen shortcut, then ⇧⌘R (only
+    /// while Penknife has the keyboard). Separated by a space: one key cap each.
+    static func stopKeys(_ recordScreen: String) -> String {
+        recordScreen.isEmpty ? "⇧⌘R" : "\(recordScreen) ⇧⌘R"
     }
 
     private func showCountdown() {
@@ -609,7 +618,7 @@ final class RecordingSession {
             return true
         }
         if flags.contains(.command) {
-            switch Self.commandKey(key, typing: input.isTyping) {
+            switch Self.commandKey(key, shift: flags.contains(.shift), typing: input.isTyping) {
             case .toText: return false
             case .swallow: return true
             case .undo:

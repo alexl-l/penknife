@@ -1337,6 +1337,18 @@ struct ScreenshotRulesTests {
         #expect(model.hovered == "a")
         model.hover(at: nil)
         #expect(model.hovered == nil)
+        // ⌘ alone shows the keys at once (no delay); a ⌘ shortcut hides them until ⌘ is let go.
+        model.keyPressed()  // a plain key before ⌘ doesn't block the next ⌘
+        model.modifiersChanged([.command])
+        #expect(model.commandHeld)
+        model.keyPressed()
+        #expect(!model.commandHeld)
+        model.modifiersChanged([.command, .shift])
+        model.modifiersChanged([.command])
+        #expect(!model.commandHeld)
+        model.modifiersChanged([])
+        model.modifiersChanged([.command])
+        #expect(model.commandHeld)
     }
 
     @Test("REC-19 O-15 SS-61 drawing while recording uses the editor's letters and ⌘D")
@@ -1347,6 +1359,13 @@ struct ScreenshotRulesTests {
         #expect(CaptureKeys.toolKey("x", isRepeat: false) == nil)
         #expect(RecordingSession.commandKey("d", typing: false) == .duplicate)
         #expect(RecordingSession.commandKey("d", typing: true) == .swallow)
+        // REC-48: ⇧⌘R stops (also while typing); ⌘R alone does nothing.
+        #expect(RecordingSession.commandKey("r", shift: true, typing: false) == .stop)
+        #expect(RecordingSession.commandKey("r", shift: true, typing: true) == .stop)
+        #expect(RecordingSession.commandKey("r", typing: false) == .swallow)
+        #expect(RecordingSession.stopKeys("⌃⌥R") == "⌃⌥R ⇧⌘R")
+        #expect(ShortcutHints.caps("⌃⌥R ⇧⌘R") == ["⌃⌥R", "⇧⌘R"])
+        #expect(ShortcutHints.caps("⇧⌫") == ["⇧⌫"])
     }
 
     @Test("REC-19 SS-62 every recording button has its key while drawing")

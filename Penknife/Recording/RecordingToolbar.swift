@@ -20,7 +20,7 @@ struct RecordingToolbar: View {
                     .background(Color(nsColor: .systemRed), in: Circle())
                     .contentShape(Circle())
             }
-            .shortcut("stop", name: String(localized: "Stop"), key: RecordingPrefs.keys(.recordScreen), in: hints)
+            .shortcut("stop", name: String(localized: "Stop"), key: RecordingSession.stopKeys(RecordingPrefs.keys(.recordScreen)), in: hints)
             .accessibilityLabel(String(localized: "Stop recording"))
             Button { run(.pause) } label: { symbol(state.paused ? "play.fill" : "pause.fill") }
                 .shortcut("pause", name: state.paused ? String(localized: "Resume") : String(localized: "Pause"),
