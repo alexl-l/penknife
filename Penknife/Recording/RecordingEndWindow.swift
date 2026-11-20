@@ -333,26 +333,30 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
     /// Length and size, or the trimmed length with what it was cut from; at another speed, the
     /// length it will last and the speed (the size is only known once made, so it isn't shown).
     private func updateNote() {
-        let full = Self.time(length)
-        let speed = model.speed, fast = speed != 1
-        let kept = model.trim?.duration ?? length
-        let lasts = Self.time(fast ? CMTimeMultiplyByFloat64(kept, multiplier: 1 / speed) : kept)
-        let name = Self.speedName(speed)
-        guard let trim = model.trim else {
-            if fast {
-                model.note = lasts + noSound
-                model.trimNote = String(localized: "(\(name) of \(full))")
-            } else {
-                model.trimNote = ""
-                let size = (try? movie.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0
-                model.note = "\(full) · \(ByteCountFormatter.string(fromByteCount: size, countStyle: .file))" + noSound
-            }
-            return
+        let movie = movie
+        let notes = Self.notes(length: length, trim: model.trim, speed: model.speed,
+                               bytes: (try? movie.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0)
+        model.note = notes.note + noSound
+        model.trimNote = notes.trimNote
+    }
+
+    /// The note's two parts for a recording of `length`, `trim` and `speed` (R-33, REC-50):
+    /// at 1× with no trim, length and size ("0:12 · 3 MB"); otherwise the length it will last,
+    /// then the speed and/or the trim in the recording's own time. `bytes` is read only when shown.
+    static func notes(length: CMTime, trim: CMTimeRange?, speed: Double,
+                      bytes: @autoclosure () -> Int64) -> (note: String, trimNote: String) {
+        let full = time(length)
+        let fast = speed != 1
+        let kept = trim?.duration ?? length
+        let lasts = time(fast ? CMTimeMultiplyByFloat64(kept, multiplier: 1 / speed) : kept)
+        let name = speedName(speed)
+        guard let trim else {
+            if fast { return (lasts, String(localized: "(\(name) of \(full))")) }
+            return ("\(full) · \(ByteCountFormatter.string(fromByteCount: bytes(), countStyle: .file))", "")
         }
-        model.note = lasts + noSound
-        let from = Self.time(trim.start), to = Self.time(trim.end)
-        model.trimNote = fast ? String(localized: "(\(name) · trimmed from \(full)) · \(from) → \(to)")
-                              : String(localized: "(trimmed from \(full)) · \(from) → \(to)")
+        let from = time(trim.start), to = time(trim.end)
+        return (lasts, fast ? String(localized: "(\(name) · trimmed from \(full)) · \(from) → \(to)")
+                            : String(localized: "(trimmed from \(full)) · \(from) → \(to)"))
     }
 
     /// The file to save, turn into a GIF or copy: the trimmed part when there is a trim, at the
