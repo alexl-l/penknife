@@ -3,6 +3,29 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.12</title>
+            <pubDate>Thu, 19 Nov 2026 22:05:57 -0500</pubDate>
+            <sparkle:version>240</sparkle:version>
+            <sparkle:shortVersionString>1.12</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Hold to record.** Hold the Screenshot shortcut (F1 by default) or the Touch Bar Screenshot button (2 seconds by default), pick the area, and the 3-2-1 countdown starts. Choose 1, 1.5, 2 or 3 seconds, or turn it off. The Touch Bar follows your settings at once.</li>
+<li>**Toolbar during the countdown.** The recording toolbar now shows while the 3-2-1 runs. Stop cancels the recording. Switch the microphone and Mac sound with M and S, and the first change restarts the count.</li>
+<li>**A key for every button.** Every button in the screenshot editor and the recording toolbar has a keyboard key, shown on hover or while you hold ⌘. Drawing while you record uses the same keys as the editor, and a shape's letter places it. ⌘D duplicates a mark. ⇧⌘R stops a recording while Penknife has the keyboard, and ⌃⌥D switches Mouse and Edit in one press.</li>
+<li>**Close after saving.** A new setting, off by default, closes the recording window after you save the video or GIF, or copy it.</li>
+<li>**Safer recordings.** Quitting Penknife asks before it discards a recording you have not saved. If the sound fails, the video is kept without sound. ⌃⌥P opens the menu while you record.</li>
+<li>**Microphone just works.** Recording with the microphone unmutes a muted Mac mic, then mutes it again afterwards. With no microphone connected, the Touch Bar button and the menu item are dimmed.</li>
+<li>**Screenshot fixes.** The toolbar stays on screen for a window that extends past the bottom edge. Main-menu keys no longer leave the editor. Recording from the editor now captures the right part of the screen.</li>
+<li>**New Permissions page.** Settings lists the five macOS permissions Penknife can use, with the state of each, and permission alerts point to it. New alerts cover missing meeting and media key access, a refused Automation request, and a microphone that can't be muted.</li>
+<li>**Settings and menu bar look.** Sidebar icons now look like macOS System Settings tiles, in solid colors. The menu bar status dots are bigger, at 6 pt like Apple's.</li>
+<li>**Smoother Touch Bar.** The bar comes back at once when you close a dialog with its button on the Touch Bar. Sliders follow your finger and keep their level when you lift outside the slider.</li>
+<li>**Clipboard history.** The panel opens at once even with many screenshots. Web formatting is kept, and files that no longer exist leave the list. The Clipboard page shows the space pasted images use.</li>
+<li>**Smaller fixes.** Launch at login now follows System Settings, so removing it there turns the choice off. Mouse Jiggler stops when you move the mouse. The speed test reports a crash of its tool as a failure, and weather older than 2 hours shows as no data.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.12/Penknife-1.12.zip" length="6480770" type="application/octet-stream" sparkle:edSignature="NLUS6LxsyXtmUwX8+0fVh4j2qzcA2wMIjNLmqGwtxQWXVLsOfhQ9yyWitPZCILCLOgb544A+aD65gNLtdovdDQ=="/>
+        </item>
+        <item>
             <title>1.11</title>
             <pubDate>Wed, 18 Nov 2026 18:01:43 -0500</pubDate>
             <sparkle:version>135</sparkle:version>
@@ -32,18 +55,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.10/Penknife-1.10.zip" length="6011886" type="application/octet-stream" sparkle:edSignature="anqnSHwzJuGcAY69HtJ/MOobEit/w/z8eU5OKoNwQYXs1hKf3Cn4fT3eGEdjdA1oicuvz+PO4jBFYcy4U4o9Cw=="/>
-        </item>
-        <item>
-            <title>1.9</title>
-            <pubDate>Wed, 18 Nov 2026 10:06:39 -0500</pubDate>
-            <sparkle:version>96</sparkle:version>
-            <sparkle:shortVersionString>1.9</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Alerts at the top center.** Penknife's alerts now appear centered under the menu bar (or the notch) instead of the top right. A Teams message or another Apple banner no longer covers them, and they no longer cover it or the volume indicator. With the pointer on a second screen, the alert shows on that screen.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.9/Penknife-1.9.zip" length="5153095" type="application/octet-stream" sparkle:edSignature="WwVQf34qeQAzT9/el+7eWVT0Q2967Ximxyt20QkmfwczLxoF5CMwmtGvfZ2oHcjO5Nx6rEB3wS8e+YP0B4bGCQ=="/>
         </item>
     </channel>
 </rss>
