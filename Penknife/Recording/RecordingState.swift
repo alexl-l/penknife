@@ -7,7 +7,7 @@ enum RecordingPrefs {
     static let micKey = "recording.microphone"
     static let soundKey = "recording.macSound"
     static let fadeKey = "recording.fade"
-    /// Close the end window once a save or copy succeeds (REC-48); off by default.
+    /// Close the end window once a save or copy succeeds (REC-49); off by default.
     static let closeAfterKey = "recording.closeAfterSaving"
 
     static func closeAfterSaving(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: closeAfterKey) }

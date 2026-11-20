@@ -1399,7 +1399,7 @@ struct ScreenshotRulesTests {
         #expect(S.commandKey(".", typing: false) == .stop)
     }
 
-    @Test("REC-48 closing the end window after a save or copy is off until turned on")
+    @Test("REC-49 closing the end window after a save or copy is off until turned on")
     func closeAfterSaving() {
         #expect(!RecordingPrefs.closeAfterSaving(in: MemoryDefaults()))
         #expect(RecordingPrefs.closeAfterSaving(in: MemoryDefaults([RecordingPrefs.closeAfterKey: true])))

@@ -429,7 +429,7 @@ private struct ScreenshotOptions: View {
             }
         }
         .disabled(!holdToRecord)
-        // REC-48: close the window after a recording once it is saved or copied.
+        // REC-49: close the window after a recording once it is saved or copied.
         Toggle(isOn: $closeAfterSaving) {
             Text("Close the recording after saving or copying")
             Text("The window closes once the video or GIF is saved or the video is copied.")
