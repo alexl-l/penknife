@@ -64,7 +64,7 @@ Arrastra una zona, o pulsa Espacio y haz clic en una ventana, o pulsa Intro para
 <img src="docs/screenshots/recording.gif" width="720" alt="Dibujando mientras se graba: un resaltado bajo “Mark up and record your screen” y una flecha al botón Download, que se desvanecen tras unos segundos">
 
 ### Y en la barra de menús
-Mover el ratón para mantener el Mac despierto y tu estado activo (lo mueve tras 10 segundos sin actividad, o el tiempo que elijas, y descansa mientras el Mac está bloqueado), bloquear la pantalla y un test de velocidad que muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y el test de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
+Mover el ratón para mantener el Mac despierto y tu estado activo (lo mueve tras 10 segundos sin actividad, o el tiempo que elijas, y descansa mientras el Mac está bloqueado), bloquear la pantalla y una prueba de velocidad que muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y la prueba de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
 
 ### Ajustes
 Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo. Penknife se abre al iniciar sesión (puedes desactivarlo) y sigue el idioma del sistema, español o inglés.
@@ -72,7 +72,7 @@ Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módu
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
 ### ¿Tienes Touch Bar?
-Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, test de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app. ¿Vienes de MTMR? Ciérralo antes de activar la Touch Bar, o las dos barras se irán sustituyendo una a otra.
+Penknife añade la suya: brillo, luz del teclado, volumen, música, tiempo, temperatura de la CPU, batería, prueba de velocidad y hora, a un toque. Los iconos siguen el estado actual: toca la batería para ver porcentaje o icono, mantenla pulsada para cambiar los colores. Tú eliges qué botones aparecen y en qué orden. Cuando una app muestra un aviso, la barra se aparta para que veas los botones de la propia app. ¿Vienes de MTMR? Ciérralo antes de activar la Touch Bar, o las dos barras se irán sustituyendo una a otra.
 
 <img src="docs/screenshots/touchbar-rainbow.png" alt="Touch Bar de Penknife en modo arcoíris">
 
@@ -154,7 +154,7 @@ Con "Oye Siri" activado, macOS puede abrir el micrófono unos segundos cuando el
 Penknife no tiene cuenta, ni analíticas, ni rastreo.
 
 - **El tiempo** envía a [Open-Meteo](https://open-meteo.com/) solo coordenadas redondeadas a unos 11 km. Open-Meteo ve tu dirección IP.
-- **El test de velocidad** usa la herramienta `networkQuality` de macOS, que contacta con servidores de prueba de Apple.
+- **La prueba de velocidad** usa la herramienta `networkQuality` de macOS, que contacta con servidores de prueba de Apple.
 - **El historial del portapapeles**, **las capturas** y **las grabaciones de pantalla** se quedan en tu Mac.
 
 </details>

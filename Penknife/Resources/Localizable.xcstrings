@@ -3556,7 +3556,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Test de velocidad"
+            "value": "Prueba de velocidad"
           }
         }
       }
@@ -3596,7 +3596,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Test de velocidad: midiendo…"
+            "value": "Prueba de velocidad: midiendo…"
           }
         }
       }
