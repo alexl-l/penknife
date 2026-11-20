@@ -604,6 +604,19 @@ struct TouchBarRulesTests {
         #expect(open(Node.app(window: deep, focus: sheet.deepest(below: 1))))
     }
 
+    // TB-64: the element found is the dialog itself (its "destroyed" notification is watched).
+    @Test("TB-64 the dialog watched is the one found")
+    func dialogFound() {
+        let sheet = Node("AXSheet")
+        #expect(DialogsModule.openDialog(in: Node.app(window: Self.window([Node("AXButton"), sheet]))) === sheet)
+        let system = Node("AXWindow", subrole: "AXSystemDialog")
+        #expect(DialogsModule.openDialog(in: Node.app(window: system)) === system)
+        let modal = Node("AXGroup", modal: true)
+        let window = Self.window([Node("AXGroup", children: [modal])])
+        #expect(DialogsModule.openDialog(in: Node.app(window: window, focus: modal.deepest(below: 2))) === modal)
+        #expect(DialogsModule.openDialog(in: Node.app(window: Self.window([Node("AXButton")]))) == nil)
+    }
+
     // TB-44: the walk up from the focus checks 12 elements at most and stops at the window.
     @Test("TB-44 how far up the focus is followed")
     func focusWalk() {

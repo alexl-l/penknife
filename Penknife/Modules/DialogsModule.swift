@@ -23,6 +23,8 @@ final class DialogsModule: Module {
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private var observer: AXObserver?
     @ObservationIgnored private var observedApp: AXUIElement?
+    /// The dialog on screen, watched until it goes (TB-64).
+    @ObservationIgnored private var watchedDialog: AXUIElement?
     @ObservationIgnored private var pendingCheck: DispatchWorkItem?
     @ObservationIgnored private let log = Logger(subsystem: "Penknife", category: "Dialogs")
 
@@ -122,6 +124,7 @@ final class DialogsModule: Module {
     }
 
     private func removeObserver() {
+        unwatchDialog()
         if let observer {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
             if let observedApp {
@@ -172,8 +175,30 @@ final class DialogsModule: Module {
         guard let app = NSWorkspace.shared.frontmostApplication else { return false }
         if Self.ignoresFront(isPenknife: app.processIdentifier == ProcessInfo.processInfo.processIdentifier,
                              customizingBar: Self.customizingBar) { return false }
-        return Self.dialogIsOpen(frontBundleID: app.bundleIdentifier, trusted: AXIsProcessTrusted(),
-                                 app: DialogAXNode.app(app.processIdentifier))
+        if Self.systemPromptApps.contains(app.bundleIdentifier ?? "") { return true }
+        guard AXIsProcessTrusted() else { return false }
+        let dialog = Self.openDialog(in: DialogAXNode.app(app.processIdentifier))
+        watchDialog(dialog?.element)
+        return dialog != nil
+    }
+
+    /// TB-64: a dialog can close with no focus or app change (a tap on its Touch Bar button
+    /// while the app keeps no other window), so its own "destroyed" notification is watched.
+    private func watchDialog(_ element: AXUIElement?) {
+        if let element, let watchedDialog, CFEqual(element, watchedDialog) { return }
+        unwatchDialog()
+        guard let element, let observer else { return }
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        if AXObserverAddNotification(observer, element, kAXUIElementDestroyedNotification as CFString, refcon) == .success {
+            watchedDialog = element
+        }
+    }
+
+    private func unwatchDialog() {
+        if let observer, let watchedDialog {
+            AXObserverRemoveNotification(observer, watchedDialog, kAXUIElementDestroyedNotification as CFString)
+        }
+        watchedDialog = nil
     }
 
     /// TB-44: a system prompt app in front counts even without Accessibility; otherwise, with it,
@@ -184,22 +209,25 @@ final class DialogsModule: Module {
                                                app: @autoclosure () -> Node) -> Bool {
         if systemPromptApps.contains(frontBundleID ?? "") { return true }
         guard trusted() else { return false }
-        let app = app()
+        return openDialog(in: app()) != nil
+    }
 
-        guard let window = app.focusedWindow else { return false }
-        if isDialog(window) { return true }
+    /// The dialog element `dialogIsOpen` finds with Accessibility, or nil.
+    static func openDialog<Node: DialogNode>(in app: Node) -> Node? {
+        guard let window = app.focusedWindow else { return nil }
+        if isDialog(window) { return window }
 
         // A sheet attached to the focused window.
-        if window.children.contains(where: isDialog) { return true }
+        if let sheet = window.children.first(where: isDialog) { return sheet }
 
         // Focus inside a dialog (e.g. on its default button).
         var element = app.focusedElement
         for _ in 0..<12 {
             guard let current = element, !current.isSame(as: window) else { break }
-            if isDialog(current) { return true }
+            if isDialog(current) { return current }
             element = current.parent
         }
-        return false
+        return nil
     }
 
     static func isDialog<Node: DialogNode>(_ node: Node) -> Bool {
