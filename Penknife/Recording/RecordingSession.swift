@@ -319,8 +319,10 @@ final class RecordingSession {
         startClock()
         drawShortcut = Task { [weak self] in
             for await _ in KeyboardShortcuts.events(.keyUp, for: .recordingDraw) {
-                // Mouse ⇄ Edit, never with a tool armed (user: "no me gusta que sea el pen").
-                self?.run(.pointer)
+                // Mouse ⇄ Edit in one press, even with a tool armed (user: "tengo que oprimir
+                // control option d dos veces"); Edit starts with no tool (REC-17).
+                guard let self else { return }
+                self.setDrawing(!self.state.drawing)
             }
         }
         // The countdown took the keyboard: give it back.
