@@ -5143,26 +5143,6 @@
         }
       }
     },
-    "Paste a table: the first line names the columns. Each run uses the next row; use the column names as variables, like {email}.": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pega una tabla: la primera línea da nombre a las columnas. Cada ejecución usa la fila siguiente; usa los nombres de las columnas como variables, por ejemplo {correo}."
-          }
-        }
-      }
-    },
-    "Data table": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tabla de datos"
-          }
-        }
-      }
-    },
     "Repeat rows": {
       "localizations": {
         "es": {
@@ -5179,16 +5159,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Activado: tras la última fila, la siguiente ejecución vuelve a la fila 1. Desactivado: la macro no se ejecuta y te avisa."
-          }
-        }
-      }
-    },
-    "No data": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sin datos"
           }
         }
       }
@@ -5956,6 +5926,206 @@
           "stringUnit": {
             "state": "translated",
             "value": "No quedan filas. Activa «Repetir filas»."
+          }
+        }
+      }
+    },
+    "column": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "columna"
+          }
+        }
+      }
+    },
+    "Names can have spaces; { and } aren't allowed. Renaming a column updates the steps.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los nombres pueden llevar espacios; no se permiten { ni }. Al cambiar el nombre de una columna se actualizan los pasos."
+          }
+        }
+      }
+    },
+    "%@ or %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ o %2$@"
+          }
+        }
+      }
+    },
+    "Each run uses the next row. Use %@ in a “Type Text” step.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada vez que corras la macro se usa la siguiente fila. Usa %@ en un paso “Escribir texto”."
+          }
+        }
+      }
+    },
+    "Add Column": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir columna"
+          }
+        }
+      }
+    },
+    "Add Row": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir fila"
+          }
+        }
+      }
+    },
+    "The next run uses this row": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La próxima vez se usa esta fila"
+          }
+        }
+      }
+    },
+    "Use Next": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar la próxima vez"
+          }
+        }
+      }
+    },
+    "Row %lld, %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fila %1$lld, %2$@"
+          }
+        }
+      }
+    },
+    "Remove Row": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar fila"
+          }
+        }
+      }
+    },
+    "Next to run": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente en ejecutarse"
+          }
+        }
+      }
+    },
+    "Column name": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre de la columna"
+          }
+        }
+      }
+    },
+    "Remove Column": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quitar columna"
+          }
+        }
+      }
+    },
+    "One Row for Each Run": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una fila por cada ejecución"
+          }
+        }
+      }
+    },
+    "Paste a table from Excel, Numbers or Sheets, or start an empty one. Then use {email} in a “Type Text” step.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pega una tabla de Excel, Numbers o Sheets, o empieza una vacía. Después usa {email} en un paso “Escribir texto”."
+          }
+        }
+      }
+    },
+    "Paste Table": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar tabla"
+          }
+        }
+      }
+    },
+    "Empty Table": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabla vacía"
+          }
+        }
+      }
+    },
+    "Copy a table first: its first row names the columns.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero copia una tabla: su primera fila da nombre a las columnas."
+          }
+        }
+      }
+    },
+    "{name}": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "{nombre}"
+          }
+        }
+      }
+    },
+    "Example: columns email and name, row ana@example.com, Ana": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejemplo: columnas email y nombre, fila ana@example.com, Ana"
           }
         }
       }

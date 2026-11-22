@@ -274,7 +274,7 @@ private struct MacroDetail: View {
                     Button("Create from Text…") { creating = true }
                 }
             } else {
-                DataEditor(data: macro.data)
+                DataEditor(macro: macro)
             }
         }
         .padding(16)
@@ -591,44 +591,45 @@ private struct PinPicker: View {
 // MARK: - Data rows
 
 private struct DataEditor: View {
-    @Binding var data: MacroData
-    @State private var text = ""
+    @Binding var macro: Macro
+    private var data: MacroData { macro.data }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Paste a table: the first line names the columns. Each run uses the next row; use the column names as variables, like {email}.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .layoutPriority(1)
-            TextEditor(text: $text)
-                .font(.system(.body, design: .monospaced))
-                .scrollContentBackground(.hidden)
-                .padding(6)
-                .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
-                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor)))
-                .frame(minHeight: 80, maxHeight: .infinity)
-                .accessibilityLabel("Data table")
-                .onChange(of: text) { _, new in data.update(from: new) }
-            HStack(spacing: 12) {
-                if data.isEmpty {
-                    Text("No data").foregroundStyle(.secondary)
-                } else {
-                    Text(columnsLine).foregroundStyle(.secondary).lineLimit(1)
+        VStack(alignment: .leading, spacing: 12) {
+            if data.columns.isEmpty {
+                DataEmptyState(macro: $macro)
+            } else {
+                Text(hint)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(1)
+                DataTable(macro: $macro)
+                HStack(spacing: 12) {
+                    Toggle("Repeat rows", isOn: $macro.data.repeats)
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                        .help("On: after the last row, the next run starts again at row 1. Off: the macro doesn't run and tells you.")
                     Spacer()
-                    Text(nextLine).monospacedDigit()
-                    Button("Start Again") { data.next = 0 }
-                        .disabled(data.next == 0)
+                    if !data.rows.isEmpty {
+                        Text(nextLine).foregroundStyle(.secondary).monospacedDigit()
+                        Button("Start Again") { macro.data.next = 0 }
+                            .controlSize(.small)
+                            .disabled(data.next == 0)
+                    }
                 }
+                .font(.callout)
+                Text("Names can have spaces; { and } aren't allowed. Renaming a column updates the steps.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
             }
-            Toggle("Repeat rows", isOn: $data.repeats)
-                .help("On: after the last row, the next run starts again at row 1. Off: the macro doesn't run and tells you.")
         }
-        .onAppear { text = data.source }
     }
 
-    private var columnsLine: String {
-        data.columns.filter { !$0.isEmpty }.map { "{\($0)}" }.joined(separator: " ")
+    private var hint: String {
+        let names = data.columns.prefix(2).map { "{\($0)}" }
+        let list = names.count == 2 ? String(localized: "\(names[0]) or \(names[1])") : names.first ?? ""
+        return String(localized: "Each run uses the next row. Use \(list) in a “Type Text” step.")
     }
 
     private var nextLine: String {
@@ -636,6 +637,244 @@ private struct DataEditor: View {
             return data.repeats ? String(localized: "Next: row 1 of \(data.rows.count)") : String(localized: "No rows left")
         }
         return String(localized: "Next: row \(data.next + 1) of \(data.rows.count)")
+    }
+}
+
+/// The table is the interface (variant A): the header holds the column names, which are the
+/// variables; the row the next run uses has ▶ and an accent background.
+private struct DataTable: View {
+    @Binding var macro: Macro
+    private let side: CGFloat = 36
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: side)
+                ForEach(macro.data.columns.indices, id: \.self) { column in
+                    ColumnHeader(macro: $macro, column: column)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                Button { macro.data.addColumn() } label: { Image(systemName: "plus") }
+                    .buttonStyle(.borderless)
+                    .frame(width: side)
+                    .help("Add Column")
+                    .accessibilityLabel("Add Column")
+            }
+            .frame(height: 32)
+            .background(.quaternary.opacity(0.5))
+            Divider()
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(macro.data.rows.indices, id: \.self) { row in
+                        rowView(row)
+                        Divider().opacity(0.5)
+                    }
+                    Button { macro.data.addRow() } label: { Label("Add Row", systemImage: "plus") }
+                        .buttonStyle(.borderless)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .frame(height: 30)
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor)))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private var nextIndex: Int {
+        macro.data.next < macro.data.rows.count ? macro.data.next : (macro.data.repeats ? 0 : -1)
+    }
+
+    private func rowView(_ row: Int) -> some View {
+        let isNext = row == nextIndex
+        return HStack(spacing: 0) {
+            Group {
+                if isNext {
+                    Image(systemName: "play.fill").font(.system(size: 10)).foregroundStyle(.tint)
+                } else {
+                    Text("\(row + 1)").foregroundStyle(.tertiary).monospacedDigit()
+                }
+            }
+            .frame(width: side)
+            .help(isNext ? String(localized: "The next run uses this row") : String(localized: "Use Next"))
+            .onTapGesture { macro.data.next = row }
+            ForEach(macro.data.columns.indices, id: \.self) { column in
+                TextField("", text: cell(row, column))
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel(String(localized: "Row \(row + 1), \(macro.data.columns[column])"))
+            }
+            Button { macro.data.removeRow(row) } label: { Image(systemName: "minus.circle") }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.secondary)
+                .frame(width: side)
+                .help("Remove Row")
+                .accessibilityLabel("Remove Row")
+        }
+        .frame(height: 30)
+        .background(isNext ? Color.accentColor.opacity(0.18) : (row % 2 == 1 ? Color.primary.opacity(0.04) : .clear))
+        .contextMenu {
+            Button("Use Next") { macro.data.next = row }.disabled(isNext)
+            Button("Remove Row") { macro.data.removeRow(row) }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityValue(isNext ? String(localized: "Next to run") : "")
+    }
+
+    private func cell(_ row: Int, _ column: Int) -> Binding<String> {
+        Binding(get: {
+            macro.data.rows.indices.contains(row) && macro.data.rows[row].indices.contains(column)
+                ? macro.data.rows[row][column] : ""
+        }, set: { macro.data.set($0, row: row, column: column) })
+    }
+}
+
+/// A column name, edited in place; applied (and the steps renamed) when you leave the field.
+/// An empty or repeated name shows red and isn't applied.
+private struct ColumnHeader: View {
+    @Binding var macro: Macro
+    let column: Int
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    private var name: String {
+        macro.data.columns.indices.contains(column) ? macro.data.columns[column] : ""
+    }
+    private var valid: Bool { macro.data.canName(draft, column: column) }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "curlybraces")
+                .font(.system(size: 11))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            TextField("", text: $draft)
+                .textFieldStyle(.plain)
+                .fontWeight(.semibold)
+                .foregroundStyle(valid ? Color.primary : Color.red)
+                .focused($focused)
+                .onSubmit(apply)
+                .onChange(of: draft) { _, new in
+                    let clean = new.filter { $0 != "{" && $0 != "}" }
+                    if clean != new { draft = clean }
+                }
+                .onChange(of: focused) { _, isFocused in if !isFocused { apply() } }
+                .accessibilityLabel(String(localized: "Column name"))
+        }
+        .padding(.horizontal, 8)
+        .onAppear { draft = name }
+        .onChange(of: name) { _, new in if !focused { draft = new } }
+        .contextMenu {
+            Button("Remove Column") { macro.data.removeColumn(column) }
+        }
+    }
+
+    private func apply() {
+        if !macro.renameColumn(column, to: draft) { draft = name }
+        else { draft = name }
+    }
+}
+
+/// No table yet (variant C): what Data is for, an example, and the two ways to start.
+private struct DataEmptyState: View {
+    @Binding var macro: Macro
+    @State private var nothingToPaste = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "tablecells")
+                .font(.system(size: 34, weight: .light))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text("One Row for Each Run").font(.title3.weight(.semibold))
+            Text("Paste a table from Excel, Numbers or Sheets, or start an empty one. Then use {email} in a “Type Text” step.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 380)
+            example
+            HStack(spacing: 10) {
+                Button { paste() } label: { Label("Paste Table", systemImage: "doc.on.clipboard") }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                Button { emptyTable() } label: { Label("Empty Table", systemImage: "plus") }
+                    .controlSize(.large)
+            }
+            if nothingToPaste {
+                Text("Copy a table first: its first row names the columns.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
+        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor)))
+    }
+
+    private var example: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                ForEach(["{email}", String(localized: "{name}")], id: \.self) { name in
+                    Text(name)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.tint)
+                        .frame(width: 130, alignment: .leading)
+                        .padding(.horizontal, 8)
+                }
+            }
+            .frame(height: 26)
+            .background(.quaternary.opacity(0.5))
+            HStack(spacing: 0) {
+                ForEach(["ana@example.com", "Ana"], id: \.self) { value in
+                    Text(value).font(.callout).frame(width: 130, alignment: .leading).padding(.horizontal, 8)
+                }
+            }
+            .frame(height: 26)
+        }
+        .frame(width: 292)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(nsColor: .separatorColor)))
+        .opacity(0.8)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(localized: "Example: columns email and name, row ana@example.com, Ana"))
+    }
+
+    private func paste() {
+        let text = NSPasteboard.general.string(forType: .string) ?? ""
+        let parsed = MacroData.parse(text)
+        guard !parsed.columns.isEmpty else {
+            nothingToPaste = true
+            return
+        }
+        var data = macro.data
+        // Names that are empty or repeated get a number, so each one is its own variable.
+        data.columns = []
+        for (index, name) in parsed.columns.enumerated() {
+            var clean = MacroData.cleanName(name)
+            if clean.isEmpty { clean = String(localized: "column") + " \(index + 1)" }
+            let base = clean
+            var number = 2
+            while data.columns.contains(where: { $0.lowercased() == clean.lowercased() }) {
+                clean = "\(base) \(number)"
+                number += 1
+            }
+            data.columns.append(clean)
+        }
+        data.rows = parsed.rows
+        data.next = 0
+        data.source = ""
+        macro.data = data
+    }
+
+    private func emptyTable() {
+        var data = macro.data
+        data.addColumn()
+        data.addRow()
+        data.next = 0
+        macro.data = data
     }
 }
 

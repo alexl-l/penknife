@@ -207,6 +207,72 @@ struct MacroData: Codable, Equatable {
         rows = parsed.rows
     }
 
+    // MARK: Editing the table (Data tab, A + C picked by the user 2026-11-22)
+
+    /// Column names may hold spaces; braces are dropped (they'd end the variable).
+    static func cleanName(_ name: String) -> String {
+        name.filter { $0 != "{" && $0 != "}" }.trimmingCharacters(in: .whitespaces)
+    }
+
+    /// Not empty and not another column's name (case-insensitive, as variables are).
+    func canName(_ name: String, column: Int) -> Bool {
+        let name = Self.cleanName(name)
+        return !name.isEmpty && !columns.indices.contains { $0 != column && columns[$0].lowercased() == name.lowercased() }
+    }
+
+    @discardableResult
+    mutating func addColumn() -> Int {
+        let base = String(localized: "column")
+        var name = base
+        var number = 2
+        while columns.contains(where: { $0.lowercased() == name.lowercased() }) {
+            name = "\(base) \(number)"
+            number += 1
+        }
+        columns.append(name)
+        for index in rows.indices { rows[index].append("") }
+        return columns.count - 1
+    }
+
+    mutating func removeColumn(_ column: Int) {
+        guard columns.indices.contains(column) else { return }
+        columns.remove(at: column)
+        for index in rows.indices where rows[index].indices.contains(column) { rows[index].remove(at: column) }
+        if columns.isEmpty { rows = [] }
+    }
+
+    mutating func addRow() {
+        rows.append(Array(repeating: "", count: columns.count))
+    }
+
+    /// The rows after it move up; the next row stays the same row.
+    mutating func removeRow(_ row: Int) {
+        guard rows.indices.contains(row) else { return }
+        rows.remove(at: row)
+        if row < next { next -= 1 }
+        next = min(next, max(rows.count - 1, 0))
+    }
+
+    /// A value with tabs or line breaks (a block copied from a spreadsheet) is spread over the
+    /// cells from here: right and down, adding rows as needed; cells past the last column are left out.
+    mutating func set(_ value: String, row: Int, column: Int) {
+        guard columns.indices.contains(column), rows.indices.contains(row) else { return }
+        guard value.contains(where: { $0 == "\t" || $0.isNewline }) else {
+            rows[row][column] = value
+            return
+        }
+        var lines = value.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)
+        while lines.count > 1, lines.last?.isEmpty == true { lines.removeLast() }
+        for (offset, line) in lines.enumerated() {
+            let target = row + offset
+            while rows.count <= target { addRow() }
+            for (step, cell) in line.split(separator: "\t", omittingEmptySubsequences: false).enumerated()
+            where column + step < columns.count {
+                rows[target][column + step] = cell.trimmingCharacters(in: .whitespaces)
+            }
+        }
+    }
+
     /// The row this run uses, or nil when the rows ran out and don't repeat.
     func rowForRun() -> (index: Int, values: [String: String])? {
         guard !isEmpty else { return (0, [:]) }
@@ -255,6 +321,23 @@ struct Macro: Identifiable, Codable, Equatable {
         apps = try values.decodeIfPresent([String].self, forKey: .apps) ?? []
         lastRun = try values.decodeIfPresent(Date.self, forKey: .lastRun)
         lastAnswers = try values.decodeIfPresent([String: String].self, forKey: .lastAnswers) ?? [:]
+    }
+
+    /// Renames a data column and every `{old}` in the steps with it (the user, 2026-11-22: "si
+    /// cambio el nombre de la columna, no se actualiza en los steps"). False when the name is
+    /// empty or taken; nothing changes then.
+    @discardableResult
+    mutating func renameColumn(_ column: Int, to name: String) -> Bool {
+        let name = MacroData.cleanName(name)
+        guard data.columns.indices.contains(column), data.canName(name, column: column) else { return false }
+        let old = data.columns[column]
+        data.columns[column] = name
+        guard old != name else { return true }
+        for index in steps.indices where steps[index].kind == .text {
+            steps[index].text = steps[index].text.replacingOccurrences(
+                of: "{\(old)}", with: "{\(name)}", options: .caseInsensitive)
+        }
+        return true
     }
 
     /// `{ask:Name}` questions in the order they first appear.

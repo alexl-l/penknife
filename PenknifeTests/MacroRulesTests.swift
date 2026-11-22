@@ -259,4 +259,37 @@ struct MacroRulesTests {
         #expect(!MacroStore.isDefaultName(base + " x"))
         #expect(!MacroStore.isDefaultName("Login"))
     }
+
+    @Test("MAC-24 renaming a column renames {old} in the text steps; empty or repeated names are refused")
+    func renameColumn() {
+        var macro = Macro(name: "m", steps: [MacroStep(kind: .text)])
+        macro.steps[0].text = "Hi {Mail}, {mail}! {mailbox}"
+        macro.data.update(from: "mail,name\na,b")
+        let renamed = macro.renameColumn(0, to: " mail {address} ")
+        #expect(renamed)
+        #expect(macro.data.columns == ["mail address", "name"])
+        #expect(macro.steps[0].text == "Hi {mail address}, {mail address}! {mailbox}")
+        let taken = macro.renameColumn(0, to: "NAME")
+        let empty = macro.renameColumn(0, to: "  ")
+        #expect(!taken && !empty)
+        #expect(macro.data.columns[0] == "mail address")
+    }
+
+    @Test("MAC-25 table editing: add/remove columns and rows; a pasted block spreads over the cells")
+    func tableEditing() {
+        var data = MacroData()
+        data.addColumn()
+        data.addColumn()
+        #expect(data.columns.count == 2 && data.columns[0] != data.columns[1])
+        data.addRow()
+        data.set("a\tb\tc\nd\te\n", row: 0, column: 0)
+        #expect(data.rows == [["a", "b"], ["d", "e"]])
+        data.next = 1
+        data.removeRow(0)
+        #expect(data.rows == [["d", "e"]] && data.next == 0)
+        data.removeColumn(0)
+        #expect(data.columns.count == 1 && data.rows == [["e"]])
+        data.removeColumn(0)
+        #expect(data.columns.isEmpty && data.rows.isEmpty)
+    }
 }
