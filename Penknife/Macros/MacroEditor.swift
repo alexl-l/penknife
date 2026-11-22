@@ -599,13 +599,15 @@ private struct DataEditor: View {
             Text("Paste a table: the first line names the columns. Each run uses the next row; use the column names as variables, like {email}.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .layoutPriority(1)
             TextEditor(text: $text)
                 .font(.system(.body, design: .monospaced))
                 .scrollContentBackground(.hidden)
                 .padding(6)
                 .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor)))
+                .frame(minHeight: 80, maxHeight: .infinity)
                 .accessibilityLabel("Data table")
                 .onChange(of: text) { _, new in data.update(from: new) }
             HStack(spacing: 12) {
