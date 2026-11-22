@@ -107,11 +107,13 @@ final class MacrosModule: Module {
         }
         // Linked pins: their text now; a pin that is gone (or not text) is asked, as plan B.
         var pinned: [UUID: String] = [:]
+        var asked: Set<UUID> = []
         var missing: [MacroPrompt.Field] = []
         for step in macro.steps where step.kind == .pinned {
             if let pin = step.pin, let item = clipboard?.store.item(pin), item.pinned, item.kind == .text {
                 pinned[step.id] = item.text ?? ""
             } else {
+                asked.insert(step.id)
                 missing.append(.init(id: step.id.uuidString, label: step.text.isEmpty ? step.kind.title : step.text,
                                      value: step.lastValue ?? "",
                                      note: String(localized: "The pinned item is gone. Type the value for this run.")))
@@ -119,7 +121,7 @@ final class MacrosModule: Module {
         }
         let questions = macro.questions.map { MacroPrompt.Field(id: "ask:" + $0, label: $0, value: macro.lastAnswers[$0] ?? "") }
         let plan = MacroRunner.Plan(macro: macro, answers: [:], columns: row.values,
-                                    row: macro.data.isEmpty ? nil : row.index, pinned: pinned)
+                                    row: macro.data.isEmpty ? nil : row.index, pinned: pinned, asked: asked)
         let fields = questions + missing
         guard !fields.isEmpty else {
             begin(plan)
@@ -158,8 +160,11 @@ final class MacrosModule: Module {
         runApp = nil
         store.edit(plan.macro.id) { macro in
             macro.lastAnswers.merge(plan.answers) { $1 }
+            // Only a value typed as plan B is remembered; a pin that was found isn't copied here
+            // (it may hold something private, and it lives in the pins already).
             for index in macro.steps.indices where macro.steps[index].kind == .pinned {
-                if let value = plan.pinned[macro.steps[index].id] { macro.steps[index].lastValue = value }
+                let id = macro.steps[index].id
+                macro.steps[index].lastValue = plan.asked.contains(id) ? plan.pinned[id] : nil
             }
             if let app, !macro.apps.contains(app) { macro.apps.append(app) }
             guard completed else { return }

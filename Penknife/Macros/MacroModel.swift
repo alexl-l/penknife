@@ -8,6 +8,19 @@ struct MacroKey: Codable, Equatable, Hashable {
     /// `NSEvent.ModifierFlags` raw value, device-independent part only.
     var modifiers: UInt = 0
 
+    init(code: Int, modifiers: UInt = 0) {
+        self.code = code
+        self.modifiers = modifiers
+    }
+
+    /// A code from a file that is no real key becomes Tab instead of breaking the macro.
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let code = try values.decode(Int.self, forKey: .code)
+        self.code = (0...127).contains(code) ? code : kVK_Tab
+        modifiers = (try? values.decodeIfPresent(UInt.self, forKey: .modifiers)) ?? 0
+    }
+
     static let tab = MacroKey(code: kVK_Tab)
     static let returnKey = MacroKey(code: kVK_Return)
     static let escape = MacroKey(code: kVK_Escape)
@@ -434,6 +447,11 @@ final class MacroStore {
             clean.steps = clean.steps.map { step in
                 var step = step
                 step.lastValue = nil
+                // A pin is only on this Mac, and its label is its text.
+                if step.kind == .pinned {
+                    step.pin = nil
+                    step.text = ""
+                }
                 return step
             }
             return clean
@@ -443,13 +461,47 @@ final class MacroStore {
         return try encoder.encode(Export(macros: chosen))
     }
 
+    /// Limits for a file someone else made: past them it isn't imported.
+    static let maxSteps = 500
+    static let maxText = 10_000
+    static let maxRows = 10_000
+
+    enum ImportError: Error { case tooBig }
+
+    /// Macros from a file, with new ids and none of the run state the file may carry.
     static func imported(_ data: Data) throws -> [Macro] {
-        try JSONDecoder().decode(Export.self, from: data).macros.map { macro in
-            var fresh = macro
-            fresh.id = UUID()
-            fresh.steps = fresh.steps.map(\.duplicate)
+        let macros = try JSONDecoder().decode(Export.self, from: data).macros
+        for macro in macros {
+            guard macro.steps.count <= maxSteps, macro.data.rows.count <= maxRows,
+                  macro.steps.allSatisfy({ $0.text.count <= maxText }) else { throw ImportError.tooBig }
+        }
+        return macros.map { macro in
+            var fresh = Macro(name: macro.name, steps: macro.steps.map(\.duplicate), typesText: macro.typesText)
+            fresh.data = macro.data
+            fresh.data.next = 0
+            fresh.steps = fresh.steps.map { step in
+                var step = step
+                step.lastValue = nil
+                step.milliseconds = min(max(step.milliseconds, 0), 60_000)
+                return step
+            }
             return fresh
         }
+    }
+
+    /// What an imported macro does that deserves a look before it's kept: files it would paste,
+    /// ⌘ shortcuts it would press, the clipboard it would type.
+    static func risks(_ macros: [Macro]) -> [String] {
+        let steps = macros.flatMap(\.steps)
+        var risks: [String] = []
+        if steps.contains(where: { $0.kind == .file }) { risks.append(String(localized: "pastes or types files from this Mac")) }
+        if steps.contains(where: { $0.kind == .key && ($0.key?.flags.contains(.command) ?? false) }) {
+            risks.append(String(localized: "presses ⌘ shortcuts"))
+        }
+        if steps.contains(where: { $0.kind == .text && ["{clipboard}", "{portapapeles}"].contains(where: $0.text.lowercased().contains) }) {
+            risks.append(String(localized: "types what is on your clipboard"))
+        }
+        return risks
     }
 
     /// Adds imported macros; `replace` swaps one of the same name, else both are kept.

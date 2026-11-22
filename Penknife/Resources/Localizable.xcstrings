@@ -5789,6 +5789,86 @@
           }
         }
       }
+    },
+    "A password field is active": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hay un campo de contraseña activo"
+          }
+        }
+      }
+    },
+    "pastes or types files from this Mac": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pegan o escriben archivos de este Mac"
+          }
+        }
+      }
+    },
+    "presses ⌘ shortcuts": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "pulsan atajos con ⌘"
+          }
+        }
+      }
+    },
+    "types what is on your clipboard": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "escriben lo que tienes en el portapapeles"
+          }
+        }
+      }
+    },
+    "These macros are too big to import.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estas macros son demasiado grandes para importarlas."
+          }
+        }
+      }
+    },
+    "Import macros from someone else?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Importar macros de otra persona?"
+          }
+        }
+      }
+    },
+    "Some of them %@. Import only files you trust.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Algunas %@. Importa solo archivos en los que confíes."
+          }
+        }
+      }
+    },
+    "Import": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -140,6 +140,8 @@ struct MacroRulesTests {
         macro.data.next = 1
         var pinned = MacroStep(kind: .pinned)
         pinned.lastValue = "ID-77"
+        pinned.pin = UUID()
+        pinned.text = "ID-77"
         macro.steps.append(pinned)
         store.add(macro)
         let imported = try MacroStore.imported(store.exportData())
@@ -148,7 +150,24 @@ struct MacroRulesTests {
         #expect(copy.id != macro.id)
         #expect(copy.counter == 0 && copy.apps.isEmpty && copy.lastAnswers.isEmpty)
         #expect(copy.data.rows.count == 2 && copy.data.next == 0)
-        #expect(copy.steps[1].lastValue == nil)
+        #expect(copy.steps[1].lastValue == nil && copy.steps[1].pin == nil && copy.steps[1].text.isEmpty)
+    }
+
+    @Test("MAC-44 import: run state dropped, bad key codes become Tab, too big is refused, risks are listed")
+    func importSafety() throws {
+        let json = """
+        {"format":"penknife.macros","version":1,"macros":[{"name":"x","counter":5,"apps":["a"],
+         "lastAnswers":{"Who":"me"},"steps":[{"kind":"key","key":{"code":70000,"modifiers":1048576}},
+         {"kind":"wait","milliseconds":999999},{"kind":"text","text":"{clipboard}"},{"kind":"file","file":"file:///tmp/a"}]}]}
+        """
+        let macros = try MacroStore.imported(Data(json.utf8))
+        #expect(macros[0].counter == 0 && macros[0].apps.isEmpty && macros[0].lastAnswers.isEmpty)
+        #expect(macros[0].steps[0].key?.code == 48)
+        #expect(macros[0].steps[1].milliseconds == 60_000)
+        #expect(MacroStore.risks(macros).count == 3)
+        let big = Macro(name: "big", steps: Array(repeating: .text("a"), count: MacroStore.maxSteps + 1))
+        let data = try JSONEncoder().encode(MacroStore.Export(macros: [big]))
+        #expect(throws: MacroStore.ImportError.self) { try MacroStore.imported(data) }
     }
 
     @Test("MAC-43 import with the same name: keep both renames, replace keeps the id")

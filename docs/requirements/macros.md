@@ -18,7 +18,7 @@ Code abbreviations: MM = `Macros/MacroModel.swift`, MR = `Macros/MacroRunner.swi
 - **MAC-10** Variables in Type Text: `{date}`/`{fecha}`, `{time}`/`{hora}` (system formats), `{n}` (counter, +1 on each completed run), `{random}`/`{aleatorio}` (6 random digits), `{clipboard}`/`{portapapeles}` (the clipboard's text when the run starts). Verify: MAC-10 test.
 - **MAC-11** Unknown names and lone braces are typed as written. Verify: test.
 - **MAC-12** `{ask:Name}`/`{preguntar:Nombre}`: before the run a small glass prompt "Details for “macro”" asks each question once, prefilled with the last answer; Return runs, Esc or a click elsewhere cancels (nothing runs). Verify: test + live.
-- **MAC-13** Pinned Item step: at run time the text of the pin it follows (by id, not position: copying or reordering doesn't break it). If the pin is gone (deleted, unpinned, not text, or Clipboard History off) it is asked in the same prompt, prefilled with the last value used, with the note "The pinned item is gone. Type the value for this run." Updating the pin: CB-34.
+- **MAC-13** Pinned Item step: at run time the text of the pin it follows (by id, not position: copying or reordering doesn't break it). If the pin is gone (deleted, unpinned, not text, or Clipboard History off) it is asked in the same prompt, prefilled with the last value typed there (only plan B values are remembered; a found pin's text is never copied into Macros.json), with the note "The pinned item is gone. Type the value for this run." Updating the pin: CB-34.
 
 ### C. Data rows
 - **MAC-20** Data tab: paste a table; the first line names the columns (tabs, else semicolons, else commas). Each column is a variable `{name}` (case-insensitive). Verify: test.
@@ -34,6 +34,7 @@ Code abbreviations: MM = `Macros/MacroModel.swift`, MR = `Macros/MacroRunner.swi
 - **MAC-40** Saved to `~/Library/Application Support/Penknife/Macros.json`, folder 0700, file 0600, written 0.4 s after the last change (and when the editor closes). Verify: test.
 - **MAC-41** A file that can't be read is moved aside as `Macros (unreadable <time>).json`, never written over. Verify: test.
 - **MAC-42** Export (one macro from its context menu, or "Export All…") writes JSON with what the macros do; run state (counter, row, apps, answers, last pinned values) stays on this Mac. Verify: test.
+- **MAC-44** Import safety (security review 2026-11-22): run state in the file is dropped, waits clamped to 60 s, key codes outside 0–127 become Tab; more than 500 steps, 10 000 characters in a text or 10 000 data rows → "These macros are too big to import."; macros that paste/type files, press ⌘ shortcuts or type the clipboard ask "Import macros from someone else?" first. Export drops linked pins (id and label). Verify: test.
 - **MAC-43** Import: new ids; a macro with the same name asks "Keep Both" (renamed "Name 2") or "Replace" (keeps the existing id and shortcut). Verify: test.
 
 ### F. The list panel
@@ -44,9 +45,9 @@ Code abbreviations: MM = `Macros/MacroModel.swift`, MR = `Macros/MacroRunner.swi
 - **MAC-50..52**: clipboard rules CB-34, CB-35 (tests named MAC-50..52).
 - **MAC-55** Text goes in by pasting (default): the text is put on the clipboard marked `org.nspasteboard.TransientType` (Clipboard History skips it) and ⌘V is sent; the next clipboard change waits 0.15 s so the app reads the right text. Keystrokes mode types the text as key events (16 UTF-16 units per event, newlines as Return).
 - **MAC-56** The run waits (≤ 1 s) for the shortcut's modifiers to be released, then runs the steps with 40 ms between them, in the app that was in front when it started.
-- **MAC-57** Stops at once (alert "Macro stopped", with the reason) when another app comes to the front, on any click, or on Esc pressed by the user (Penknife's own Esc keys are marked, EP `marker`, and ignored). Nothing more is typed.
+- **MAC-57** Stops at once (alert "Macro stopped", with the reason) when another app comes to the front, on any click, or on Esc pressed by the user (Penknife's own Esc keys are marked, EP `marker`, and ignored). Nothing more is typed. Before every non-wait step it also checks that the same app is in front, and stops ("A password field is active") when secure input is on (a password field, or an app like Terminal with Secure Keyboard Entry: a known limit, it blocks macros while that is on).
 - **MAC-58** Wait for Me: the run pauses; clicks and typing are allowed; the list shortcut or the macro's own shortcut continues it; Esc stops it. It continues only if the same app is in front, else it stops ("Another app came to the front").
-- **MAC-60** The user's clipboard (every type of every item) is put back when the run ends or stops, 0.3 s after the last paste. Verify: test.
+- **MAC-60** The user's clipboard (every type of every item) is put back when the run ends or stops, 0.3 s after the last paste, unless the user copied something during the run (their new copy is kept). Promised types (file promises) are not snapshotted. Verify: test.
 - **MAC-62** Menu bar while running (indicator A, user 2026-11-22: "el triángulo para el indicador"): the Penknife logo becomes a blue `play.fill`; while waiting, a blue `hand.raised.fill` with the tooltip "Waiting… press the shortcut to continue"; the status dots stay. VoiceOver value "Running macro <name>" / "Macro <name> is waiting. Press its shortcut to continue." A finished run shows nothing. The jiggler holds off while a macro runs.
 
 ### H. The editor

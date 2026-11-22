@@ -164,9 +164,20 @@ struct MacroEditorView: View {
             macros = try MacroStore.imported(Data(contentsOf: url))
         } catch {
             let alert = NSAlert()
-            alert.messageText = String(localized: "This file has no macros Penknife can read.")
+            alert.messageText = error is MacroStore.ImportError
+                ? String(localized: "These macros are too big to import.")
+                : String(localized: "This file has no macros Penknife can read.")
             alert.runModal()
             return
+        }
+        let risks = MacroStore.risks(macros)
+        if !risks.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = String(localized: "Import macros from someone else?")
+            alert.informativeText = String(localized: "Some of them \(risks.formatted(.list(type: .and))). Import only files you trust.")
+            alert.addButton(withTitle: String(localized: "Import"))
+            alert.addButton(withTitle: String(localized: "Cancel"))
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
         for macro in macros {
             var replacing: Macro.ID?

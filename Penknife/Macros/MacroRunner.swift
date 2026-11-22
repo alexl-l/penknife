@@ -20,7 +20,7 @@ final class MacroRunner {
     var isBusy: Bool { state != .idle }
 
     /// Why a run ended early, for the alert.
-    enum StopReason { case appChanged, click, escape, permission, rowsRanOut, failed }
+    enum StopReason { case appChanged, click, escape, permission, rowsRanOut, secureInput, failed }
 
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var resume: CheckedContinuation<Bool, Never>?
@@ -30,6 +30,9 @@ final class MacroRunner {
     @ObservationIgnored private var target: NSRunningApplication?
     @ObservationIgnored private var snapshot: [[NSPasteboard.PasteboardType: Data]]?
     @ObservationIgnored private var lastPaste = Date.distantPast
+    /// The clipboard's change count after Penknife's last write: anything else means the user
+    /// copied during the run, and their new copy is not overwritten by the restore.
+    @ObservationIgnored private var ownChange: Int?
 
     /// What a run needs, gathered before it starts (answers asked, data row chosen).
     struct Plan {
@@ -39,6 +42,8 @@ final class MacroRunner {
         var row: Int?
         /// Text of each pinned step, by step id (from the pin, or asked as plan B).
         var pinned: [UUID: String]
+        /// Pinned steps whose pin was gone and were asked (plan B): only these remember the value.
+        var asked: Set<UUID> = []
     }
 
     /// Called when a run ends (finished or stopped) with what to save back into the macro.
@@ -97,13 +102,26 @@ final class MacroRunner {
         let macro = plan.macro
         for step in macro.steps {
             guard !stopped else { return false }
+            if step.kind != .wait, step.kind != .waitForMe {
+                // Checked before every key, not only on the app-change notice (events queued
+                // in between would land in the new app), and never into a password field.
+                guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target?.processIdentifier else {
+                    stop(.appChanged)
+                    return false
+                }
+                guard !IsSecureEventInputEnabled() else {
+                    stop(.secureInput)
+                    return false
+                }
+            }
             switch step.kind {
             case .text:
                 await input(MacroText.expand(step.text, context), typing: macro.typesText)
             case .pinned:
                 await input(plan.pinned[step.id] ?? "", typing: macro.typesText)
             case .key:
-                guard let key = step.key else { continue }
+                // Key codes come from files too (import): anything outside a real key is skipped.
+                guard let key = step.key, (0...127).contains(key.code) else { continue }
                 EventPoster.key(CGKeyCode(key.code), flags: key.cgFlags)
             case .wait:
                 await sleep(ms: max(0, min(step.milliseconds, 60_000)))
@@ -146,6 +164,7 @@ final class MacroRunner {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         pasteboard.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
+        ownChange = pasteboard.changeCount
         pressPaste()
     }
 
@@ -155,6 +174,7 @@ final class MacroRunner {
         pasteboard.clearContents()
         pasteboard.writeObjects([url as NSURL])
         pasteboard.setString("", forType: NSPasteboard.PasteboardType("org.nspasteboard.TransientType"))
+        ownChange = pasteboard.changeCount
         pressPaste()
     }
 
@@ -235,8 +255,11 @@ final class MacroRunner {
         // The last paste must be read before the user's clipboard comes back.
         let left = 0.3 - Date.now.timeIntervalSince(lastPaste)
         if left > 0 { try? await Task.sleep(for: .milliseconds(Int(left * 1000))) }
-        if let snapshot, lastPaste != .distantPast { Self.restore(snapshot, to: .general) }
+        if let snapshot, lastPaste != .distantPast, NSPasteboard.general.changeCount == ownChange {
+            Self.restore(snapshot, to: .general)
+        }
         snapshot = nil
+        ownChange = nil
         lastPaste = .distantPast
         let reason = stopReason
         state = .idle
@@ -251,6 +274,7 @@ final class MacroRunner {
         case .appChanged: String(localized: "Another app came to the front")
         case .click: String(localized: "You clicked")
         case .escape, .failed, .permission: nil
+        case .secureInput: String(localized: "A password field is active")
         case .rowsRanOut: String(localized: "No rows left. Turn on “Repeat rows” or start again in the editor.")
         }
         HUD.shared.show(reason == .rowsRanOut ? String(localized: "\(name) didn't run") : String(localized: "Macro stopped"),
@@ -261,9 +285,14 @@ final class MacroRunner {
     // MARK: The user's clipboard
 
     static func take(_ pasteboard: NSPasteboard) -> [[NSPasteboard.PasteboardType: Data]] {
+        // Only data that is really there: promised types (file promises) would make the source
+        // app produce them now, which can take long.
         (pasteboard.pasteboardItems ?? []).map { item in
             var data: [NSPasteboard.PasteboardType: Data] = [:]
-            for type in item.types { data[type] = item.data(forType: type) }
+            for type in item.types where !type.rawValue.hasPrefix("com.apple.NSFilePromise")
+                && type.rawValue != "com.apple.pasteboard.promised-file-url" {
+                data[type] = item.data(forType: type)
+            }
             return data
         }
     }
