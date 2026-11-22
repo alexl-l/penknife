@@ -248,4 +248,15 @@ struct MacroRulesTests {
         #expect(MacroKey.returnKey.name == "Return")
         #expect(MacroKey(code: 0, modifiers: NSEvent.ModifierFlags.command.rawValue).symbol.hasPrefix("⌘"))
     }
+
+    @Test("MAC-06 a default name clears on click; only New Macro and New Macro N count")
+    func defaultName() {
+        let base = String(localized: "New Macro")
+        #expect(MacroStore.isDefaultName(base))
+        #expect(MacroStore.isDefaultName(base + " 2"))
+        #expect(MacroStore.isDefaultName(base + " 12"))
+        #expect(!MacroStore.isDefaultName(base + " "))
+        #expect(!MacroStore.isDefaultName(base + " x"))
+        #expect(!MacroStore.isDefaultName("Login"))
+    }
 }

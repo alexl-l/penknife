@@ -420,6 +420,14 @@ final class MacroStore {
     }
 
     /// A name not used yet: "New Macro", "New Macro 2"…
+    /// "New Macro", "New Macro 2"…: a name the user hasn't chosen yet.
+    static func isDefaultName(_ name: String) -> Bool {
+        let base = String(localized: "New Macro")
+        guard name.hasPrefix(base) else { return false }
+        let rest = name.dropFirst(base.count)
+        return rest.isEmpty || (rest.first == " " && rest.dropFirst().allSatisfy(\.isNumber) && rest.count > 1)
+    }
+
     func freshName(_ base: String = String(localized: "New Macro")) -> String {
         var name = base
         var number = 2

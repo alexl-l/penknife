@@ -40,7 +40,11 @@ final class MacroEditorWindow: NSWindow, NSWindowDelegate {
         isReleasedWhenClosed = false
         minSize = NSSize(width: 620, height: 420)
         delegate = self
-        contentViewController = NSHostingController(rootView: MacroEditorView(module: module, selection: selection))
+        // The window keeps the size the user gave it: without this the hosting controller grows
+        // it to the content's ideal size (the Data tab's text view made it fill the screen).
+        let host = NSHostingController(rootView: MacroEditorView(module: module, selection: selection))
+        host.sizingOptions = []
+        contentViewController = host
         setContentSize(NSSize(width: 700, height: 540))
         center()
         setFrameAutosaveName("MacroEditor")
@@ -205,6 +209,8 @@ private struct MacroDetail: View {
     let id: Macro.ID
     @State private var tab = 0
     @State private var creating = false
+    @State private var nameDraft = ""
+    @FocusState private var nameFocused: Bool
     private var store: MacroStore { module.store }
 
     private var macro: Binding<Macro> {
@@ -213,10 +219,24 @@ private struct MacroDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            TextField("Name", text: macro.name)
+            TextField(macro.wrappedValue.name, text: $nameDraft)
                 .textFieldStyle(.plain)
                 .font(.title2.weight(.semibold))
+                .focused($nameFocused)
                 .accessibilityLabel("Macro name")
+                .onAppear { nameDraft = macro.wrappedValue.name }
+                .onChange(of: nameDraft) { _, new in
+                    if !new.trimmingCharacters(in: .whitespaces).isEmpty { macro.wrappedValue.name = new }
+                }
+                .onChange(of: nameFocused) { _, focused in
+                    // A default name ("New Macro 2") clears on click, showing it as the
+                    // placeholder; leaving the field empty puts it back (user, 2026-11-22).
+                    if focused, MacroStore.isDefaultName(nameDraft) {
+                        nameDraft = ""
+                    } else if !focused, nameDraft.trimmingCharacters(in: .whitespaces).isEmpty {
+                        nameDraft = macro.wrappedValue.name
+                    }
+                }
             HStack(spacing: 16) {
                 KeyboardShortcuts.Recorder(String(localized: "Shortcut"), name: MacrosModule.shortcut(id)) { _ in
                     module.refreshShortcuts()
