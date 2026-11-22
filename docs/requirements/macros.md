@@ -23,7 +23,7 @@ Code abbreviations: MM = `Macros/MacroModel.swift`, MR = `Macros/MacroRunner.swi
 ### C. Data rows
 - **MAC-20** Data tab: paste a table; the first line names the columns (tabs, else semicolons, else commas). Each column is a variable `{name}` (case-insensitive). Verify: test.
 - **MAC-21** Each completed run uses the next row; a stopped run keeps the same row for the next try. The panel row shows "N steps · row x of y". Verify: test.
-- **MAC-22** "Repeat rows" checkbox (user, 2026-11-22): on (default) → after the last row the next run starts at row 1; off → the macro doesn't run and the alert "“macro” didn't run — No rows left. Turn on “Repeat rows” or start again in the editor." shows. "Start Again" sets the next row to 1. Verify: test.
+- **MAC-22** "Repeat rows" checkbox (user, 2026-11-22): on (default) → after the last row the next run starts at row 1; off → the macro doesn't run and the alert "“macro” didn't run — No rows left. Turn on “Repeat rows”." shows. "Start Again" sets the next row to 1. Verify: test.
 - **MAC-23** Changing the table (columns or row count) starts again at row 1.
 
 ### D. Create from text

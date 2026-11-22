@@ -275,7 +275,7 @@ final class MacroRunner {
         case .click: String(localized: "You clicked")
         case .escape, .failed, .permission: nil
         case .secureInput: String(localized: "A password field is active")
-        case .rowsRanOut: String(localized: "No rows left. Turn on “Repeat rows” or start again in the editor.")
+        case .rowsRanOut: String(localized: "No rows left. Turn on “Repeat rows”.")
         }
         HUD.shared.show(reason == .rowsRanOut ? String(localized: "\(name) didn't run") : String(localized: "Macro stopped"),
                         detail: detail, symbol: reason == .rowsRanOut ? "tablecells" : "stop.fill",

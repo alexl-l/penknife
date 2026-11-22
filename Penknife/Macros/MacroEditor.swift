@@ -23,7 +23,10 @@ final class MacroEditorWindow: NSWindow, NSWindowDelegate {
         } else if window.selection.id == nil {
             window.selection.id = module.store.macros.first?.id
         }
-        NSApp.activate()
+        // As Settings: the cooperative `activate()` is refused for a menu bar app when the
+        // editor is opened from the panel (another app in front; QA 2026-11-22). Opening it is
+        // always the user's request.
+        NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
     }
 
