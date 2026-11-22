@@ -385,6 +385,14 @@ The user finds the repo too plain and wants it to look beautiful and make people
   - **Export / import** macros as a file, to share with a team (user: "si varios la usan, suena bien").
   - **Per-app order**: in the list, macros used in the app in front come first.
 - Rejected by Claude, user agreed: recording keystrokes (needs Input Monitoring, works like a keylogger).
+- Design (2026-11-22, `ux-ui-designer` spec + live demo): user picked **editor A** (own window, macro list on the left, steps as native list rows with kind symbols, drag to reorder) and **running indicator A** (user: "el triángulo para el indicador": the Penknife menu bar icon becomes a blue `play.fill` while running, `hand.raised.fill` while waiting for the user). List panel shown as designed (clipboard-panel sibling, "En Safari"/"Todas" headers, "↩ Ejecutar ⌘E Editar ⌘N Nueva" footer); no objection.
+- **Linked pinned item** (user, 2026-11-22: a form ID that changes every week; "sería chévere … que sea siempre el primer elemento del portapapeles"; on Claude's proposal: "Esooo, algo como actualizar valor del elemento del portapapeles. Y me gusta lo que propones, un plan b si no lo encuentra"):
+  - A text step can be linked to one pinned clipboard item (picked in the editor). It follows that item, not a position, so copying or reordering doesn't break it.
+  - Clipboard panel: on a pinned item, "Update with copied" / "Actualizar con lo copiado" (right-click and a key) replaces its content with what is on the clipboard now, keeping its icon and place. Changes clipboard.md.
+  - Plan B: if the linked item is gone, the macro asks for the value before running (like `{ask:…}`), prefilled with the last value used.
+  - Drag to reorder pinned items in the clipboard panel (user's wish "poder cambiar el orden del portapapeles"; included in Claude's proposal the user liked). Changes clipboard.md.
+- **After the last data row** (user, 2026-11-22: "Un check que el usuario puede elegir, repetir filas si o no. Si dice que no, sale el aviso"): a checkbox in the Data tab, "Repeat rows" / "Repetir filas". On: the next run starts again at row 1. Off: the macro doesn't run and shows a notice that the rows ran out.
+- Per-app ordering keeps the "En Safari" / "Todas" headers (user, 2026-11-22: "Sip").
 - Acceptance criteria (draft): a 5-text form fills correctly with "text, Tab" steps from one shortcut press; the `.env` example (10 key/value pairs) fills from "Create from text"; switching app mid-run stops it with nothing typed in the new app; "Wait for me" resumes on the shortcut; `{n}` differs on consecutive runs; the user's clipboard is the same before and after a run; idle CPU unchanged.
 
 ## For later (user, 2026-11-19: "anota estas cosas para más adelante, solo anótalas")
