@@ -3,10 +3,19 @@ import Carbon.HIToolbox
 
 /// Synthetic keyboard and mouse events. Needs the Accessibility permission.
 enum EventPoster {
+    /// Stamped on every key Penknife posts, so its own watchers (a running macro's Esc) can tell
+    /// them from the user's.
+    static let marker: Int64 = 0x504B_4E46
+
+    static func isOurs(_ event: NSEvent) -> Bool {
+        event.cgEvent?.getIntegerValueField(.eventSourceUserData) == marker
+    }
+
     static func key(_ keyCode: CGKeyCode, flags: CGEventFlags = [], toPid pid: pid_t? = nil) {
         for down in [true, false] {
             guard let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: down) else { continue }
             event.flags = flags
+            event.setIntegerValueField(.eventSourceUserData, value: marker)
             if let pid {
                 event.postToPid(pid)
             } else {
@@ -18,6 +27,26 @@ enum EventPoster {
     static func moveMouse(to point: CGPoint) {
         CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?
             .post(tap: .cghidEventTap)
+    }
+
+    /// Types text as key presses (for fields that block paste), a few characters per event.
+    static func type(_ text: String) {
+        let units = Array(text.utf16)
+        var index = 0
+        while index < units.count {
+            var end = min(index + 16, units.count)
+            // Never split a surrogate pair (emoji) between two events.
+            if end < units.count, UTF16.isLeadSurrogate(units[end - 1]) { end -= 1 }
+            let chunk = Array(units[index..<end])
+            for down in [true, false] {
+                guard let event = CGEvent(keyboardEventSource: nil, virtualKey: 0, keyDown: down) else { continue }
+                event.flags = []
+                event.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
+                event.setIntegerValueField(.eventSourceUserData, value: marker)
+                event.post(tap: .cghidEventTap)
+            }
+            index = end
+        }
     }
 
     static var mouseLocation: CGPoint {

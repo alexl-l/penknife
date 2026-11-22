@@ -32,6 +32,10 @@ enum ClipboardKeyAction: Equatable {
     case editIcon
     /// ⌘1–⌘9: paste that visible row (0-based).
     case row(Int)
+    /// ⌘U: the selected pinned item takes what is on the clipboard now (R-35).
+    case updatePin
+    /// ⌥⌘↑ / ⌥⌘↓: move the selected pinned item (R-35).
+    case movePin(Int)
 }
 
 enum ClipboardKeys {
@@ -39,6 +43,8 @@ enum ClipboardKeys {
         let flags = flags.intersection(.deviceIndependentFlagsMask)
         let command = flags.contains(.command)
         switch keyCode {
+        case 125 where command && flags.contains(.option): return .movePin(1)
+        case 126 where command && flags.contains(.option): return .movePin(-1)
         case 125: return .move(1)                                   // ↓
         case 126: return .move(-1)                                  // ↑
         case 53: return .close                                      // Esc
@@ -50,6 +56,7 @@ enum ClipboardKeys {
         guard command, let key = characters?.lowercased() else { return nil }
         if key == "p" { return .togglePin }
         if key == "e" { return .editIcon }
+        if key == "u" { return .updatePin }
         if let digit = Int(key), (1...9).contains(digit) { return .row(digit - 1) }
         return nil
     }
@@ -184,6 +191,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
                                  togglePin: { [weak self] id in self?.togglePin(id) },
                                  remove: { [weak self] id in self?.remove(id) },
                                  clear: { [weak self] in self?.confirmClear() },
+                                 updatePin: { [weak self] id in self?.updatePin(id) },
                                  showEditor: { [weak self] id, rect in self?.showIconEditor(id, at: rect) })
         let hosting = NSHostingView(rootView: view)
         self.hosting = hosting
@@ -278,8 +286,26 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
         case .row(let index):
             let rows = model.rows
             if rows.indices.contains(index) { module?.use(rows[index].id, paste: true) }
+        case .updatePin:
+            guard let id = model.selection, model.store.item(id)?.pinned == true else { return false }
+            updatePin(id)
+        case .movePin(let step):
+            guard let id = model.selection, let index = model.store.pinned.firstIndex(where: { $0.id == id }) else { return false }
+            model.store.movePin(id, to: index + step)
+            model.store.savePinOrder()
+            model.announce(String(localized: "Moved"))
         }
         return true
+    }
+
+    /// "Update with Copied" (R-35): the pin keeps its place and icon, its content is what you copied.
+    private func updatePin(_ id: ClipItem.ID) {
+        guard let module else { return }
+        let before = model.store.item(id)?.key
+        module.updatePin(id)
+        let changed = model.store.item(id)?.key != before
+        model.selection = id
+        model.announce(changed ? String(localized: "Updated") : String(localized: "Nothing new to update with"))
     }
 
     private func togglePin(_ id: ClipItem.ID) {
@@ -447,8 +473,14 @@ struct ClipboardView: View {
     let togglePin: (ClipItem.ID) -> Void
     let remove: (ClipItem.ID) -> Void
     let clear: () -> Void
+    let updatePin: (ClipItem.ID) -> Void
     let showEditor: (ClipItem.ID, CGRect) -> Void
     @FocusState private var searchFocused: Bool
+    /// Dragging a pinned row to reorder it (R-35); only without a search, when all pins show.
+    @State private var draggedPin: ClipItem.ID?
+    @State private var dragStart = 0
+    @State private var dragOffset: CGFloat = 0
+    private static let pinSpace = "pinnedRows"
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiate
     private let selectedText = Color(nsColor: .alternateSelectedControlTextColor)
@@ -511,9 +543,17 @@ struct ClipboardView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        row(item, number: first + index)
+                        if item.pinned, model.query.isEmpty, model.hidden.isEmpty {
+                            row(item, number: first + index)
+                                .offset(y: draggedPin == item.id ? dragOffset : 0)
+                                .zIndex(draggedPin == item.id ? 1 : 0)
+                                .simultaneousGesture(pinDrag(item.id))
+                        } else {
+                            row(item, number: first + index)
+                        }
                     }
                 }
+                .coordinateSpace(.named(Self.pinSpace))
                 .padding(.horizontal, 6)
                 .padding(.vertical, first == 0 ? 0 : 6)
             }
@@ -523,6 +563,30 @@ struct ClipboardView: View {
                 if let id, items.contains(where: { $0.id == id }) { proxy.scrollTo(id) }
             }
         }
+    }
+
+    private func pinDrag(_ id: ClipItem.ID) -> some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .named(Self.pinSpace))
+            .onChanged { drag in
+                let pins = model.store.pinned
+                if draggedPin == nil {
+                    draggedPin = id
+                    dragStart = pins.firstIndex { $0.id == id } ?? 0
+                    model.selection = id
+                }
+                guard let current = pins.firstIndex(where: { $0.id == id }) else { return }
+                let steps = Int((drag.translation.height / PanelLayout.rowHeight).rounded())
+                let target = min(max(dragStart + steps, 0), pins.count - 1)
+                if target != current {
+                    withAnimation(.snappy(duration: 0.2)) { model.store.movePin(id, to: target) }
+                }
+                dragOffset = drag.translation.height - CGFloat(target - dragStart) * PanelLayout.rowHeight
+            }
+            .onEnded { _ in
+                withAnimation(.snappy(duration: 0.2)) { dragOffset = 0 }
+                draggedPin = nil
+                model.store.savePinOrder()
+            }
     }
 
     private func header(_ title: LocalizedStringKey) -> some View {
@@ -589,6 +653,7 @@ struct ClipboardView: View {
             Button("Copy") { use(item.id, false) }
             Button(item.pinned ? "Unpin" : "Pin") { togglePin(item.id) }
             if item.pinned {
+                Button("Update with Copied") { updatePin(item.id) }
                 Button("Customize Icon…") { model.editingIcon = item.id }
             }
             Divider()
@@ -601,6 +666,7 @@ struct ClipboardView: View {
         .accessibilityAction(named: Text(item.pinned ? "Unpin" : "Pin")) { togglePin(item.id) }
         .accessibilityAction(named: Text("Copy")) { use(item.id, false) }
         .accessibilityAction(named: Text("Delete")) { remove(item.id) }
+        .modifier(PinActions(item: item, store: model.store, updatePin: updatePin))
         .modifier(IconEditorAnchor(item: item, model: model, show: showEditor))
     }
 
@@ -665,6 +731,30 @@ struct PinIconView: View {
                 }
                 .frame(width: size, height: size)
         }
+    }
+}
+
+/// VoiceOver actions only pinned rows have (R-35): update, move up, move down.
+private struct PinActions: ViewModifier {
+    let item: ClipItem
+    let store: ClipboardStore
+    let updatePin: (ClipItem.ID) -> Void
+
+    func body(content: Content) -> some View {
+        if item.pinned {
+            content
+                .accessibilityAction(named: Text("Update with Copied")) { updatePin(item.id) }
+                .accessibilityAction(named: Text("Move up")) { move(-1) }
+                .accessibilityAction(named: Text("Move down")) { move(1) }
+        } else {
+            content
+        }
+    }
+
+    private func move(_ step: Int) {
+        guard let index = store.pinned.firstIndex(where: { $0.id == item.id }) else { return }
+        store.movePin(item.id, to: index + step)
+        store.savePinOrder()
     }
 }
 

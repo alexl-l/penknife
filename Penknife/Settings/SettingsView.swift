@@ -191,6 +191,7 @@ private extension ModuleID {
         case .lockScreen: .indigo
         case .screenshot: .purple
         case .clipboard: .teal
+        case .macros: .blue
         case .music: .pink
         case .blockAppleMusic: .red
         case .cpuTemperature: .orange
@@ -272,6 +273,10 @@ private struct ModuleDetail: View {
             if let clipboard = manager.module(.clipboard) as? ClipboardModule {
                 Section { ClipboardOptions(store: clipboard.store) }
             }
+        case .macros:
+            if let macros = manager.module(.macros) as? MacrosModule {
+                MacroOptions(module: macros)
+            }
         case .screenshot:
             Section { ScreenshotOptions() }
         case .music:
@@ -304,6 +309,27 @@ private struct ModuleDetail: View {
             Section { MenuBarToggle(kind: .temperature) }
         case .lockScreen, .dialogs:
             EmptyView()
+        }
+    }
+}
+
+/// Macros (R-35): how new macros type text, the editor, and where they are kept.
+private struct MacroOptions: View {
+    let module: MacrosModule
+    @AppStorage(MacrosModule.typesTextKey) private var typesText = false
+
+    var body: some View {
+        Section {
+            Picker("New macros type text by", selection: $typesText) {
+                Text("Pasting").tag(false)
+                Text("Keystrokes").tag(true)
+            }
+            LabeledContent("\(module.store.macros.count) macros") {
+                Button("Edit Macros…") { module.openEditor() }
+            }
+        } footer: {
+            Text("Macros are stored on this Mac, only for you. Don't use them for passwords.")
+                .foregroundStyle(.secondary)
         }
     }
 }

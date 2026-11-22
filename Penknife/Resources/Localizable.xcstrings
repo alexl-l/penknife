@@ -4642,6 +4642,1153 @@
           }
         }
       }
+    },
+    "Updated": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizado"
+          }
+        }
+      }
+    },
+    "Nothing new to update with": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay nada nuevo con qué actualizar"
+          }
+        }
+      }
+    },
+    "Update with Copied": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar con lo copiado"
+          }
+        }
+      }
+    },
+    "Macros": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macros"
+          }
+        }
+      }
+    },
+    "Untitled": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin nombre"
+          }
+        }
+      }
+    },
+    "Export…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar…"
+          }
+        }
+      }
+    },
+    "Delete…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar…"
+          }
+        }
+      }
+    },
+    "Delete “%@”?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar «%@»?"
+          }
+        }
+      }
+    },
+    "This can't be undone.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede deshacer."
+          }
+        }
+      }
+    },
+    "Create one to type text and keys for you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crea una para escribir textos y teclas por ti."
+          }
+        }
+      }
+    },
+    "No Macros": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin macros"
+          }
+        }
+      }
+    },
+    "Choose a macro": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige una macro"
+          }
+        }
+      }
+    },
+    "New Macro": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva macro"
+          }
+        }
+      }
+    },
+    "Delete Macro": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar macro"
+          }
+        }
+      }
+    },
+    "More": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más"
+          }
+        }
+      }
+    },
+    "Import…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importar…"
+          }
+        }
+      }
+    },
+    "Export All…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar todas…"
+          }
+        }
+      }
+    },
+    "A macro named “%@” already exists.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya existe una macro llamada «%@»."
+          }
+        }
+      }
+    },
+    "Keep Both": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener ambas"
+          }
+        }
+      }
+    },
+    "Replace": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reemplazar"
+          }
+        }
+      }
+    },
+    "This file has no macros Penknife can read.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este archivo no tiene macros que Penknife pueda leer."
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre"
+          }
+        }
+      }
+    },
+    "Macro name": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nombre de la macro"
+          }
+        }
+      }
+    },
+    "Type as": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir como"
+          }
+        }
+      }
+    },
+    "Paste is faster. Keystrokes works in fields that block paste.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar es más rápido. Teclear funciona en los campos que no dejan pegar."
+          }
+        }
+      }
+    },
+    "Steps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasos"
+          }
+        }
+      }
+    },
+    "Data": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datos"
+          }
+        }
+      }
+    },
+    "Create from Text…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear desde texto…"
+          }
+        }
+      }
+    },
+    "Add Step": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir paso"
+          }
+        }
+      }
+    },
+    "No steps yet. Add one below, or create them from text.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún no hay pasos. Añade uno abajo o créalos desde texto."
+          }
+        }
+      }
+    },
+    "Step actions": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Acciones del paso"
+          }
+        }
+      }
+    },
+    "Move Up": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subir"
+          }
+        }
+      }
+    },
+    "Move Down": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bajar"
+          }
+        }
+      }
+    },
+    "Waits until you press the shortcut again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Espera hasta que pulses el atajo otra vez"
+          }
+        }
+      }
+    },
+    "Text to type": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto que se escribe"
+          }
+        }
+      }
+    },
+    "Insert a variable": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insertar una variable"
+          }
+        }
+      }
+    },
+    "Data columns": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Columnas de datos"
+          }
+        }
+      }
+    },
+    "ms": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ms"
+          }
+        }
+      }
+    },
+    "Milliseconds": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Milisegundos"
+          }
+        }
+      }
+    },
+    "Key: %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tecla: %@"
+          }
+        }
+      }
+    },
+    "Record a Key…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grabar una tecla…"
+          }
+        }
+      }
+    },
+    "Press a key…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulsa una tecla…"
+          }
+        }
+      }
+    },
+    "Change…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar…"
+          }
+        }
+      }
+    },
+    "Type Path works in Open dialogs (⌘⇧G). Web upload buttons don't take a pasted file.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir ruta funciona en las ventanas de Abrir (⌘⇧G). Los botones de subir archivos de las webs no aceptan un archivo pegado."
+          }
+        }
+      }
+    },
+    "Paste File": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegar archivo"
+          }
+        }
+      }
+    },
+    "Type Path": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir ruta"
+          }
+        }
+      }
+    },
+    "Gone: you'll be asked": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya no está: se te preguntará"
+          }
+        }
+      }
+    },
+    "Pinned item": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elemento fijado"
+          }
+        }
+      }
+    },
+    "No pinned text in Clipboard History": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay textos fijados en el historial del portapapeles"
+          }
+        }
+      }
+    },
+    "Choose a pinned item": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un elemento fijado"
+          }
+        }
+      }
+    },
+    "Paste a table: the first line names the columns. Each run uses the next row; use the column names as variables, like {email}.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pega una tabla: la primera línea da nombre a las columnas. Cada ejecución usa la fila siguiente; usa los nombres de las columnas como variables, por ejemplo {correo}."
+          }
+        }
+      }
+    },
+    "Data table": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tabla de datos"
+          }
+        }
+      }
+    },
+    "Repeat rows": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repetir filas"
+          }
+        }
+      }
+    },
+    "On: after the last row, the next run starts again at row 1. Off: the macro doesn't run and tells you.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activado: tras la última fila, la siguiente ejecución vuelve a la fila 1. Desactivado: la macro no se ejecuta y te avisa."
+          }
+        }
+      }
+    },
+    "No data": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin datos"
+          }
+        }
+      }
+    },
+    "Start Again": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a empezar"
+          }
+        }
+      }
+    },
+    "Next: row 1 of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente: fila 1 de %lld"
+          }
+        }
+      }
+    },
+    "No rows left": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quedan filas"
+          }
+        }
+      }
+    },
+    "Next: row %lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente: fila %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Create from Text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crear desde texto"
+          }
+        }
+      }
+    },
+    "Each line becomes: key, Tab, value, Return.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada línea se convierte en: clave, Tab, valor, Return."
+          }
+        }
+      }
+    },
+    "Each line becomes a text, with Tab between them.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada línea se convierte en un texto, con Tab entre ellos."
+          }
+        }
+      }
+    },
+    "KEY=value": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CLAVE=valor"
+          }
+        }
+      }
+    },
+    "One text per line": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un texto por línea"
+          }
+        }
+      }
+    },
+    "%lld steps will be added": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se añadirán %lld pasos"
+          }
+        }
+      }
+    },
+    "Add Steps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añadir pasos"
+          }
+        }
+      }
+    },
+    "Forward Delete": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suprimir"
+          }
+        }
+      }
+    },
+    "Up Arrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flecha arriba"
+          }
+        }
+      }
+    },
+    "Down Arrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flecha abajo"
+          }
+        }
+      }
+    },
+    "Left Arrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flecha izquierda"
+          }
+        }
+      }
+    },
+    "Right Arrow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flecha derecha"
+          }
+        }
+      }
+    },
+    "Home": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio"
+          }
+        }
+      }
+    },
+    "End": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fin"
+          }
+        }
+      }
+    },
+    "Page Up": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re Pág"
+          }
+        }
+      }
+    },
+    "Page Down": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Av Pág"
+          }
+        }
+      }
+    },
+    "Type Text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir texto"
+          }
+        }
+      }
+    },
+    "Key": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tecla"
+          }
+        }
+      }
+    },
+    "Wait": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperar"
+          }
+        }
+      }
+    },
+    "Wait for Me": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperar a que yo continúe"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivo"
+          }
+        }
+      }
+    },
+    "Pinned Item": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elemento fijado"
+          }
+        }
+      }
+    },
+    "Date": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fecha"
+          }
+        }
+      }
+    },
+    "Counter (goes up on each run)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contador (sube en cada ejecución)"
+          }
+        }
+      }
+    },
+    "Random digits": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dígitos aleatorios"
+          }
+        }
+      }
+    },
+    "Clipboard text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto del portapapeles"
+          }
+        }
+      }
+    },
+    "Ask when run": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preguntar al ejecutar"
+          }
+        }
+      }
+    },
+    "%@ copy": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ copia"
+          }
+        }
+      }
+    },
+    "%lld steps": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld pasos"
+          }
+        }
+      }
+    },
+    "row %lld of %lld": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fila %1$lld de %2$lld"
+          }
+        }
+      }
+    },
+    "Search Macros": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar macro"
+          }
+        }
+      }
+    },
+    "Search macros": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar macros"
+          }
+        }
+      }
+    },
+    "In %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En %@"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todas"
+          }
+        }
+      }
+    },
+    "Run": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejecutar"
+          }
+        }
+      }
+    },
+    "Edit…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar…"
+          }
+        }
+      }
+    },
+    "New": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nueva"
+          }
+        }
+      }
+    },
+    "Details for “%@”": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datos para «%@»"
+          }
+        }
+      }
+    },
+    "Another app came to the front": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otra app pasó al frente"
+          }
+        }
+      }
+    },
+    "You clicked": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiciste clic"
+          }
+        }
+      }
+    },
+    "No rows left. Turn on “Repeat rows” or start again in the editor.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quedan filas. Activa «Repetir filas» o vuelve a empezar en el editor."
+          }
+        }
+      }
+    },
+    "%@ didn't run": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» no se ejecutó"
+          }
+        }
+      }
+    },
+    "Macro stopped": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Macro detenida"
+          }
+        }
+      }
+    },
+    "The pinned item is gone. Type the value for this run.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El elemento fijado ya no está. Escribe el valor para esta vez."
+          }
+        }
+      }
+    },
+    "Fills forms for you: text, keys, waits and files, in order, in the app in front. Stops if you switch apps, click or press Esc.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llena formularios por ti: textos, teclas, esperas y archivos, en orden, en la app que tengas delante. Se detiene si cambias de app, haces clic o pulsas Esc."
+          }
+        }
+      }
+    },
+    "New macros type text by": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las macros nuevas escriben el texto"
+          }
+        }
+      }
+    },
+    "%lld macros": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld macros"
+          }
+        }
+      }
+    },
+    "Pasting": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegando"
+          }
+        }
+      }
+    },
+    "Keystrokes": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tecleando"
+          }
+        }
+      }
+    },
+    "Edit Macros…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar macros…"
+          }
+        }
+      }
+    },
+    "Macros are stored on this Mac, only for you. Don't use them for passwords.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las macros se guardan en este Mac, solo para ti. No las uses para contraseñas."
+          }
+        }
+      }
+    },
+    "Running macro %@": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ejecutando la macro %@"
+          }
+        }
+      }
+    },
+    "Macro %@ is waiting. Press its shortcut to continue.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La macro %@ está esperando. Pulsa su atajo para continuar."
+          }
+        }
+      }
+    },
+    "Waiting… press the shortcut to continue": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esperando… pulsa el atajo para continuar"
+          }
+        }
+      }
+    },
+    "macros.edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

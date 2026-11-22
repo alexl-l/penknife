@@ -9,6 +9,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     case lockScreen
     case screenshot
     case clipboard
+    case macros
     case music
     case blockAppleMusic
     case cpuTemperature
@@ -26,6 +27,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .lockScreen: String(localized: "Lock Screen")
         case .screenshot: String(localized: "Screenshot")
         case .clipboard: String(localized: "Clipboard History")
+        case .macros: String(localized: "Macros")
         case .music: String(localized: "Music")
         case .blockAppleMusic: String(localized: "Block Apple Music")
         case .cpuTemperature: String(localized: "CPU Temperature")
@@ -43,6 +45,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .lockScreen: String(localized: "Locks the screen and turns off Mouse Jiggler.")
         case .screenshot: String(localized: "Capture an area or a window (press Space). Mark it up, then copy or save it. Or record it as a video or GIF and draw as you go. Nothing leaves your Mac.")
         case .clipboard: String(localized: "Keeps what you copy (text, images, files) so you can search and paste it again. Passwords are skipped. After you quit, only pinned items remain.")
+        case .macros: String(localized: "Fills forms for you: text, keys, waits and files, in order, in the app in front. Stops if you switch apps, click or press Esc.")
         case .music: String(localized: "Play, pause and skip songs. On the Touch Bar, tap once to play or pause, twice for the next song, three times for the previous one.")
         case .blockAppleMusic: String(localized: "Keeps Apple Music from opening by itself (headphones, play key). Opening it yourself still works.")
         case .cpuTemperature: String(localized: "Shows the CPU temperature on the Touch Bar and in the menu.")
@@ -67,6 +70,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
         case .lockScreen: "lock"
         case .screenshot: "camera.viewfinder"
         case .clipboard: "list.clipboard"
+        case .macros: "keyboard.badge.ellipsis"
         case .music: "music.note"
         case .blockAppleMusic: "nosign"
         case .cpuTemperature: "thermometer.medium"

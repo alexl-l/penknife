@@ -369,6 +369,36 @@ final class ClipboardStore {
         savePins()
     }
 
+    /// "Update with Copied" (R-35): a pinned item takes the content of `item` (what is on the
+    /// clipboard now) and keeps its id, icon and place, so macros linked to it use the new value.
+    /// The same content in the history leaves it (it is the pin now).
+    func updatePin(_ id: ClipItem.ID, with item: ClipItem) {
+        guard let index = pinned.firstIndex(where: { $0.id == id }), pinned[index].key != item.key else { return }
+        if let other = pinned.firstIndex(where: { $0.key == item.key }), other != index { return }
+        if let old = history.firstIndex(where: { $0.key == item.key }) {
+            usedBytes -= history.remove(at: old).bytes
+        }
+        var updated = ClipItem(id: id, kind: item.kind, text: item.text, rtf: item.rtf, html: item.html, image: item.image,
+                               imageType: item.imageType, files: item.files, source: item.source, date: .now,
+                               pinned: true, key: item.key)
+        updated.icon = pinned[index].icon
+        pinned[index] = updated
+        makeThumbnail(for: updated)
+        dropUnusedThumbnails()
+        savePins()
+    }
+
+    /// Reorders the pinned items (R-35, drag in the panel). Saved when the drag ends (`savePinOrder`):
+    /// pins can hold images, and writing them on every row passed would be wasted work.
+    func movePin(_ id: ClipItem.ID, to target: Int) {
+        guard let index = pinned.firstIndex(where: { $0.id == id }) else { return }
+        let target = min(max(target, 0), pinned.count - 1)
+        guard target != index else { return }
+        pinned.move(fromOffsets: [index], toOffset: target > index ? target + 1 : target)
+    }
+
+    func savePinOrder() { savePins() }
+
     /// "Clear history": pinned items are never touched (R-7).
     func clearHistory() {
         history.removeAll()

@@ -23,7 +23,18 @@ final class StatusMenu: NSObject, NSMenuDelegate {
     private var defaultsObserver: NSObjectProtocol?
     private var lastDotsOn: Bool?
     /// What the icon shows now (nil = no dot), to redraw only on a real change.
-    private var shown: (mic: Bool?, jiggler: Bool?, recording: String?, paused: Bool)?
+    private var shown: (mic: Bool?, jiggler: Bool?, recording: String?, paused: Bool, macro: MacroRunner.State)?
+    private let macroRunner = MacroRunner.shared
+    /// While a macro runs (R-35, indicator A): a blue play symbol instead of the logo; a raised
+    /// hand while it waits for the user.
+    private static func macroGlyph(waiting: Bool) -> NSImage? {
+        let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+            .applying(.init(paletteColors: [.systemBlue]))
+        let image = NSImage(systemSymbolName: waiting ? "hand.raised.fill" : "play.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(configuration)
+        image?.isTemplate = false
+        return image
+    }
     private let recording = RecordingIndicator.shared
     /// While recording (R-29): a red record symbol and the time; a click stops.
     private let recordGlyph: NSImage? = {
@@ -71,6 +82,7 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             _ = manager.enabled
             _ = recording.time
             _ = recording.paused
+            _ = macroRunner.state
         } onChange: { [weak self] in
             DispatchQueue.main.async {
                 MainActor.assumeIsolated {
@@ -96,9 +108,11 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         let micOpen = dots.mic
         let jigglerOn = dots.jiggler
         let time = recording.time
-        if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn, shown.recording == time, shown.paused == recording.paused { return }
+        let macro = macroRunner.state
+        if let shown, shown.mic == micOpen, shown.jiggler == jigglerOn, shown.recording == time, shown.paused == recording.paused,
+           shown.macro == macro { return }
         let wasRecording = shown?.recording != nil
-        shown = (micOpen, jigglerOn, time, recording.paused)
+        shown = (micOpen, jigglerOn, time, recording.paused, macro)
 
         if let time, let recordGlyph {
             showRecording(time, glyph: recordGlyph, micOpen: micOpen, jigglerOn: jigglerOn)
@@ -113,6 +127,18 @@ final class StatusMenu: NSObject, NSMenuDelegate {
             button.setAccessibilityLabel("Penknife")
         }
 
+        if macro != .idle, let macroGlyph = Self.macroGlyph(waiting: macro != .running(macroName(macro))) {
+            let name = macroName(macro)
+            item.length = NSStatusItem.variableLength
+            button.image = micOpen == nil && jigglerOn == nil ? macroGlyph
+                : Self.icon(glyph: macroGlyph, tinted: false, micOpen: micOpen, jigglerOn: jigglerOn)
+            button.setAccessibilityValue(macro == .running(name) ? String(localized: "Running macro \(name)")
+                                         : String(localized: "Macro \(name) is waiting. Press its shortcut to continue."))
+            button.toolTip = macro == .running(name) ? nil : String(localized: "Waiting… press the shortcut to continue")
+            NSAccessibility.post(element: button, notification: .valueChanged)
+            return
+        }
+        button.toolTip = nil
         guard micOpen != nil || jigglerOn != nil else {
             item.length = NSStatusItem.squareLength
             button.image = glyph
@@ -124,6 +150,13 @@ final class StatusMenu: NSObject, NSMenuDelegate {
         button.setAccessibilityValue(Self.dotsValue(mic: micOpen, jiggler: jigglerOn))
         // State can change from elsewhere (Touch Bar, Teams, Control Center): tell VoiceOver.
         NSAccessibility.post(element: button, notification: .valueChanged)
+    }
+
+    private func macroName(_ state: MacroRunner.State) -> String {
+        switch state {
+        case .idle: ""
+        case .running(let name), .waiting(let name): name
+        }
     }
 
     /// The red record symbol and the time instead of the logo; the dots stay; a click stops.

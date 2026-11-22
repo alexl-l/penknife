@@ -42,8 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let speedTest = SpeedTestModule()
         let screenshot = ScreenshotModule()
         let clipboard = ClipboardModule()
+        let macros = MacrosModule()
+        macros.clipboard = clipboard
         jiggler.holdsOff = { [weak screenshot, weak clipboard] in
             screenshot?.session != nil || screenshot?.recording != nil || clipboard?.isPanelOpen == true
+                || MacroRunner.shared.isBusy
         }
         let touchBar = TouchBarModule(jiggler: jiggler, microphone: microphone, dialogs: dialogs,
                                       music: music, cpu: cpu, weather: weather, speedTest: speedTest)
@@ -53,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             LockScreenModule(jiggler: jiggler),
             screenshot,
             clipboard,
+            macros,
             music,
             BlockAppleMusicModule(music: music),
             cpu,

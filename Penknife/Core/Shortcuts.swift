@@ -9,6 +9,8 @@ extension KeyboardShortcuts.Name {
     static let lockScreen = Self("lockScreen", default: .init(.f6))
     static let screenshot = Self("screenshot", default: .init(.f1))
     static let clipboardHistory = Self("clipboardHistory", default: .init(.v, modifiers: [.control, .option]))
+    /// Macros (R-35): the list of macros; each macro may also have its own (`macro.<id>`).
+    static let macroList = Self("macroList", default: .init(.m, modifiers: [.control, .option]))
 }
 
 /// Screen recording (R-29): start and stop; drawing on/off is registered only while recording.
