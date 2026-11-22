@@ -284,6 +284,9 @@ struct MacroRulesTests {
         data.addRow()
         data.set("a\tb\tc\nd\te\n", row: 0, column: 0)
         #expect(data.rows == [["a", "b"], ["d", "e"]])
+        data.set("dX\tY", row: 1, column: 0)
+        #expect(data.rows[1] == ["X", "Y"])
+        data.set("d\te", row: 1, column: 0)
         data.next = 1
         data.removeRow(0)
         #expect(data.rows == [["d", "e"]] && data.next == 0)

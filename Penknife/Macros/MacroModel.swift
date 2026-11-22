@@ -261,7 +261,11 @@ struct MacroData: Codable, Equatable {
             rows[row][column] = value
             return
         }
-        var lines = value.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)
+        // The field hands over its old text with the block inserted; a block pasted after the
+        // old text replaces it, as the other cells are replaced.
+        let old = rows[row][column]
+        let block = !old.isEmpty && value.hasPrefix(old) ? String(value.dropFirst(old.count)) : value
+        var lines = block.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline).map(String.init)
         while lines.count > 1, lines.last?.isEmpty == true { lines.removeLast() }
         for (offset, line) in lines.enumerated() {
             let target = row + offset
