@@ -188,3 +188,5 @@
 - ScreenCaptureKit's default screenshot `CGImage` has no color space: read as sRGB, #12ABEF came back #15ABEF (measured). Capturing with `SCStreamConfiguration.colorSpaceName = sRGB` gives the exact value; P3 tagging didn't. Only the picker uses it; screenshots keep the default capture (switching them to sRGB would change their output — not asked).
 - Drawing the loupe into the full-screen canvas with `NSShadow` cost ~50 % CPU at 125 moves/s (vImage blur ~half). Now a small layer-backed view: GPU zoom (`magnificationFilter = .nearest`), overlay image drawn once, `shadowPath` shadow → ~12 %. A flipped NSView's backing layer is already top-down: don't flip layer frames/shadow paths again.
 
+## Keep Awake (R-39, 2026-11-22)
+One IOKit assertion `PreventUserIdleDisplaySleep` (as `caffeinate -d`) held while on; it also stops idle system sleep. No timer. The lock notification is observed only while on (turns it off: an awake, locked screen would waste battery). Not saved: macOS drops the assertion when Penknife quits, so starting off matches. Separate module, not a jiggler mode: it doesn't fake activity.
