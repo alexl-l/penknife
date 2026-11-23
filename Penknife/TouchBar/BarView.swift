@@ -253,7 +253,17 @@ final class HoldFill {
     }
 
     private func place() {
-        guard let host else { return }
+        guard let host, let root = host.layer else { return }
+        // The button draws its gray background in its own bezel subview, whose layer sits above
+        // any sublayer added to the button: the fill goes right above that background and
+        // below the icon (measured 2026-11-22: first sublayer = hidden under the bezel).
+        let bezel = host.subviews.first { String(describing: type(of: $0)).contains("Bezel") }?.layer
+        if let bezel, bezel.superlayer === root {
+            root.insertSublayer(layer, above: bezel)
+        } else {
+            layer.zPosition = 1   // no bezel view found: above everything, still a light tint
+            if layer.superlayer !== root { root.addSublayer(layer) }
+        }
         let b = host.bounds
         if line {
             layer.frame = CGRect(x: 6, y: 1, width: max(b.width - 12, 0), height: 2)
