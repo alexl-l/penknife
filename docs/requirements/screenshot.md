@@ -169,10 +169,10 @@ Count (2026-11-19, step B: as-is tests + S1 + S2 + S3, B-8 B-9 B-10 fixed): 59 r
 
 ## 2. Open decisions, questions and known bugs
 
-- BUILT 2026-11-22 (build 318; waiting for QA, designer and the user): **R-38 Color picker** (product idea #4; user chose "Ambos": inside the screenshot AND its own shortcut; loupe variant A "lupa redonda"). Rules SS-63…66:
+- DONE 2026-11-22 (builds 318–322; QA passed, `ux-ui-designer` APPROVED; waiting for the user to try it): **R-38 Color picker** (product idea #4; user chose "Ambos": inside the screenshot AND its own shortcut; loupe variant A "lupa redonda"). Rules SS-63…66:
   - **SS-63** In the screenshot overlay, before an area is chosen and not in record mode, **I** turns the picker on (a held key, once; not while the live screen is being grabbed). The hint gains "I Color". Test: "SS-63 …".
   - **SS-64** While picking: the screen is not dimmed (true colors), the pointer is hidden and a round loupe (110 pt, 11×11 device pixels, center outlined black/white) follows it with the hex in a capsule under it (over it near the bottom). Click, Return or ⌘C copy `#RRGGBB` as plain text and close (no visible confirmation, as O-12; VoiceOver hears it). Arrows move the pointer 1 device pixel (⇧ 10), VoiceOver hears the hex. Esc or I go back to the screenshot; every other key is swallowed. Only the loupe area is redrawn. Test: "SS-64 …".
-  - **SS-65** The color is the frozen (or, in live mode, freshly grabbed) screen pixel converted to sRGB. Test: "SS-65 …".
+  - **SS-65** The color is the frozen (or, in live mode, freshly grabbed) screen pixel converted to sRGB. The picker reads its own capture taken with `colorSpaceName = sRGB`: ScreenCaptureKit's default image has no color space and read #15ABEF for #12ABEF (measured); screenshots keep the default capture. The loupe is a layer-backed view (GPU zoom, overlay drawn once, GPU shadow): ~50 % CPU → ~12 % at 125 moves/s (measured). Test: "SS-65 …".
   - **SS-66** Pick Color action (Settings › Screenshot › Shortcuts and Settings › Shortcuts; no default key; menu bar item "Elegir color", eyedropper): opens the overlay straight in the picker over the frozen screen (Esc cancels); with the overlay open it toggles the picker; does nothing while recording. Test: "SS-01 SS-66 …", "SS-66 …".
 
 Questions for the user (asked 2026-11-19; recommendation in brackets):

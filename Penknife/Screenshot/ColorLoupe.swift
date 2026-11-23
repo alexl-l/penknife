@@ -155,7 +155,10 @@ final class LoupeView: NSView {
         super.viewDidChangeEffectiveAppearance()
         effectiveAppearance.performAsCurrentDrawingAppearance {
             label.backgroundColor = NSColor.windowBackgroundColor.cgColor
-            label.borderColor = NSColor.separatorColor.cgColor
+            // Increase Contrast: a stronger border, as the hint capsule does.
+            let contrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+            label.borderWidth = contrast ? 1 : 0.5
+            label.borderColor = (contrast ? NSColor.labelColor.withAlphaComponent(0.4) : NSColor.separatorColor).cgColor
             text.foregroundColor = NSColor.labelColor.cgColor
         }
     }
