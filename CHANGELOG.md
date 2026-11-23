@@ -3,6 +3,12 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.18 — 2026-11-23
+
+Add macro steps where you need them.
+
+- **Steps go where you are.** In the macro editor, select a step or type in it, and Add Step puts the new one right below it instead of at the end. Create from Text… works the same way. With nothing selected, new steps still go at the end.
+
 ## 1.17 — 2026-11-23
 
 Pick an emoji by typing its name, and a handful of macro editor and clipboard fixes.
