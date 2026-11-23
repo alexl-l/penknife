@@ -320,6 +320,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         targetImage = nil
         targetNSImage = nil
         blurred = nil
+        pickImage = nil
+        loupe = nil
         window?.contentView?.layer?.contents = nil
     }
 
@@ -334,9 +336,6 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     override func draw(_ dirtyRect: NSRect) {
         // R-38: the screen as it is (not dimmed), so the colors look true, and the loupe.
         if state.picking {
-            if let loupePoint, let base, let hex = pickedHex {
-                ColorLoupe.draw(pointer: loupePoint, image: base, scale: scale, hex: hex, bounds: bounds)
-            }
             return
         }
         let hoveredRect = selection == nil ? hovered?.rect : nil
@@ -459,7 +458,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     private func updateCursor(_ point: CGPoint) {
         if state.picking {
-            (base == nil ? NSCursor.crosshair : ColorLoupe.blankCursor).set()
+            (pickImage == nil ? NSCursor.crosshair : ColorLoupe.blankCursor).set()
             return
         }
         if let toolbar, toolbar.frame.contains(point) { NSCursor.arrow.set(); return }
@@ -1154,7 +1153,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .color(let index): run(.color(index))
         case .size(let index): run(.size(index))
         case .togglePicker: session?.togglePicker()
-        case .pickColor: pickColor(at: loupePoint ?? mouseLocation)
+        case .pickColor: pickColor(at: loupe?.pointer ?? mouseLocation)
         case .movePointer(let dx, let dy): movePointer(dx: dx, dy: dy)
         }
     }
@@ -1176,17 +1175,18 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     // MARK: Color picker (R-38)
 
-    /// Where the loupe is drawn on this screen (nil: the pointer is on another screen), and the
-    /// color under it.
-    private var loupePoint: CGPoint?
-    private var pickedHex: String?
+    /// The screen in sRGB, which is what the picker reads: ScreenCaptureKit's default image has
+    /// no color space, and read as sRGB its colors were off (#15ABEF for #12ABEF, 2026-11-22).
+    private var pickImage: CGImage?
+    /// The loupe, a small view of its own: moving it redraws only it, and its shadow is the GPU's.
+    private var loupe: LoupeView?
 
     override func mouseExited(with event: NSEvent) {
         guard state.picking else { return }
         moveLoupe(to: nil)
     }
 
-    /// The picker went on or off: the dimming and the hint change; a live screen is grabbed now.
+    /// The picker went on or off: the dimming, the hint and the shown screen change.
     func pickerChanged() {
         hintModel.picking = state.picking
         hintModel.pickOnly = state.pickOnly
@@ -1199,24 +1199,32 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                     ? String(localized: "Color picker. Move the pointer, click or press Return to copy the color, Esc to cancel.")
                     : String(localized: "Color picker. Move the pointer, click or press Return to copy the color, Esc to go back."))
             }
-            grabForPicker()
-        } else if window?.isKeyWindow == true {
-            announce(String(localized: "Screenshot"))
+            // Opened by Pick Color, the frozen screen was taken in sRGB already.
+            if pickImage == nil, state.pickOnly { pickImage = base }
+            if pickImage == nil { grabForPicker() } else { show(pickImage) }
+        } else {
+            if window?.isKeyWindow == true { announce(String(localized: "Screenshot")) }
+            show(base)
         }
         let point = mouseLocation
-        loupePoint = nil
-        if state.picking, bounds.contains(point) { moveLoupe(to: point) }
+        moveLoupe(to: state.picking && bounds.contains(point) ? point : nil)
         needsDisplay = true
         updateCursor(point)
     }
 
-    /// Live mode has no screen image yet: take it once, as choosing an area does.
+    /// What is seen is what is picked: the picker shows its own image while it is on.
+    private func show(_ image: CGImage?) {
+        window?.contentView?.layer?.contents = image
+        window?.contentView?.layer?.contentsGravity = .resize
+    }
+
+    /// The screen as it is now, in sRGB (the overlay itself is left out).
     private func grabForPicker() {
-        guard base == nil, !capturing else { return }
+        guard !capturing else { return }
         capturing = true
         let screen = screen
         Task { [weak self] in
-            let image = try? await ScreenGrabber.capture(screen)
+            let image = try? await ScreenGrabber.capture(screen, sRGB: true)
             guard let self else { return }
             self.capturing = false
             guard let image else {
@@ -1225,47 +1233,48 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
                 self.session?.cancel()
                 return
             }
-            self.base = image
-            self.scale = CGFloat(image.width) / self.bounds.width
-            self.window?.contentView?.layer?.contents = image
-            self.window?.contentView?.layer?.contentsGravity = .resize
+            self.pickImage = image
             guard self.state.picking else { return }
+            self.show(image)
             let point = self.mouseLocation
             if self.bounds.contains(point) { self.moveLoupe(to: point) }
             self.updateCursor(point)
         }
     }
 
-    /// Only the loupe's old and new places are redrawn (R-11).
+    private var pickScale: CGFloat { pickImage.map { CGFloat($0.width) / bounds.width } ?? scale }
+
     private func moveLoupe(to point: CGPoint?) {
-        if let old = loupePoint { setNeedsDisplay(ColorLoupe.area(pointer: old, bounds: bounds)) }
-        loupePoint = point
-        pickedHex = nil
-        guard let point else { return }
-        if let base {
-            let pixel = ColorSample.pixel(point, scale: scale)
-            pickedHex = ColorSample.hex(in: base, x: pixel.x, y: pixel.y)
+        guard let point, let pickImage else {
+            loupe?.removeFromSuperview()
+            loupe = nil
+            return
         }
-        setNeedsDisplay(ColorLoupe.area(pointer: point, bounds: bounds))
+        let view = loupe ?? LoupeView()
+        if loupe == nil {
+            addSubview(view)
+            loupe = view
+        }
+        view.show(pointer: point, image: pickImage, scale: pickScale, in: bounds)
     }
 
     /// Arrows: the pointer moves by device pixels, for exact picking without a mouse (R-19).
     private func movePointer(dx: Int, dy: Int) {
         guard let window, let screen = window.screen else { return }
-        let start = loupePoint ?? mouseLocation
-        let point = clamp(CGPoint(x: start.x + CGFloat(dx) / scale, y: start.y + CGFloat(dy) / scale))
+        let start = loupe?.pointer ?? mouseLocation
+        let point = clamp(CGPoint(x: start.x + CGFloat(dx) / pickScale, y: start.y + CGFloat(dy) / pickScale))
         let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
         CGWarpMouseCursorPosition(CGPoint(x: screen.frame.minX + point.x, y: primaryHeight - screen.frame.maxY + point.y))
         CGAssociateMouseAndMouseCursorPosition(1)
         moveLoupe(to: point)
-        if let pickedHex { announceSoon(pickedHex) }
+        if let hex = loupe?.hex { announceSoon(hex) }
     }
 
     /// Copies the hex and closes, as Copy does (no visible confirmation, O-12).
     private func pickColor(at point: CGPoint) {
-        guard let base else { return }
-        let pixel = ColorSample.pixel(point, scale: scale)
-        guard let hex = ColorSample.hex(in: base, x: pixel.x, y: pixel.y) else { return }
+        guard let pickImage else { return }
+        let pixel = ColorSample.pixel(point, scale: pickScale)
+        guard let hex = ColorSample.hex(in: pickImage, x: pixel.x, y: pixel.y) else { return }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(hex, forType: .string)

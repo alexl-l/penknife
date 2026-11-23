@@ -975,6 +975,7 @@ struct ScreenshotRulesTests {
         var opened: [URL] = []
         var huds: [(title: String, detail: String?, symbol: String, kind: AlertKind)] = []
         var grab: () async throws -> [CGDirectDisplayID: CGImage] = { [:] }
+        var grabbedSRGB: [Bool] = []
         var overlays: [(mode: ScreenshotMode, start: CaptureStart, overlay: FakeOverlay)] = []
         var recordings: [FakeRecording] = []
 
@@ -985,7 +986,7 @@ struct ScreenshotRulesTests {
                 requestPermission: { self.requested += 1 },
                 open: { self.opened.append($0) },
                 frontApp: { nil },
-                grabAll: { try await self.grab() },
+                grabAll: { self.grabbedSRGB.append($0); return try await self.grab() },
                 hud: { self.huds.append(($0, $1, $2, $3)) },
                 makeOverlay: { mode, _, _, start, onRecord, onFinish in
                     let overlay = FakeOverlay(onRecord: onRecord, onFinish: onFinish)
@@ -1066,6 +1067,7 @@ struct ScreenshotRulesTests {
         await task.value
         #expect(mac.overlays.count == 1 && mac.overlays[0].overlay.calls == ["show"])
         #expect(mac.overlays[0].mode == .frozen && mac.overlays[0].start == .screenshot)
+        #expect(mac.grabbedSRGB == [false])          // screenshots keep their capture as before
         #expect(module.begin() == nil)              // open
         // Holding Screenshot (or Record Screen) with the overlay open switches it to record mode.
         module.holdToRecord()
@@ -1107,7 +1109,7 @@ struct ScreenshotRulesTests {
         module.pickColor()
         while mac.overlays.isEmpty { await Task.yield() }
         #expect(mac.overlays[0].mode == .frozen && mac.overlays[0].start == .pickColor)
-        #expect(grabbed)
+        #expect(grabbed && mac.grabbedSRGB == [true])
         module.pickColor()
         #expect(mac.overlays[0].overlay.calls == ["show", "picker"])
         mac.overlays[0].overlay.onRecord(Self.request())

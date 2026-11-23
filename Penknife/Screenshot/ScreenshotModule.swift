@@ -49,7 +49,7 @@ struct CaptureEnvironment {
     var requestPermission: () -> Void
     var open: (URL) -> Void
     var frontApp: () -> NSRunningApplication?
-    var grabAll: () async throws -> [CGDirectDisplayID: CGImage]
+    var grabAll: (_ sRGB: Bool) async throws -> [CGDirectDisplayID: CGImage]
     var hud: (_ title: String, _ detail: String?, _ symbol: String, _ kind: AlertKind) -> Void
     var makeOverlay: (_ mode: ScreenshotMode, _ images: [CGDirectDisplayID: CGImage], _ previous: NSRunningApplication?,
                       _ start: CaptureStart, _ onRecord: @escaping (RecordingRequest) -> Void,
@@ -62,7 +62,7 @@ struct CaptureEnvironment {
              requestPermission: { CGRequestScreenCaptureAccess() },
              open: { NSWorkspace.shared.open($0) },
              frontApp: { NSWorkspace.shared.frontmostApplication },
-             grabAll: { try await ScreenGrabber.captureAll() },
+             grabAll: { try await ScreenGrabber.captureAll(sRGB: $0) },
              hud: { HUD.shared.show($0, detail: $1, symbol: $2, kind: $3, category: .screenshot) },
              makeOverlay: { CaptureSession(mode: $0, images: $1, previousApp: $2, start: $3, onRecord: $4, onFinish: $5) },
              makeRecording: { RecordingSession(request: $0, onFinish: $1) })
@@ -217,7 +217,7 @@ final class ScreenshotModule: Module {
             var images: [CGDirectDisplayID: CGImage] = [:]
             if mode == .frozen {
                 do {
-                    images = try await environment.grabAll()
+                    images = try await environment.grabAll(start == .pickColor)
                 } catch {
                     environment.hud(String(localized: "Couldn't take the screenshot"), nil, "exclamationmark.triangle.fill", .error)
                     return
@@ -251,18 +251,20 @@ final class ScreenshotModule: Module {
 enum ScreenGrabber {
     struct Failure: Error {}
 
-    static func captureAll() async throws -> [CGDirectDisplayID: CGImage] {
+    /// `sRGB`: the image is tagged sRGB, so its pixels read as true colors (the color picker,
+    /// R-38). Without it ScreenCaptureKit's image has no color space (screenshots as before).
+    static func captureAll(sRGB: Bool = false) async throws -> [CGDirectDisplayID: CGImage] {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         var images: [CGDirectDisplayID: CGImage] = [:]
         for screen in NSScreen.screens {
-            images[screen.displayID] = try await capture(screen, content: content)
+            images[screen.displayID] = try await capture(screen, content: content, sRGB: sRGB)
         }
         return images
     }
 
-    static func capture(_ screen: NSScreen) async throws -> CGImage {
+    static func capture(_ screen: NSScreen, sRGB: Bool = false) async throws -> CGImage {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-        return try await capture(screen, content: content)
+        return try await capture(screen, content: content, sRGB: sRGB)
     }
 
     /// One window alone, as macOS does: its rounded corners transparent, no shadow, nothing over it.
@@ -299,11 +301,13 @@ enum ScreenGrabber {
         return configuration
     }
 
-    private static func capture(_ screen: NSScreen, content: SCShareableContent) async throws -> CGImage {
+    private static func capture(_ screen: NSScreen, content: SCShareableContent, sRGB: Bool) async throws -> CGImage {
         guard let display = content.displays.first(where: { $0.displayID == screen.displayID }) else { throw Failure() }
         let own = content.applications.filter { $0.processID == getpid() }
         let filter = SCContentFilter(display: display, excludingApplications: own, exceptingWindows: [])
-        return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration(for: screen))
+        let configuration = configuration(for: screen)
+        if sRGB { configuration.colorSpaceName = CGColorSpace.sRGB }
+        return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: configuration)
     }
 }
 

@@ -55,24 +55,14 @@ enum ColorLoupe {
     /// An invisible pointer: the loupe's center square is the pointer while picking.
     static let blankCursor = NSCursor(image: NSImage(size: NSSize(width: 1, height: 1)), hotSpot: .zero)
 
-    /// Draws in a flipped view. `image` is the screen at `scale` pixels per point.
-    static func draw(pointer: CGPoint, image: CGImage, scale: CGFloat, hex: String, bounds: CGRect) {
-        let (loupe, labelRect) = frames(pointer: pointer, bounds: bounds)
+    /// Draws in a flipped view, at `loupe` and `labelRect`, the pixels around `pixel` of `image`.
+    /// No shadows here: the view's layer casts them (on the GPU).
+    static func draw(loupe: CGRect, labelRect: CGRect, pixel: (x: Int, y: Int), image: CGImage, hex: String) {
         let circle = NSBezierPath(ovalIn: loupe)
-
-        NSGraphicsContext.saveGraphicsState()
-        let shadow = NSShadow()
-        shadow.shadowColor = NSColor.black.withAlphaComponent(0.4)
-        shadow.shadowBlurRadius = 10
-        shadow.shadowOffset = NSSize(width: 0, height: -3)
-        shadow.set()
-        NSColor.white.setFill()
-        circle.fill()
-        NSGraphicsContext.restoreGraphicsState()
 
         // The pixels, square and unsmoothed.
         let cell = diameter / CGFloat(cells)
-        let (cx, cy) = ColorSample.pixel(pointer, scale: scale)
+        let (cx, cy) = pixel
         let half = cells / 2
         let wanted = CGRect(x: cx - half, y: cy - half, width: cells, height: cells)
         let crop = wanted.intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height))
@@ -121,15 +111,8 @@ enum ColorLoupe {
 
         // The hex.
         let capsule = NSBezierPath(roundedRect: labelRect, xRadius: labelRect.height / 2, yRadius: labelRect.height / 2)
-        NSGraphicsContext.saveGraphicsState()
-        let labelShadow = NSShadow()
-        labelShadow.shadowColor = NSColor.black.withAlphaComponent(0.3)
-        labelShadow.shadowBlurRadius = 8
-        labelShadow.shadowOffset = NSSize(width: 0, height: -2)
-        labelShadow.set()
-        NSColor.windowBackgroundColor.withAlphaComponent(0.96).setFill()
+        NSColor.windowBackgroundColor.setFill()
         capsule.fill()
-        NSGraphicsContext.restoreGraphicsState()
         capsule.lineWidth = 0.5
         NSColor.separatorColor.setStroke()
         capsule.stroke()
@@ -139,5 +122,60 @@ enum ColorLoupe {
         ])
         let size = text.size()
         text.draw(at: CGPoint(x: labelRect.midX - size.width / 2, y: labelRect.midY - size.height / 2))
+    }
+}
+
+/// The loupe as a small view over the canvas (R-38): following the pointer moves it and redraws
+/// only its few points; the canvas under it is not redrawn. Measured 2026-11-22: drawn into the
+/// canvas with `NSShadow`, the shadows' blur took about half of ~50 % CPU while moving.
+final class LoupeView: NSView {
+    private(set) var pointer = CGPoint.zero
+    private(set) var hex: String?
+    private var image: CGImage?
+    private var pixel = (x: 0, y: 0)
+    private var parts = (loupe: CGRect.zero, label: CGRect.zero)
+
+    init() {
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.shadowColor = NSColor.black.cgColor
+        layer?.shadowOpacity = 0.35
+        layer?.shadowRadius = 6
+        setAccessibilityElement(false)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError() }
+
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    /// `image` is the screen at `scale` pixels per point; `bounds` the canvas's.
+    func show(pointer: CGPoint, image: CGImage, scale: CGFloat, in canvas: CGRect) {
+        self.pointer = pointer
+        self.image = image
+        pixel = ColorSample.pixel(pointer, scale: scale)
+        hex = ColorSample.hex(in: image, x: pixel.x, y: pixel.y)
+        let area = ColorLoupe.area(pointer: pointer, bounds: canvas)
+        let f = ColorLoupe.frames(pointer: pointer, bounds: canvas)
+        parts = (f.loupe.offsetBy(dx: -area.minX, dy: -area.minY), f.label.offsetBy(dx: -area.minX, dy: -area.minY))
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        frame = area
+        // The layer's own coordinates go up: the shapes are flipped for the shadow.
+        let path = CGMutablePath()
+        let flip = CGAffineTransform(a: 1, b: 0, c: 0, d: -1, tx: 0, ty: area.height)
+        path.addEllipse(in: parts.loupe.applying(flip))
+        let label = parts.label.applying(flip)
+        path.addRoundedRect(in: label, cornerWidth: label.height / 2, cornerHeight: label.height / 2)
+        layer?.shadowPath = path
+        layer?.shadowOffset = CGSize(width: 0, height: -3)
+        CATransaction.commit()
+        needsDisplay = true
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard let image, let hex else { return }
+        ColorLoupe.draw(loupe: parts.loupe, labelRect: parts.label, pixel: pixel, image: image, hex: hex)
     }
 }
