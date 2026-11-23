@@ -449,6 +449,7 @@ private struct ScreenshotOptions: View {
     @AppStorage(ScreenshotModule.holdKey) private var holdToRecord = true
     @AppStorage(ScreenshotModule.holdSecondsKey) private var holdSeconds = 2.0
     @AppStorage(RecordingPrefs.closeAfterKey) private var closeAfterSaving = false
+    @AppStorage(PinPlace.key) private var pinPlace = PinPlace.bottomLeft.rawValue
 
     var body: some View {
         Picker("While selecting", selection: $mode) {
@@ -489,6 +490,12 @@ private struct ScreenshotOptions: View {
         Toggle(isOn: $copyFile) {
             Text("Copy also as a file")
             Text("Paste in a Finder folder to get a PNG file. Other apps paste the image.")
+        }
+        // SS-73: where Pin puts the screenshot.
+        Picker("Pinned screenshot position", selection: $pinPlace) {
+            ForEach(PinPlace.allCases, id: \.rawValue) { place in
+                Text(place.title).tag(place.rawValue)
+            }
         }
         PastableSpace(onClipboardPage: false)
         LabeledContent("Save to") {

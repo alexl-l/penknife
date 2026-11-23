@@ -31,6 +31,48 @@ struct PinnedCapture {
     }
 }
 
+/// Where a new pin goes (SS-73; user, 2026-11-23: "por defecto, se mueva a la esquina inferior
+/// izquierda, pero el usuario puede elegir a qué esquina … o si se queda donde hiciste la captura").
+enum PinPlace: String, CaseIterable {
+    case bottomLeft, bottomRight, topLeft, topRight, captured
+
+    static let key = "screenshot.pinPlace"
+    static func current(in defaults: UserDefaults) -> Self {
+        Self(rawValue: defaults.string(forKey: key) ?? "") ?? .bottomLeft
+    }
+
+    var title: String {
+        switch self {
+        case .bottomLeft: String(localized: "Bottom Left")
+        case .bottomRight: String(localized: "Bottom Right")
+        case .topLeft: String(localized: "Top Left")
+        case .topRight: String(localized: "Top Right")
+        case .captured: String(localized: "Where Captured")
+        }
+    }
+
+    static let margin: CGFloat = 16
+    static let gap: CGFloat = 8
+
+    /// The pin's frame (global, y up) in `visible` (the screen's visible frame): in its corner,
+    /// 16 pt in, stacked past the `others` it would cover (upwards from a bottom corner,
+    /// downwards from a top one). No room left: the corner itself.
+    func frame(for size: CGSize, captured: CGRect, visible: CGRect, others: [CGRect]) -> CGRect {
+        if self == .captured { return CGRect(origin: captured.origin, size: size) }
+        let left = self == .bottomLeft || self == .topLeft
+        let bottom = self == .bottomLeft || self == .bottomRight
+        let x = left ? visible.minX + Self.margin : visible.maxX - Self.margin - size.width
+        let corner = CGRect(x: x, y: bottom ? visible.minY + Self.margin : visible.maxY - Self.margin - size.height,
+                            width: size.width, height: size.height)
+        var rect = corner
+        while let blocker = others.first(where: { $0.intersects(rect) }) {
+            rect.origin.y = bottom ? blocker.maxY + Self.gap : blocker.minY - Self.gap - size.height
+            if rect.minY < visible.minY || rect.maxY > visible.maxY { return corner }
+        }
+        return rect
+    }
+}
+
 /// The open pins. They live in memory only: gone when Penknife quits or the module turns off.
 @MainActor
 final class PinBoard {
@@ -39,10 +81,27 @@ final class PinBoard {
     /// Double-click or Edit: the module opens the editor on it (SS-70).
     var edit: ((PinnedWindow) -> Void)?
 
-    func add(_ capture: PinnedCapture) {
+    /// A new pin appears over the capture and glides to its place (SS-73; no glide under Reduce
+    /// Motion).
+    func add(_ capture: PinnedCapture, defaults: UserDefaults = .standard) {
         let pin = PinnedWindow(capture: capture)
+        let center = CGPoint(x: capture.frame.midX, y: capture.frame.midY)
+        let screen = NSScreen.screens.first { $0.frame.contains(center) } ?? NSScreen.main
+        let target = PinPlace.current(in: defaults).frame(for: capture.frame.size, captured: capture.frame,
+                                                          visible: screen?.visibleFrame ?? capture.frame,
+                                                          others: pins.filter(\.isVisible).map(\.frame))
         pins.append(pin)
         pin.orderFrontRegardless()
+        guard target != capture.frame else { return }
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            pin.setFrame(target, display: true)
+            return
+        }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            pin.animator().setFrame(target, display: true)
+        }
     }
 
     func remove(_ pin: PinnedWindow) {

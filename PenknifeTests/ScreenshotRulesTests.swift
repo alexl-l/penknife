@@ -1598,4 +1598,23 @@ struct ScreenshotRulesTests {
         let tiny = CGSize(width: 40, height: 20)
         #expect(PinnedCapture.clampedSize(CGSize(width: 10, height: 0), original: tiny, visible: visible) == tiny)
     }
+
+    @Test("SS-73 a new pin goes to its corner, 16 pt in, stacked past the pins already there; default bottom left")
+    func pinPlace() {
+        let visible = CGRect(x: 0, y: 0, width: 1000, height: 800)
+        let size = CGSize(width: 200, height: 100)
+        let captured = CGRect(x: 400, y: 300, width: 200, height: 100)
+        #expect(PinPlace.current(in: InMemoryDefaults()) == .bottomLeft)
+        #expect(PinPlace.bottomLeft.frame(for: size, captured: captured, visible: visible, others: []) == CGRect(x: 16, y: 16, width: 200, height: 100))
+        #expect(PinPlace.topRight.frame(for: size, captured: captured, visible: visible, others: []) == CGRect(x: 784, y: 684, width: 200, height: 100))
+        #expect(PinPlace.captured.frame(for: size, captured: captured, visible: visible, others: []) == captured)
+        // A second pin stacks above the first, 8 pt apart; a top corner stacks downwards.
+        let first = CGRect(x: 16, y: 16, width: 200, height: 100)
+        #expect(PinPlace.bottomLeft.frame(for: size, captured: captured, visible: visible, others: [first]).minY == 124)
+        let top = CGRect(x: 784, y: 684, width: 200, height: 100)
+        #expect(PinPlace.topRight.frame(for: size, captured: captured, visible: visible, others: [top]).maxY == 676)
+        // No room left: back to the corner.
+        let full = (0..<8).map { CGRect(x: 16, y: 16 + CGFloat($0) * 108, width: 200, height: 100) }
+        #expect(PinPlace.bottomLeft.frame(for: size, captured: captured, visible: visible, others: full) == first)
+    }
 }
