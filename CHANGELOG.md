@@ -3,6 +3,14 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.17 — 2026-11-23
+
+Pick an emoji by typing its name, and a handful of macro editor and clipboard fixes.
+
+- **Emoji search in the icon editor.** For macros and pinned clipboard items. Type a word in English, such as "smile", then click an emoji or press Return. The list comes from macOS, so new emojis arrive with macOS updates. Flags, skin tones and professions are still in the Emoji & Symbols button, without searching. macOS's own search couldn't hand the chosen emoji back to a menu bar app.
+- **Macro editor.** Choosing an item in Clipboard History pastes it into the field you were typing in, with no ⌘V. An emoji picked in Emoji & Symbols is set the first time. Clicking outside a text or time field takes the focus away. Emoji icons are no longer clipped in the macro list.
+- **Clipboard.** After you close a pin's icon editor, typing searches the history again.
+
 ## 1.16 — 2026-11-23
 
 Pin a screenshot above your windows, pick any color on screen, hold a key to talk while muted, and keep your Mac awake.
