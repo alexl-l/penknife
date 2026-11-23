@@ -140,8 +140,9 @@ struct MacroEditorView: View {
         let alert = NSAlert()
         alert.messageText = String(localized: "Delete “\(macro.name)”?")
         alert.informativeText = String(localized: "This can't be undone.")
-        alert.addButton(withTitle: String(localized: "Delete"))
+        alert.addButton(withTitle: String(localized: "Delete")).hasDestructiveAction = true
         alert.addButton(withTitle: String(localized: "Cancel"))
+        alert.addTouchBar()
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         let index = store.macros.firstIndex { $0.id == id } ?? 0
         module.forgetShortcut(id)
@@ -158,7 +159,9 @@ struct MacroEditorView: View {
         do {
             try store.exportData(ids).write(to: url, options: .atomic)
         } catch {
-            NSAlert(error: error).runModal()
+            let alert = NSAlert(error: error)
+            alert.addTouchBar()
+            alert.runModal()
         }
     }
 
@@ -174,6 +177,7 @@ struct MacroEditorView: View {
             alert.messageText = error is MacroStore.ImportError
                 ? String(localized: "These macros are too big to import.")
                 : String(localized: "This file has no macros Penknife can read.")
+            alert.addTouchBar()
             alert.runModal()
             return
         }
@@ -184,6 +188,7 @@ struct MacroEditorView: View {
             alert.informativeText = String(localized: "Some of them \(risks.formatted(.list(type: .and))). Import only files you trust.")
             alert.addButton(withTitle: String(localized: "Import"))
             alert.addButton(withTitle: String(localized: "Cancel"))
+            alert.addTouchBar()
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
         for macro in macros {
@@ -193,6 +198,7 @@ struct MacroEditorView: View {
                 alert.messageText = String(localized: "A macro named “\(macro.name)” already exists.")
                 alert.addButton(withTitle: String(localized: "Keep Both"))
                 alert.addButton(withTitle: String(localized: "Replace"))
+                alert.addTouchBar()
                 if alert.runModal() == .alertSecondButtonReturn { replacing = existing.id }
             }
             store.addImported(macro, replacing: replacing)

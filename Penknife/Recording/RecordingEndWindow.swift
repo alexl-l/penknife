@@ -515,6 +515,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         if let detail { alert.informativeText = detail }
         alert.addButton(withTitle: confirm).hasDestructiveAction = true
         alert.addButton(withTitle: cancel)
+        alert.addTouchBar()
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else {
                 done(false)
@@ -559,6 +560,7 @@ final class RecordingEndWindow: NSObject, NSWindowDelegate {
         if let detail { alert.informativeText = detail }
         alert.addButton(withTitle: confirm).hasDestructiveAction = true
         alert.addButton(withTitle: cancel)
+        alert.addTouchBar()
         alert.beginSheetModal(for: window) { [weak self] response in
             guard response == .alertFirstButtonReturn, let self else { return }
             model.kept = true

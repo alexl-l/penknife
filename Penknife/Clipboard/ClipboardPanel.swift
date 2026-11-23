@@ -328,6 +328,7 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
         alert.informativeText = String(localized: "Pinned items are kept.")
         alert.addButton(withTitle: String(localized: "Clear"))
         alert.addButton(withTitle: String(localized: "Cancel"))
+        alert.addTouchBar()
         alert.beginSheetModal(for: self) { [weak self] response in
             guard let self, response == .alertFirstButtonReturn else { return }
             MainActor.assumeIsolated {

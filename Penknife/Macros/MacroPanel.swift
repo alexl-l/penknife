@@ -9,16 +9,12 @@ import SwiftUI
 final class MacroPanelModel {
     let store: MacroStore
     /// The app in front when the panel opened: macros used there come first.
-    let appID: String?
-    let appName: String?
     var query = "" { didSet { selection = rows.first?.id } }
     var selection: Macro.ID?
     @ObservationIgnored var lastKeyMove = Date.distantPast
 
-    init(store: MacroStore, app: NSRunningApplication?) {
+    init(store: MacroStore) {
         self.store = store
-        appID = app?.bundleIdentifier
-        appName = app?.localizedName
         selection = rows.first?.id
     }
 
@@ -26,19 +22,9 @@ final class MacroPanelModel {
         query.isEmpty || macro.name.range(of: query, options: [.caseInsensitive, .diacriticInsensitive]) != nil
     }
 
-    /// Macros used in the app in front, most recent first.
-    var inApp: [Macro] {
-        guard let appID else { return [] }
-        return store.macros.filter { $0.apps.contains(appID) && matches($0) }
-            .sorted { ($0.lastRun ?? .distantPast) > ($1.lastRun ?? .distantPast) }
-    }
-
-    var others: [Macro] {
-        let first = Set(inApp.map(\.id))
-        return store.macros.filter { !first.contains($0.id) && matches($0) }
-    }
-
-    var rows: [Macro] { inApp + others }
+    /// One list in the editor's order (the user, 2026-11-22, didn't like the "In <app>" /
+    /// "All" split: "se ve raro").
+    var rows: [Macro] { store.macros.filter(matches) }
 
     func move(_ step: Int) {
         let rows = rows
@@ -63,10 +49,10 @@ final class MacroPanel: NSPanel, NSWindowDelegate {
     private weak var module: MacrosModule?
     private let onClose: () -> Void
 
-    init(module: MacrosModule, frontApp: NSRunningApplication?, onClose: @escaping () -> Void) {
+    init(module: MacrosModule, onClose: @escaping () -> Void) {
         self.module = module
         self.onClose = onClose
-        model = MacroPanelModel(store: module.store, app: frontApp)
+        model = MacroPanelModel(store: module.store)
         super.init(contentRect: NSRect(x: 0, y: 0, width: PanelLayout.width, height: PanelLayout.minHeight),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         level = .floating
@@ -119,10 +105,7 @@ final class MacroPanel: NSPanel, NSWindowDelegate {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
         let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let inApp = model.inApp.count
-        let others = model.others.count
-        let content = CGFloat(inApp + others) * PanelLayout.rowHeight + 12
-            + (inApp > 0 ? PanelLayout.headerHeight * (others > 0 ? 2 : 1) : 0)
+        let content = CGFloat(model.rows.count) * PanelLayout.rowHeight + 12
         let top = min(PanelLayout.maxHeight, (visible.height * 0.72).rounded(.down))
         setContentSize(NSSize(width: PanelLayout.width, height: min(max(PanelLayout.chrome + content, PanelLayout.minHeight), top)))
         setFrameOrigin(ClipboardPanel.origin(position: ClipboardPosition.current, mouse: mouse, visible: visible, size: frame.size))
@@ -169,8 +152,9 @@ final class MacroPanel: NSPanel, NSWindowDelegate {
         let alert = NSAlert()
         alert.messageText = String(localized: "Delete “\(macro.name)”?")
         alert.informativeText = String(localized: "This can't be undone.")
-        alert.addButton(withTitle: String(localized: "Delete"))
+        alert.addButton(withTitle: String(localized: "Delete")).hasDestructiveAction = true
         alert.addButton(withTitle: String(localized: "Cancel"))
+        alert.addTouchBar()
         alert.beginSheetModal(for: self) { [weak self] response in
             guard let self, response == .alertFirstButtonReturn else { return }
             MainActor.assumeIsolated {
@@ -251,33 +235,17 @@ struct MacroListView: View {
     }
 
     private var list: some View {
-        let inApp = model.inApp
-        let others = model.others
+        let rows = model.rows
         return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    if !inApp.isEmpty {
-                        header(String(localized: "In \(model.appName ?? "")"))
-                        ForEach(inApp) { row($0) }
-                        if !others.isEmpty { header(String(localized: "All")) }
-                    }
-                    ForEach(others) { row($0) }
+                    ForEach(rows) { row($0) }
                 }
                 .padding(.horizontal, 6)
                 .padding(.vertical, 6)
             }
             .onChange(of: model.selection) { _, id in if let id { proxy.scrollTo(id) } }
         }
-    }
-
-    private func header(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
-            .frame(maxWidth: .infinity, minHeight: PanelLayout.headerHeight, alignment: .bottomLeading)
-            .padding(.bottom, 2)
-            .accessibilityAddTraits(.isHeader)
     }
 
     private func row(_ macro: Macro) -> some View {

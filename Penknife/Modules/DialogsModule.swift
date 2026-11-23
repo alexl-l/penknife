@@ -117,7 +117,9 @@ final class DialogsModule: Module {
         for name in Self.notifications {
             AXObserverAddNotification(newObserver, element, name as CFString, refcon)
         }
-        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(newObserver), .defaultMode)
+        // Common modes: Penknife's own alerts run a modal loop, where a default-mode source
+        // never fires (its Delete/Cancel never reached the Touch Bar, user 2026-11-22).
+        CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(newObserver), .commonModes)
         observer = newObserver
         observedApp = element
         scheduleCheck()
@@ -126,7 +128,7 @@ final class DialogsModule: Module {
     private func removeObserver() {
         unwatchDialog()
         if let observer {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .commonModes)
             if let observedApp {
                 for name in Self.notifications {
                     AXObserverRemoveNotification(observer, observedApp, name as CFString)

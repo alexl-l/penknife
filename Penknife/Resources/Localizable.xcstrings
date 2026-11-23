@@ -5583,16 +5583,6 @@
         }
       }
     },
-    "In %@": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "En %@"
-          }
-        }
-      }
-    },
     "All": {
       "localizations": {
         "es": {

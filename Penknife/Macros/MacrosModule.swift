@@ -80,8 +80,7 @@ final class MacrosModule: Module {
             panel.close()
             return
         }
-        let front = NSWorkspace.shared.frontmostApplication
-        let panel = MacroPanel(module: self, frontApp: front) { [weak self] in self?.panel = nil }
+        let panel = MacroPanel(module: self) { [weak self] in self?.panel = nil }
         self.panel = panel
         panel.show()
     }
