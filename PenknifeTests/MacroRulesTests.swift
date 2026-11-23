@@ -136,6 +136,7 @@ struct MacroRulesTests {
         macro.counter = 9
         macro.apps = ["com.apple.Safari"]
         macro.lastAnswers = ["Who": "secret"]
+        macro.allowsSecureInput = true
         macro.data.update(from: "a\n1\n2")
         macro.data.next = 1
         var pinned = MacroStep(kind: .pinned)
@@ -149,6 +150,7 @@ struct MacroRulesTests {
         let copy = imported[0]
         #expect(copy.id != macro.id)
         #expect(copy.counter == 0 && copy.apps.isEmpty && copy.lastAnswers.isEmpty)
+        #expect(!copy.allowsSecureInput) // MAC-78: an import never skips the warning
         #expect(copy.data.rows.count == 2 && copy.data.next == 0)
         #expect(copy.steps[1].lastValue == nil && copy.steps[1].pin == nil && copy.steps[1].text.isEmpty)
     }
@@ -306,5 +308,12 @@ struct MacroRulesTests {
         #expect(MacroStep.insertionIndex(after: nil, in: steps) == 5)
         #expect(MacroStep.insertionIndex(after: MacroStep(kind: .key).id, in: steps) == 5)
         #expect(MacroStep.insertionIndex(after: nil, in: []) == 0)
+    }
+
+    @Test("MAC-78 password fields are off unless allowed, also for macros saved before")
+    func secureInputDefault() throws {
+        #expect(!Macro(name: "A").allowsSecureInput)
+        let old = try JSONDecoder().decode(Macro.self, from: Data(#"{"name":"Old"}"#.utf8))
+        #expect(!old.allowsSecureInput)
     }
 }

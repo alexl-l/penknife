@@ -236,6 +236,7 @@ private struct MacroDetail: View {
     @State private var creating = false
     @State private var nameDraft = ""
     @State private var editingIcon = false
+    @State private var confirmingSecureInput = false
     /// The step the user is on (clicked or editing): a new step goes right below it (MAC-76).
     @State private var selectedStep: MacroStep.ID?
     @FocusState private var nameFocused: Bool
@@ -292,6 +293,14 @@ private struct MacroDetail: View {
                 .pickerStyle(.segmented)
                 .fixedSize()
                 .help("Paste is faster. Keystrokes works in fields that block paste.")
+                // Turning it on asks first; turning it off doesn't (MAC-78).
+                Toggle("Allow in password fields", isOn: Binding(
+                    get: { macro.wrappedValue.allowsSecureInput },
+                    set: { on in
+                        if on { confirmingSecureInput = true } else { macro.wrappedValue.allowsSecureInput = false }
+                    }))
+                .toggleStyle(.checkbox)
+                .help("Runs even when a password field or Secure Keyboard Entry is on.")
             }
             HStack {
                 Picker("", selection: $tab) {
@@ -325,6 +334,13 @@ private struct MacroDetail: View {
         .padding(16)
         .sheet(isPresented: $creating) {
             CreateFromText { steps in insert(steps) }
+        }
+        // Return = Cancel: a deliberate click to allow (ux-ui-designer, MAC-78).
+        .alert("Allow in password fields?", isPresented: $confirmingSecureInput) {
+            Button("Allow") { macro.wrappedValue.allowsSecureInput = true }
+            Button("Cancel", role: .cancel) {}.keyboardShortcut(.defaultAction)
+        } message: {
+            Text("Esc won't stop it there; click or switch apps instead. You use this at your own risk, and Penknife isn't responsible for what it types.")
         }
         .onChange(of: macro.wrappedValue.id) { selectedStep = nil }
     }

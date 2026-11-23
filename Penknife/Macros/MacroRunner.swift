@@ -104,12 +104,13 @@ final class MacroRunner {
             guard !stopped else { return false }
             if step.kind != .wait, step.kind != .waitForMe {
                 // Checked before every key, not only on the app-change notice (events queued
-                // in between would land in the new app), and never into a password field.
+                // in between would land in the new app), and never into a password field unless
+                // the user allowed it for this macro (MAC-78).
                 guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target?.processIdentifier else {
                     stop(.appChanged)
                     return false
                 }
-                guard !IsSecureEventInputEnabled() else {
+                guard macro.allowsSecureInput || !IsSecureEventInputEnabled() else {
                     stop(.secureInput)
                     return false
                 }

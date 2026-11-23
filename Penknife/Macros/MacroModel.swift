@@ -310,6 +310,10 @@ struct Macro: Identifiable, Codable, Equatable {
     /// Its own icon (user, 2026-11-22): a letter or emoji and a color, as the clipboard pins
     /// (CB-33); nil = ▶.
     var icon: PinIcon?
+    /// Runs even while secure input is on (a password field, Secure Keyboard Entry), at the
+    /// user's own risk (MAC-78). Stays on this Mac: never exported, so an imported macro can't
+    /// skip the warning.
+    var allowsSecureInput = false
 
     init(name: String, steps: [MacroStep] = [], typesText: Bool = false) {
         self.name = name
@@ -329,6 +333,7 @@ struct Macro: Identifiable, Codable, Equatable {
         lastRun = try values.decodeIfPresent(Date.self, forKey: .lastRun)
         lastAnswers = try values.decodeIfPresent([String: String].self, forKey: .lastAnswers) ?? [:]
         icon = try? values.decodeIfPresent(PinIcon.self, forKey: .icon)
+        allowsSecureInput = try values.decodeIfPresent(Bool.self, forKey: .allowsSecureInput) ?? false
     }
 
     /// Renames a data column and every `{old}` in the steps with it (the user, 2026-11-22: "si

@@ -6060,6 +6060,56 @@
         }
       }
     },
+    "Allow in password fields": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir en campos de contraseña"
+          }
+        }
+      }
+    },
+    "Runs even when a password field or Secure Keyboard Entry is on.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se ejecuta aunque haya un campo de contraseña o la Entrada segura de teclado activa."
+          }
+        }
+      }
+    },
+    "Allow in password fields?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Permitir en campos de contraseña?"
+          }
+        }
+      }
+    },
+    "Allow": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permitir"
+          }
+        }
+      }
+    },
+    "Esc won't stop it there; click or switch apps instead. You use this at your own risk, and Penknife isn't responsible for what it types.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esc no la detendrá ahí; haz clic o cambia de app. Lo usas bajo tu propia responsabilidad; Penknife no se hace responsable de lo que escriba."
+          }
+        }
+      }
+    },
     "A password field is active": {
       "localizations": {
         "es": {
