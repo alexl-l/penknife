@@ -228,28 +228,33 @@ final class BarButton: NSButton {
 final class ButtonFill {
     /// The button's own corner radius, measured on the Touch Bar (12 px at 2×, circular).
     private static let radius: CGFloat = 6
-    private let clip = CALayer()
+    /// Holds the clip as its own subview, so AppKit keeps it in the button's subview order (a
+    /// bare sublayer was put back under the bezel whenever the button redrew: speed test needle).
+    private let view = FillView()
+    private var clip: CALayer { view.layer! }
     private let bar = CALayer()
     private weak var host: NSView?
     private let alpha: CGFloat
-    var isShown: Bool { !clip.isHidden }
+    var isShown: Bool { !view.isHidden }
     static var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     init(on host: NSView, alpha: CGFloat) {
         self.host = host
         self.alpha = alpha
         host.wantsLayer = true
+        view.wantsLayer = true
+        view.isHidden = true
+        view.autoresizingMask = [.width, .height]
         let still: [String: CAAction] = ["bounds": NSNull(), "position": NSNull(), "opacity": NSNull(), "hidden": NSNull(),
                                          "backgroundColor": NSNull(), "cornerRadius": NSNull(), "frame": NSNull()]
-        clip.actions = still
         bar.actions = still
         clip.masksToBounds = true
-        clip.isHidden = true
         bar.anchorPoint = .zero
         clip.addSublayer(bar)
     }
 
-    func remove() { clip.removeFromSuperlayer() }
+    func remove() { view.removeFromSuperview() }
+
 
     private var fullWidth: CGFloat { clip.bounds.width }
     var width: CGFloat { bar.presentation()?.bounds.width ?? bar.bounds.width }
@@ -259,23 +264,20 @@ final class ButtonFill {
         guard let host, let root = host.layer else { return }
         clip.removeAllAnimations()
         bar.removeAllAnimations()
-        // The button draws its gray background in its own bezel subview, whose layer sits above
-        // any sublayer added to the button: the fill goes right above that background and below
-        // the icon (measured 2026-11-22: as the first sublayer it was hidden under the bezel).
-        let bezel = host.subviews.first { String(describing: type(of: $0)).contains("Bezel") }?.layer
-        if let bezel, bezel.superlayer === root {
-            root.insertSublayer(clip, above: bezel)
-        } else if clip.superlayer !== root {
-            clip.zPosition = 1   // no bezel view found: above everything, still a light tint
-            root.addSublayer(clip)
+        // The button draws its gray background in its own bezel subview: the fill view goes right
+        // above it and below the icon (measured 2026-11-22: as the button's first sublayer it was
+        // hidden under the bezel).
+        let bezel = host.subviews.first { String(describing: type(of: $0)).contains("Bezel") }
+        if view.superview !== host || bezel.map({ host.subviews.firstIndex(of: view)! < host.subviews.firstIndex(of: $0)! }) == true {
+            host.addSubview(view, positioned: .above, relativeTo: bezel)
         }
-        clip.frame = host.bounds
+        view.frame = host.bounds
         clip.cornerRadius = Self.radius
         bar.backgroundColor = NSColor(white: 1, alpha: alpha).cgColor
         bar.position = .zero
         bar.bounds = CGRect(x: 0, y: 0, width: Self.reduceMotion ? fullWidth : 0, height: clip.bounds.height)
         clip.opacity = 1
-        clip.isHidden = false
+        view.isHidden = false
         guard delay > 0 else { return }
         let wait = CABasicAnimation(keyPath: "opacity")
         wait.fromValue = 0; wait.toValue = 0
@@ -322,11 +324,17 @@ final class ButtonFill {
         let current = width
         bar.removeAllAnimations()
         bar.bounds.size.width = 0
-        guard current > 0, !Self.reduceMotion, isShown else { clip.isHidden = true; return }
+        guard current > 0, !Self.reduceMotion, isShown else { view.isHidden = true; return }
         let back = CABasicAnimation(keyPath: "bounds.size.width")
         back.fromValue = current; back.toValue = 0; back.duration = 0.15
         bar.add(back, forKey: "back")
     }
+}
+
+/// Draws nothing itself and never takes a touch: the button keeps every tap and hold.
+private final class FillView: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    override var allowedTouchTypes: NSTouch.TouchTypeMask { get { [] } set {} }
 }
 
 /// A hold's progress (O-34 a): starts 0.15 s after the touch (taps show nothing) and is full
