@@ -429,10 +429,13 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }
         let steps = BarLooks.speedSteps(isRunning: speedTest.isRunning, failed: speedTest.failed,
                                         hasResult: speedTest.result != nil)
+        let button = barView?.button(Item.speedTest.rawValue)
         guard steps[0].phase == .testing else {
+            button?.showTest(running: false, succeeded: !speedTest.failed)
             setSpeedPhase(steps[0].phase, then: Array(steps.dropFirst()))
             return
         }
+        button?.showTest(running: true)
         needleStep = 0
         setSpeedPhase(.testing)
         speedTimer = Timer.scheduledTimer(withTimeInterval: BarLooks.needleInterval, repeats: true) { [weak self] _ in

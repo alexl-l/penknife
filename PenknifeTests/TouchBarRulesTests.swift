@@ -894,4 +894,13 @@ struct TouchBarRulesTests {
         for key in keys { #expect(empty.object(forKey: key) == nil, "\(key) leaked into the empty suite") }
         return empty
     }
+
+    @Test("O-34 b the speed test fill slows down and never passes 92 % before the test ends")
+    func speedTestFillCurve() {
+        let v = TestFill.values
+        #expect(v.first == 0)
+        #expect(zip(v, v.dropFirst()).allSatisfy { $0 < $1 })
+        #expect(v.last! <= 0.92)
+        #expect(v[3] > 0.45 && v[3] < 0.6)   // ~15 s: about half
+    }
 }

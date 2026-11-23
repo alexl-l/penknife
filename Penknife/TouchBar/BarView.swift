@@ -127,6 +127,12 @@ final class BarButton: NSButton {
     }
     func holdFired() { holdFill?.fire() }
 
+    /// O-34 b: the speed test's estimated progress.
+    private lazy var testFill = TestFill(on: self)
+    func showTest(running: Bool, succeeded: Bool = true) {
+        running ? testFill.start() : testFill.finish(succeeded: succeeded)
+    }
+
     /// Updates what the button shows. `label` is what VoiceOver reads (R-19). With `unit`, the text
     /// is a number with its unit in small type underneath (speed test, user's pick C, 2026-11-16).
     func show(symbol: String?, text: String = "", unit: String = "", dimmed: Bool = false, label: String) {
@@ -216,27 +222,22 @@ final class BarButton: NSButton {
 /// O-34: a hold's progress drawn on its button. A flat fill grows while the finger is down and is
 /// full exactly when the hold action fires; lifting early empties it. Nothing runs at idle: one
 /// Core Animation per hold, no timer (TB-61). Taps shorter than `delay` show nothing.
-final class HoldFill {
-    /// Style under test (user picks from the real Touch Bar): "fill" (A) or "line" (B).
-    static let styleKey = "touchBar.holdFillStyle"
-    static let delay: CFTimeInterval = 0.15
-    private static let alpha: CGFloat = 0.22
+/// O-34: a flat fill drawn on a button, clipped to its rounded shape. `bar` grows inside the
+/// clip with a straight leading edge (scaling a rounded layer squashed its corners: user,
+/// 2026-11-22). One Core Animation at a time, no timer (TB-61).
+final class ButtonFill {
     /// The button's own corner radius, measured on the Touch Bar (12 px at 2×, circular).
     private static let radius: CGFloat = 6
-
-    /// Clips to the button's rounded shape; `bar` grows inside it with a straight leading edge
-    /// (scaling a rounded layer squashed its corners: user, 2026-11-22).
     private let clip = CALayer()
     private let bar = CALayer()
     private weak var host: NSView?
-    private let duration: CFTimeInterval
-    private var fired = false
-    private var watcher: NSGestureRecognizer?
-    private var line: Bool { UserDefaults.standard.string(forKey: Self.styleKey) == "line" }
+    private let alpha: CGFloat
+    var isShown: Bool { !clip.isHidden }
+    static var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
-    init(on host: NSView, duration: CFTimeInterval) {
+    init(on host: NSView, alpha: CGFloat) {
         self.host = host
-        self.duration = duration
+        self.alpha = alpha
         host.wantsLayer = true
         let still: [String: CAAction] = ["bounds": NSNull(), "position": NSNull(), "opacity": NSNull(), "hidden": NSNull(),
                                          "backgroundColor": NSNull(), "cornerRadius": NSNull(), "frame": NSNull()]
@@ -246,6 +247,102 @@ final class HoldFill {
         clip.isHidden = true
         bar.anchorPoint = .zero
         clip.addSublayer(bar)
+    }
+
+    func remove() { clip.removeFromSuperlayer() }
+
+    private var fullWidth: CGFloat { clip.bounds.width }
+    var width: CGFloat { bar.presentation()?.bounds.width ?? bar.bounds.width }
+
+    /// Shows an empty fill (or, with Reduce Motion, a still full tint) after `delay`.
+    func show(delay: CFTimeInterval) {
+        guard let host, let root = host.layer else { return }
+        clip.removeAllAnimations()
+        bar.removeAllAnimations()
+        // The button draws its gray background in its own bezel subview, whose layer sits above
+        // any sublayer added to the button: the fill goes right above that background and below
+        // the icon (measured 2026-11-22: as the first sublayer it was hidden under the bezel).
+        let bezel = host.subviews.first { String(describing: type(of: $0)).contains("Bezel") }?.layer
+        if let bezel, bezel.superlayer === root {
+            root.insertSublayer(clip, above: bezel)
+        } else if clip.superlayer !== root {
+            clip.zPosition = 1   // no bezel view found: above everything, still a light tint
+            root.addSublayer(clip)
+        }
+        clip.frame = host.bounds
+        clip.cornerRadius = Self.radius
+        bar.backgroundColor = NSColor(white: 1, alpha: alpha).cgColor
+        bar.position = .zero
+        bar.bounds = CGRect(x: 0, y: 0, width: Self.reduceMotion ? fullWidth : 0, height: clip.bounds.height)
+        clip.opacity = 1
+        clip.isHidden = false
+        guard delay > 0 else { return }
+        let wait = CABasicAnimation(keyPath: "opacity")
+        wait.fromValue = 0; wait.toValue = 0
+        wait.beginTime = clip.convertTime(CACurrentMediaTime(), from: nil); wait.duration = delay
+        clip.add(wait, forKey: "wait")
+    }
+
+    /// Grows to full: linear over `duration` after `delay`, or along `keyTimes`/`values` (0…1).
+    func grow(after delay: CFTimeInterval, duration: CFTimeInterval, values: [CGFloat]? = nil) {
+        guard !Self.reduceMotion else { return }
+        let animation: CAPropertyAnimation
+        if let values {
+            let curve = CAKeyframeAnimation(keyPath: "bounds.size.width")
+            curve.values = values.map { $0 * fullWidth }
+            curve.calculationMode = .linear
+            animation = curve
+        } else {
+            let line = CABasicAnimation(keyPath: "bounds.size.width")
+            line.fromValue = 0
+            line.toValue = fullWidth
+            animation = line
+        }
+        animation.beginTime = bar.convertTime(CACurrentMediaTime(), from: nil) + delay
+        animation.duration = max(duration, 0.05)
+        animation.fillMode = .forwards
+        animation.isRemovedOnCompletion = false
+        bar.add(animation, forKey: "grow")
+    }
+
+    /// Done: full at once, then fades in 0.15 s.
+    func complete() {
+        guard isShown else { return }
+        let width = fullWidth
+        bar.removeAllAnimations()
+        bar.bounds.size.width = width
+        clip.opacity = 0
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1; fade.toValue = 0; fade.duration = 0.15
+        clip.add(fade, forKey: "fade")
+    }
+
+    /// Stopped early: empties in 0.15 s.
+    func empty() {
+        let current = width
+        bar.removeAllAnimations()
+        bar.bounds.size.width = 0
+        guard current > 0, !Self.reduceMotion, isShown else { clip.isHidden = true; return }
+        let back = CABasicAnimation(keyPath: "bounds.size.width")
+        back.fromValue = current; back.toValue = 0; back.duration = 0.15
+        bar.add(back, forKey: "back")
+    }
+}
+
+/// A hold's progress (O-34 a): starts 0.15 s after the touch (taps show nothing) and is full
+/// exactly when the hold fires; lifting early empties it.
+final class HoldFill {
+    static let delay: CFTimeInterval = 0.15
+    private let fill: ButtonFill
+    private weak var host: NSView?
+    private let duration: CFTimeInterval
+    private var fired = false
+    private var watcher: NSGestureRecognizer?
+
+    init(on host: NSView, duration: CFTimeInterval) {
+        self.host = host
+        self.duration = duration
+        fill = ButtonFill(on: host, alpha: 0.22)
         let watcher = TouchWatcher(target: nil, action: nil)
         watcher.allowedTouchTypes = .direct
         watcher.onBegan = { [weak self] in self?.begin() }
@@ -256,88 +353,51 @@ final class HoldFill {
 
     /// Takes the fill and its watcher off the button (the hold changed or went away).
     func remove() {
-        clip.removeFromSuperlayer()
+        fill.remove()
         if let watcher { host?.removeGestureRecognizer(watcher) }
     }
 
-    private func place() {
-        guard let host, let root = host.layer else { return }
-        // The button draws its gray background in its own bezel subview, whose layer sits above
-        // any sublayer added to the button: the fill goes right above that background and
-        // below the icon (measured 2026-11-22: first sublayer = hidden under the bezel).
-        let bezel = host.subviews.first { String(describing: type(of: $0)).contains("Bezel") }?.layer
-        if let bezel, bezel.superlayer === root {
-            root.insertSublayer(clip, above: bezel)
-        } else if clip.superlayer !== root {
-            clip.zPosition = 1   // no bezel view found: above everything, still a light tint
-            root.addSublayer(clip)
-        }
-        let b = host.bounds
-        if line {
-            clip.frame = CGRect(x: 6, y: 1, width: max(b.width - 12, 0), height: 2)
-            clip.cornerRadius = 1
-            bar.backgroundColor = NSColor(white: 1, alpha: 0.7).cgColor
-        } else {
-            clip.frame = b
-            clip.cornerRadius = Self.radius
-            bar.backgroundColor = NSColor(white: 1, alpha: Self.alpha).cgColor
-        }
-        bar.position = .zero
-        bar.bounds = CGRect(x: 0, y: 0, width: 0, height: clip.bounds.height)
-    }
-
-    private var fullWidth: CGFloat { clip.bounds.width }
-
     private func begin() {
         fired = false
-        clip.removeAllAnimations()
-        bar.removeAllAnimations()
-        place()
-        clip.opacity = 1
-        clip.isHidden = false
-        let now = bar.convertTime(CACurrentMediaTime(), from: nil)
-        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            // Reduce Motion: a still tint while held, no sweep.
-            bar.bounds.size.width = fullWidth
-            let wait = CABasicAnimation(keyPath: "opacity")
-            wait.fromValue = 0; wait.toValue = 0
-            wait.beginTime = now; wait.duration = Self.delay
-            clip.add(wait, forKey: "wait")
-            return
-        }
-        let grow = CABasicAnimation(keyPath: "bounds.size.width")
-        grow.fromValue = 0
-        grow.toValue = fullWidth
-        grow.beginTime = now + Self.delay
-        grow.duration = max(duration - Self.delay, 0.05)
-        grow.fillMode = .forwards
-        grow.isRemovedOnCompletion = false
-        bar.add(grow, forKey: "grow")
+        fill.show(delay: Self.delay)
+        fill.grow(after: Self.delay, duration: duration - Self.delay)
     }
 
-    /// The hold action fired: full, then fades in 0.15 s.
     func fire() {
-        guard !fired, !clip.isHidden else { return }
+        guard !fired else { return }
         fired = true
-        bar.removeAllAnimations()
-        bar.bounds.size.width = fullWidth
-        clip.opacity = 0
-        let fade = CABasicAnimation(keyPath: "opacity")
-        fade.fromValue = 1; fade.toValue = 0; fade.duration = 0.15
-        clip.add(fade, forKey: "fade")
+        fill.complete()
     }
 
-    /// The finger lifted before the hold fired: empties in 0.15 s.
     private func end() {
         guard !fired else { return }
-        let current = bar.presentation()?.bounds.width ?? 0
-        bar.removeAllAnimations()
-        bar.bounds.size.width = 0
-        guard current > 0, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { clip.isHidden = true; return }
-        let back = CABasicAnimation(keyPath: "bounds.size.width")
-        back.fromValue = current; back.toValue = 0; back.duration = 0.15
-        bar.add(back, forKey: "back")
+        fill.empty()
     }
+}
+
+/// The speed test's progress (O-34 b). networkQuality takes 16–56 s (measured 2026-11-22), so
+/// the fill is an estimate: fast at first, slower and slower, never past 92 % until the test
+/// really ends. Lighter (14 %) than a hold, so the two aren't confused.
+final class TestFill {
+    private let fill: ButtonFill
+    /// 0.92 × (1 − e^(−t/20 s)), sampled every 5 s over 60 s: ~51 % at 16 s, ~83 % at 46 s.
+    static let span: CFTimeInterval = 60
+    static let values: [CGFloat] = stride(from: 0.0, through: span, by: 5).map { 0.92 * (1 - exp(-$0 / 20)) }
+
+    init(on host: NSView) { fill = ButtonFill(on: host, alpha: 0.14) }
+
+    func start() {
+        guard !fill.isShown else { return }
+        fill.show(delay: 0)
+        fill.grow(after: 0, duration: Self.span, values: Self.values)
+    }
+
+    func finish(succeeded: Bool) {
+        guard fill.isShown else { return }
+        succeeded ? fill.complete() : fill.empty()
+    }
+
+    func remove() { fill.remove() }
 }
 
 /// Sees a finger go down and up on a view without ever recognizing, so the button's own tap and
