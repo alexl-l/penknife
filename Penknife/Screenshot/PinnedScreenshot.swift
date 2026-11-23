@@ -208,7 +208,8 @@ final class PinnedView: NSView {
         imageLayer.cornerRadius = min(bounds.width, bounds.height) < 40 ? 6 : 10
         imageLayer.contentsScale = window?.backingScaleFactor ?? 2
         CATransaction.commit()
-        closeButton.frame = CGRect(x: 8, y: 8, width: 16, height: 16)
+        // 24 pt target, the 16 pt glyph still 8 pt in (designer).
+        closeButton.frame = CGRect(x: 4, y: 4, width: 24, height: 24)
         updateBorder()
     }
 
