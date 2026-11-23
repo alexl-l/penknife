@@ -644,7 +644,7 @@ private struct JigglerStopRow: View {
     var body: some View {
         LabeledContent("Turn off at") {
             HStack(spacing: 10) {
-                DatePicker("Turn off at", selection: time, displayedComponents: .hourAndMinute)
+                DatePicker("Turn-off time", selection: time, displayedComponents: .hourAndMinute)
                     .labelsHidden()
                     .disabled(!enabled)
                 Toggle("Turn off at", isOn: $enabled)
