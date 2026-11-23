@@ -43,11 +43,11 @@ enum PinPlace: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .bottomLeft: String(localized: "Bottom Left")
-        case .bottomRight: String(localized: "Bottom Right")
-        case .topLeft: String(localized: "Top Left")
-        case .topRight: String(localized: "Top Right")
-        case .captured: String(localized: "Where Captured")
+        case .bottomLeft: String(localized: "Bottom left")
+        case .bottomRight: String(localized: "Bottom right")
+        case .topLeft: String(localized: "Top left")
+        case .topRight: String(localized: "Top right")
+        case .captured: String(localized: "Where captured")
         }
     }
 

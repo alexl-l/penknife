@@ -1,7 +1,7 @@
 {
   "sourceLanguage": "en",
   "strings": {
-    "Bottom Left": {
+    "Bottom left": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -11,7 +11,7 @@
         }
       }
     },
-    "Bottom Right": {
+    "Bottom right": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -21,7 +21,7 @@
         }
       }
     },
-    "Top Left": {
+    "Top left": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -31,7 +31,7 @@
         }
       }
     },
-    "Top Right": {
+    "Top right": {
       "localizations": {
         "es": {
           "stringUnit": {
@@ -41,7 +41,7 @@
         }
       }
     },
-    "Where Captured": {
+    "Where captured": {
       "localizations": {
         "es": {
           "stringUnit": {

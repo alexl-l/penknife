@@ -491,12 +491,6 @@ private struct ScreenshotOptions: View {
             Text("Copy also as a file")
             Text("Paste in a Finder folder to get a PNG file. Other apps paste the image.")
         }
-        // SS-73: where Pin puts the screenshot.
-        Picker("Pinned screenshot position", selection: $pinPlace) {
-            ForEach(PinPlace.allCases, id: \.rawValue) { place in
-                Text(place.title).tag(place.rawValue)
-            }
-        }
         PastableSpace(onClipboardPage: false)
         LabeledContent("Save to") {
             HStack {
@@ -505,6 +499,12 @@ private struct ScreenshotOptions: View {
                     .id(folderPath)
                 Button("Choose…", action: choose)
                     .accessibilityLabel(String(localized: "Choose the folder for screenshots"))
+            }
+        }
+        // SS-73: where Pin puts the screenshot.
+        Picker("Pinned screenshot position", selection: $pinPlace) {
+            ForEach(PinPlace.allCases, id: \.rawValue) { place in
+                Text(place.title).tag(place.rawValue)
             }
         }
     }
