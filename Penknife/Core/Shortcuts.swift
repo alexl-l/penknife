@@ -17,6 +17,8 @@ extension KeyboardShortcuts.Name {
 extension KeyboardShortcuts.Name {
     static let recordScreen = Self("recordScreen", default: .init(.r, modifiers: [.control, .option]))
     static let recordingDraw = Self("recordingDraw", default: .init(.d, modifiers: [.control, .option]))
+    /// R-38: the screenshot overlay straight in the color picker; no default key.
+    static let pickColor = Self("pickColor")
 }
 
 /// Music (R-5): no default keys, the user records them in Settings → Shortcuts.

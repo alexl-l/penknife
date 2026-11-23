@@ -3341,12 +3341,12 @@
         }
       }
     },
-    "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel.": {
+    "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel. I for the color picker.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Captura. Arrastra para seleccionar un área, Espacio para elegir una ventana, Intro para toda la pantalla, Esc para cancelar."
+            "value": "Captura. Arrastra para seleccionar un área, Espacio para elegir una ventana, Intro para toda la pantalla, I para el selector de color, Esc para cancelar."
           }
         }
       }
@@ -6313,6 +6313,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "Los fijados hacen scroll al pasar de ahí y siempre dejan sitio al Historial."
+          }
+        }
+      }
+    },
+    "Pick Color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir color"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver"
+          }
+        }
+      }
+    },
+    "Click to copy the color": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haz clic para copiar el color"
+          }
+        }
+      }
+    },
+    "Color picker. Move the pointer, click or press Return to copy the color, Esc to cancel.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selector de color. Mueve el puntero, haz clic o pulsa Intro para copiar el color, Esc para cancelar."
+          }
+        }
+      }
+    },
+    "Color picker. Move the pointer, click or press Return to copy the color, Esc to go back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selector de color. Mueve el puntero, haz clic o pulsa Intro para copiar el color, Esc para volver."
+          }
+        }
+      }
+    },
+    "Color %@ copied": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Color %@ copiado"
           }
         }
       }

@@ -13,15 +13,18 @@ final class CaptureSession {
     private let onFinish: () -> Void
     private var finished = false
 
-    /// `recordOnly`: opened with the record shortcut (R-29), straight in record mode.
-    init(mode: ScreenshotMode, images: [CGDirectDisplayID: CGImage], previousApp: NSRunningApplication?, recordOnly: Bool = false,
+    /// `start`: `.record` = opened with the record shortcut (R-29), straight in record mode;
+    /// `.pickColor` = opened with the Pick Color shortcut (R-38), straight in the color picker.
+    init(mode: ScreenshotMode, images: [CGDirectDisplayID: CGImage], previousApp: NSRunningApplication?, start: CaptureStart = .screenshot,
          onRecord: @escaping (RecordingRequest) -> Void, onFinish: @escaping () -> Void) {
         self.mode = mode
         self.previousApp = previousApp
         self.onRecord = onRecord
         self.onFinish = onFinish
-        state.recordMode = recordOnly
-        state.recordOnly = recordOnly
+        state.recordMode = start == .record
+        state.recordOnly = start == .record
+        state.picking = start == .pickColor
+        state.pickOnly = start == .pickColor
         let windowRects = Self.onScreenWindows()
         for screen in NSScreen.screens {
             let window = CaptureWindow(screen: screen, image: images[screen.displayID], windowRects: windowRects, session: self)
@@ -39,9 +42,18 @@ final class CaptureSession {
         }
         let first = windows.first { $0.frame.contains(mouse) } ?? windows.first
         first?.makeKey()
+        if state.picking { first?.canvas.pickerChanged(); return }
         first?.canvas.announce(state.recordOnly
             ? String(localized: "Record the screen. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel.")
-            : String(localized: "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel."))
+            : String(localized: "Screenshot. Drag to select an area, Space to choose a window, Return for the whole screen, Esc to cancel. I for the color picker."))
+    }
+
+    /// R-38: I or the Pick Color shortcut turns the picker on (off again with I or Esc). Only
+    /// before an area is chosen and not while choosing what to record.
+    func togglePicker() {
+        guard !state.recordMode, !windows.contains(where: { $0.canvas.selection != nil }) else { return }
+        state.picking.toggle()
+        for window in windows { window.canvas.pickerChanged() }
     }
 
     /// Record (button, ⇧⌘R, or the record shortcut while the overlay is open): with a selection
@@ -270,7 +282,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         guard window != nil else { return }
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .activeAlways, .inVisibleRect, .cursorUpdate], owner: self))
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect, .cursorUpdate],
+                                       owner: self))
     }
 
     var hasAnnotations: Bool { !annotations.isEmpty || textView != nil }
@@ -319,6 +332,13 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     // MARK: Drawing
 
     override func draw(_ dirtyRect: NSRect) {
+        // R-38: the screen as it is (not dimmed), so the colors look true, and the loupe.
+        if state.picking {
+            if let loupePoint, let base, let hex = pickedHex {
+                ColorLoupe.draw(pointer: loupePoint, image: base, scale: scale, hex: hex, bounds: bounds)
+            }
+            return
+        }
         let hoveredRect = selection == nil ? hovered?.rect : nil
         let shown = targetImage == nil ? (selection ?? hoveredRect) : nil
         let dim = NSBezierPath(rect: bounds)
@@ -406,6 +426,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
+        if state.picking { moveLoupe(to: point); return }
         if windowMode, selection == nil {
             let target = target(at: point)
             if target != hovered {
@@ -437,6 +458,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     }
 
     private func updateCursor(_ point: CGPoint) {
+        if state.picking {
+            (base == nil ? NSCursor.crosshair : ColorLoupe.blankCursor).set()
+            return
+        }
         if let toolbar, toolbar.frame.contains(point) { NSCursor.arrow.set(); return }
         guard let selection else {
             (windowMode ? NSCursor.pointingHand : NSCursor.crosshair).set()
@@ -480,6 +505,10 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     override func mouseDown(with event: NSEvent) {
         window?.makeKey()
+        if state.picking {
+            pickColor(at: convert(event.locationInWindow, from: nil))
+            return
+        }
         session?.hideHints()
         closeChoices()
         let point = convert(event.locationInWindow, from: nil)
@@ -1063,7 +1092,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             hasSelection: selection != nil, recordMode: state.recordMode, fixedSelection: fixedSelection,
             windowMode: windowMode, capturing: capturing, typing: textView != nil, tool: state.tool,
             markCount: annotations.count, selectedMark: selectedMark, sizeIndex: state.sizeIndex,
-            sizesOpen: state.expanded == .sizes)
+            sizesOpen: state.expanded == .sizes, picking: state.picking, pickOnly: state.pickOnly)
         guard let action = CaptureKeys.action(keyCode: event.keyCode, characters: event.charactersIgnoringModifiers,
                                               flags: event.modifierFlags, isRepeat: event.type == .keyDown && event.isARepeat,
                                               context: context) else { return false }
@@ -1124,6 +1153,9 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .toggleRow(let row): run(.toggle(row))
         case .color(let index): run(.color(index))
         case .size(let index): run(.size(index))
+        case .togglePicker: session?.togglePicker()
+        case .pickColor: pickColor(at: loupePoint ?? mouseLocation)
+        case .movePointer(let dx, let dy): movePointer(dx: dx, dy: dy)
         }
     }
 
@@ -1140,6 +1172,105 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var mouseLocation: CGPoint {
         guard let window else { return .zero }
         return convert(window.mouseLocationOutsideOfEventStream, from: nil)
+    }
+
+    // MARK: Color picker (R-38)
+
+    /// Where the loupe is drawn on this screen (nil: the pointer is on another screen), and the
+    /// color under it.
+    private var loupePoint: CGPoint?
+    private var pickedHex: String?
+
+    override func mouseExited(with event: NSEvent) {
+        guard state.picking else { return }
+        moveLoupe(to: nil)
+    }
+
+    /// The picker went on or off: the dimming and the hint change; a live screen is grabbed now.
+    func pickerChanged() {
+        hintModel.picking = state.picking
+        hintModel.pickOnly = state.pickOnly
+        if state.picking {
+            windowMode = false
+            hintModel.windowMode = false
+            hovered = nil
+            if window?.isKeyWindow == true {
+                announce(state.pickOnly
+                    ? String(localized: "Color picker. Move the pointer, click or press Return to copy the color, Esc to cancel.")
+                    : String(localized: "Color picker. Move the pointer, click or press Return to copy the color, Esc to go back."))
+            }
+            grabForPicker()
+        } else if window?.isKeyWindow == true {
+            announce(String(localized: "Screenshot"))
+        }
+        let point = mouseLocation
+        loupePoint = nil
+        if state.picking, bounds.contains(point) { moveLoupe(to: point) }
+        needsDisplay = true
+        updateCursor(point)
+    }
+
+    /// Live mode has no screen image yet: take it once, as choosing an area does.
+    private func grabForPicker() {
+        guard base == nil, !capturing else { return }
+        capturing = true
+        let screen = screen
+        Task { [weak self] in
+            let image = try? await ScreenGrabber.capture(screen)
+            guard let self else { return }
+            self.capturing = false
+            guard let image else {
+                HUD.shared.show(String(localized: "Couldn't take the screenshot"), symbol: "exclamationmark.triangle.fill",
+                                kind: .error, category: .screenshot)
+                self.session?.cancel()
+                return
+            }
+            self.base = image
+            self.scale = CGFloat(image.width) / self.bounds.width
+            self.window?.contentView?.layer?.contents = image
+            self.window?.contentView?.layer?.contentsGravity = .resize
+            guard self.state.picking else { return }
+            let point = self.mouseLocation
+            if self.bounds.contains(point) { self.moveLoupe(to: point) }
+            self.updateCursor(point)
+        }
+    }
+
+    /// Only the loupe's old and new places are redrawn (R-11).
+    private func moveLoupe(to point: CGPoint?) {
+        if let old = loupePoint { setNeedsDisplay(ColorLoupe.area(pointer: old, bounds: bounds)) }
+        loupePoint = point
+        pickedHex = nil
+        guard let point else { return }
+        if let base {
+            let pixel = ColorSample.pixel(point, scale: scale)
+            pickedHex = ColorSample.hex(in: base, x: pixel.x, y: pixel.y)
+        }
+        setNeedsDisplay(ColorLoupe.area(pointer: point, bounds: bounds))
+    }
+
+    /// Arrows: the pointer moves by device pixels, for exact picking without a mouse (R-19).
+    private func movePointer(dx: Int, dy: Int) {
+        guard let window, let screen = window.screen else { return }
+        let start = loupePoint ?? mouseLocation
+        let point = clamp(CGPoint(x: start.x + CGFloat(dx) / scale, y: start.y + CGFloat(dy) / scale))
+        let primaryHeight = NSScreen.screens.first?.frame.height ?? screen.frame.height
+        CGWarpMouseCursorPosition(CGPoint(x: screen.frame.minX + point.x, y: primaryHeight - screen.frame.maxY + point.y))
+        CGAssociateMouseAndMouseCursorPosition(1)
+        moveLoupe(to: point)
+        if let pickedHex { announceSoon(pickedHex) }
+    }
+
+    /// Copies the hex and closes, as Copy does (no visible confirmation, O-12).
+    private func pickColor(at point: CGPoint) {
+        guard let base else { return }
+        let pixel = ColorSample.pixel(point, scale: scale)
+        guard let hex = ColorSample.hex(in: base, x: pixel.x, y: pixel.y) else { return }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(hex, forType: .string)
+        announce(String(localized: "Color \(hex) copied"))
+        session?.cancel()
     }
 
     // MARK: Record mode (R-29)

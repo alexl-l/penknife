@@ -15,6 +15,10 @@ final class CaptureEditorState {
     var recordMode = false
     /// Opened with the record shortcut: no screenshot editor, Esc cancels.
     var recordOnly = false
+    /// R-38: the color picker's loupe follows the pointer; a click copies the color.
+    var picking = false
+    /// Opened with the Pick Color shortcut: Esc cancels instead of going back to the screenshot.
+    var pickOnly = false
     var microphone = RecordingPrefs.microphone
     var macSound = RecordingPrefs.macSound
 
@@ -258,6 +262,8 @@ final class CaptureHintModel {
     var visible = false
     var windowMode = false
     var recording = false
+    var picking = false
+    var pickOnly = false
 }
 
 struct CaptureHint: View {
@@ -286,6 +292,7 @@ struct CaptureHint: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.easeOut(duration: model.visible ? 0.25 : 0.2), value: model.visible)
         .animation(.easeInOut(duration: 0.15), value: model.windowMode)
+        .animation(.easeInOut(duration: 0.15), value: model.picking)
         // VoiceOver hears the same in the overlay's announcement.
         .accessibilityHidden(true)
     }
@@ -293,7 +300,11 @@ struct CaptureHint: View {
     private var opaque: Bool { reduceTransparency || contrast == .increased }
 
     @ViewBuilder private var items: some View {
-        if model.windowMode {
+        if model.picking {
+            item(nil, String(localized: "Click to copy the color"))
+            item("return", String(localized: "Copy"))
+            item("escape", model.pickOnly ? String(localized: "Cancel") : String(localized: "Back"))
+        } else if model.windowMode {
             item(nil, String(localized: "Click a window"))
             item("space", String(localized: "Area"))
             item("escape", String(localized: "Cancel"))
@@ -301,6 +312,7 @@ struct CaptureHint: View {
             item(nil, model.recording ? String(localized: "Drag to record an area") : String(localized: "Drag to capture an area"))
             item("space", String(localized: "Window"))
             item("return", String(localized: "Full screen"))
+            if !model.recording { item("I", String(localized: "Color")) }
             item("escape", String(localized: "Cancel"))
         }
     }
@@ -308,7 +320,8 @@ struct CaptureHint: View {
     private func item(_ key: String?, _ text: String) -> some View {
         HStack(spacing: 6) {
             if let key {
-                Image(systemName: key)
+                // One letter is a key itself (I); anything longer is a symbol's name.
+                Group { key.count == 1 ? Text(key) : Text(Image(systemName: key)) }
                     .font(.system(size: 11, weight: .semibold))
                     .frame(minWidth: 28, minHeight: 20)
                     .padding(.horizontal, 4)

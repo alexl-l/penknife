@@ -17,6 +17,9 @@ struct CaptureKeyContext: Equatable {
     var sizeIndex = 0
     /// The size row is open: 1–4 pick a size there instead of a color (SS-62).
     var sizesOpen = false
+    /// R-38: the color picker is on; opened by its own shortcut.
+    var picking = false
+    var pickOnly = false
 }
 
 /// What a key does in the overlay. The canvas performs it exactly as it did inline.
@@ -54,6 +57,12 @@ enum CaptureKeyAction: Equatable {
     case toggleRow(StyleRow)
     case color(Int)
     case size(Int)
+    /// R-38: I turns the color picker on or off (before an area is chosen).
+    case togglePicker
+    /// Click, Return or ⌘C while picking: the color under the pointer is copied.
+    case pickColor
+    /// Arrows while picking: the pointer moves one pixel (⇧ ten).
+    case movePointer(dx: Int, dy: Int)
 }
 
 /// The overlay's key table as a plain rule: nil means not ours (the key goes on to the app).
@@ -87,6 +96,7 @@ enum CaptureKeys {
         let key = characters?.lowercased() ?? ""
         let code = Int(keyCode)
         if isRepeat, [49, 36, 76, 53].contains(code) { return .swallow }   // held Space/Return/Esc: once only
+        if c.picking { return pickerAction(code: code, key: key, flags: flags, isRepeat: isRepeat, context: c) }
         if !c.recordMode, c.hasSelection, let mark = markAction(code: code, flags: flags, context: c) { return mark }
         switch code {
         case 53:                                                // Esc
@@ -124,6 +134,9 @@ enum CaptureKeys {
             default: return .swallow
             }
         }
+        if !c.hasSelection, key == "i", flags.isDisjoint(with: [.control, .option]) {
+            return isRepeat || c.capturing ? .swallow : .togglePicker
+        }
         guard c.hasSelection, flags.isDisjoint(with: [.control, .option]) else { return nil }
         if let action = toolKey(key, isRepeat: isRepeat) { return action }
         if let action = rowKey(key) { return action }
@@ -132,6 +145,24 @@ enum CaptureKeys {
         if key == "-" { return .size(max(c.sizeIndex - 1, 0)) }
         if key == "+" || key == "=" { return .size(min(c.sizeIndex + 1, CaptureSize.count - 1)) }
         return nil
+    }
+
+    /// R-38: while picking every key is ours; only these do something.
+    private static func pickerAction(code: Int, key: String, flags: NSEvent.ModifierFlags, isRepeat: Bool,
+                                     context c: CaptureKeyContext) -> CaptureKeyAction {
+        let command = flags.contains(.command)
+        switch code {
+        case 53: return c.pickOnly ? .cancel : .togglePicker
+        case 36, 76: return .pickColor
+        case 123, 124, 125, 126:
+            let step = flags.contains(.shift) ? 10 : 1
+            return .movePointer(dx: code == 123 ? -step : code == 124 ? step : 0,
+                                dy: code == 126 ? -step : code == 125 ? step : 0)
+        default: break
+        }
+        if command { return key == "c" && !isRepeat ? .pickColor : .swallow }
+        if key == "i", !c.pickOnly, !isRepeat, flags.isDisjoint(with: [.control, .option]) { return .togglePicker }
+        return .swallow
     }
 
     /// While a text is typed the key table isn't asked; only the Edit menu's keys (⌘Z, ⇧⌘Z,

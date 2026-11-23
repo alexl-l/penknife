@@ -19,11 +19,18 @@ enum ScreenshotMode: String, CaseIterable {
     }
 }
 
+/// How the overlay opens: for a screenshot, straight in record mode (R-29) or straight in the
+/// color picker (R-38).
+enum CaptureStart: Equatable {
+    case screenshot, record, pickColor
+}
+
 /// The overlay and the recording as the module drives them (tests pass fakes).
 protocol CaptureOverlay: AnyObject {
     func show()
     func cancel()
     func enterRecordMode()
+    func togglePicker()
 }
 
 protocol CaptureRecording: AnyObject {
@@ -45,7 +52,7 @@ struct CaptureEnvironment {
     var grabAll: () async throws -> [CGDirectDisplayID: CGImage]
     var hud: (_ title: String, _ detail: String?, _ symbol: String, _ kind: AlertKind) -> Void
     var makeOverlay: (_ mode: ScreenshotMode, _ images: [CGDirectDisplayID: CGImage], _ previous: NSRunningApplication?,
-                      _ recordOnly: Bool, _ onRecord: @escaping (RecordingRequest) -> Void,
+                      _ start: CaptureStart, _ onRecord: @escaping (RecordingRequest) -> Void,
                       _ onFinish: @escaping () -> Void) -> CaptureOverlay
     var makeRecording: (_ request: RecordingRequest, _ onFinish: @escaping () -> Void) -> CaptureRecording
 
@@ -57,7 +64,7 @@ struct CaptureEnvironment {
              frontApp: { NSWorkspace.shared.frontmostApplication },
              grabAll: { try await ScreenGrabber.captureAll() },
              hud: { HUD.shared.show($0, detail: $1, symbol: $2, kind: $3, category: .screenshot) },
-             makeOverlay: { CaptureSession(mode: $0, images: $1, previousApp: $2, recordOnly: $3, onRecord: $4, onFinish: $5) },
+             makeOverlay: { CaptureSession(mode: $0, images: $1, previousApp: $2, start: $3, onRecord: $4, onFinish: $5) },
              makeRecording: { RecordingSession(request: $0, onFinish: $1) })
     }
 }
@@ -110,6 +117,8 @@ final class ScreenshotModule: Module {
                          perform: { [weak self] in self?.begin() }),
             ModuleAction(shortcut: .recordScreen, title: String(localized: "Record Screen"), symbol: "record.circle",
                          perform: { [weak self] in self?.toggleRecording() }),
+            ModuleAction(shortcut: .pickColor, title: String(localized: "Pick Color"), symbol: "eyedropper",
+                         perform: { [weak self] in self?.pickColor() }),
         ]
     }
 
@@ -130,7 +139,17 @@ final class ScreenshotModule: Module {
         } else if let session {
             session.enterRecordMode()
         } else {
-            begin(record: true)
+            begin(.record)
+        }
+    }
+
+    /// The Pick Color shortcut (R-38): with the overlay open, turns its picker on or off;
+    /// otherwise opens it straight in the picker, over the frozen screen. Not while recording.
+    func pickColor() {
+        if let session {
+            session.togglePicker()
+        } else {
+            begin(.pickColor)
         }
     }
 
@@ -140,7 +159,7 @@ final class ScreenshotModule: Module {
     /// running recording.
     func holdToRecord() {
         guard recording == nil, !starting else { return }
-        if let session { session.enterRecordMode() } else { begin(record: true) }
+        if let session { session.enterRecordMode() } else { begin(.record) }
     }
 
     private func startRecording(_ request: RecordingRequest) {
@@ -175,17 +194,22 @@ final class ScreenshotModule: Module {
         return desktop()
     }
 
-    /// `record`: straight in record mode, over the live screen.
+    /// `.record`: straight in record mode, over the live screen. `.pickColor`: straight in the
+    /// color picker, always over the frozen screen (it reads its pixels).
     /// Returns the task that grabs the screen and opens the overlay (nil when nothing starts).
     @discardableResult
-    func begin(record: Bool = false) -> Task<Void, Never>? {
+    func begin(_ start: CaptureStart = .screenshot) -> Task<Void, Never>? {
         guard session == nil, !starting, recording == nil else { return nil }
         guard environment.hasPermission() else {
             requestPermission()
             return nil
         }
         starting = true
-        let mode = record ? .live : ScreenshotMode.current(in: environment.defaults)
+        let mode: ScreenshotMode = switch start {
+        case .record: .live
+        case .pickColor: .frozen
+        case .screenshot: ScreenshotMode.current(in: environment.defaults)
+        }
         let previous = environment.frontApp()
         let environment = environment
         return Task { [weak self] in
@@ -200,7 +224,7 @@ final class ScreenshotModule: Module {
                 }
             }
             guard let self else { return }
-            let session = environment.makeOverlay(mode, images, previous, record,
+            let session = environment.makeOverlay(mode, images, previous, start,
                                                   { [weak self] in self?.startRecording($0) },
                                                   { [weak self] in self?.session = nil })
             self.session = session

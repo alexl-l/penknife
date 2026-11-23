@@ -72,13 +72,15 @@ struct ScreenshotRulesTests {
     // MARK: A. Module
 
     // SS-01: two actions in this order; F1 is tested by TB-58.
-    @Test("SS-01 the module's two actions and shortcuts")
+    @Test("SS-01 SS-66 the module's three actions and shortcuts (Pick Color has no default key)")
     func moduleActions() {
         let actions = ScreenshotModule().actions
-        #expect(actions.map(\.shortcut) == [.screenshot, .recordScreen])
-        #expect(actions.map(\.symbol) == ["camera.viewfinder", "record.circle"])
+        #expect(actions.map(\.shortcut) == [.screenshot, .recordScreen, .pickColor])
+        #expect(actions.map(\.symbol) == ["camera.viewfinder", "record.circle", "eyedropper"])
         expectText(actions[0].title, english: "Screenshot", es: "Captura de pantalla")
         expectText(actions[1].title, english: "Record Screen", es: "Grabar pantalla")
+        expectText(actions[2].title, english: "Pick Color", es: "Elegir color")
+        #expect(KeyboardShortcuts.Name.pickColor.defaultShortcut == nil)
         #expect(KeyboardShortcuts.Name.recordScreen.defaultShortcut == .init(.r, modifiers: [.control, .option]))
         #expect(KeyboardShortcuts.Name.recordingDraw.defaultShortcut == .init(.d, modifiers: [.control, .option]))
         #expect(ModuleID.screenshot.symbol == "camera.viewfinder")
@@ -653,6 +655,60 @@ struct ScreenshotRulesTests {
         #expect(key(49, " ", [], CaptureKeyContext(recordMode: true)) == .toggleWindowMode)
     }
 
+    @Test("SS-63 I turns the color picker on before an area is chosen; not in record mode, with an area, or held")
+    func pickerKey() {
+        #expect(key(34, "i") == .togglePicker)
+        #expect(key(34, "I", [.shift]) == .togglePicker)
+        #expect(key(34, "i", [], CaptureKeyContext(windowMode: true)) == .togglePicker)
+        #expect(key(34, "i", isRepeat: true) == .swallow)
+        #expect(key(34, "i", [], CaptureKeyContext(capturing: true)) == .swallow)
+        #expect(key(34, "i", [.control]) == nil)
+        #expect(key(34, "i", [], CaptureKeyContext(recordMode: true)) == nil)
+        #expect(key(34, "i", [], Self.editing) == nil)
+    }
+
+    @Test("SS-64 while picking: click/Return/⌘C copy, arrows move a pixel (⇧ ten), Esc and I go back (Esc cancels when opened alone)")
+    func pickerKeys() {
+        let picking = CaptureKeyContext(picking: true)
+        let alone = CaptureKeyContext(picking: true, pickOnly: true)
+        #expect(key(36, "\r", [], picking) == .pickColor)
+        #expect(key(76, "", [], picking) == .pickColor)
+        #expect(key(8, "c", [.command], picking) == .pickColor)
+        #expect(key(124, "", [], picking) == .movePointer(dx: 1, dy: 0))
+        #expect(key(126, "", [.shift], picking) == .movePointer(dx: 0, dy: -10))
+        #expect(key(53, "", [], picking) == .togglePicker)
+        #expect(key(53, "", [], alone) == .cancel)
+        #expect(key(34, "i", [], picking) == .togglePicker)
+        #expect(key(34, "i", [], alone) == .swallow)
+        #expect(key(49, " ", [], picking) == .swallow)
+        #expect(key(15, "r", [], picking) == .swallow)
+        #expect(key(1, "s", [.command], picking) == .swallow)
+        #expect(key(36, "\r", isRepeat: true, picking) == .swallow)
+    }
+
+    @Test("SS-65 the picked color is the pixel under the pointer, in sRGB hex; the loupe's label flips above near the bottom")
+    func colorSample() throws {
+        let space = try #require(CGColorSpace(name: CGColorSpace.sRGB))
+        let context = try #require(CGContext(data: nil, width: 4, height: 2, bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.setFillColor(CGColor(srgbRed: 1, green: 1, blue: 1, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 4, height: 2))
+        // CGContext's origin is bottom-left: y 1 here is the image's top row.
+        context.setFillColor(CGColor(srgbRed: 0x12 / 255.0, green: 0xAB / 255.0, blue: 0xEF / 255.0, alpha: 1))
+        context.fill(CGRect(x: 2, y: 1, width: 1, height: 1))
+        let image = try #require(context.makeImage())
+        #expect(ColorSample.hex(in: image, x: 2, y: 0) == "#12ABEF")
+        #expect(ColorSample.hex(in: image, x: 2, y: 1) == "#FFFFFF")
+        #expect(ColorSample.hex(in: image, x: 4, y: 0) == nil)
+        #expect(ColorSample.hex(in: image, x: -1, y: 0) == nil)
+        #expect(ColorSample.pixel(CGPoint(x: 1.4, y: 0.6), scale: 2) == (2, 1))
+        let bounds = CGRect(x: 0, y: 0, width: 800, height: 600)
+        let middle = ColorLoupe.frames(pointer: CGPoint(x: 400, y: 300), bounds: bounds)
+        #expect(middle.label.minY > middle.loupe.maxY && middle.label.midX == 400)
+        let bottom = ColorLoupe.frames(pointer: CGPoint(x: 400, y: 590), bounds: bounds)
+        #expect(bottom.label.maxY < bottom.loupe.minY)
+    }
+
     @Test("SS-14 arrows before a selection go through the windows in window mode only")
     func arrowsBeforeSelection() {
         let window = CaptureKeyContext(windowMode: true)
@@ -900,6 +956,7 @@ struct ScreenshotRulesTests {
         func show() { calls.append("show") }
         func cancel() { calls.append("cancel") }
         func enterRecordMode() { calls.append("record mode") }
+        func togglePicker() { calls.append("picker") }
     }
 
     @MainActor final class FakeRecording: CaptureRecording {
@@ -918,7 +975,7 @@ struct ScreenshotRulesTests {
         var opened: [URL] = []
         var huds: [(title: String, detail: String?, symbol: String, kind: AlertKind)] = []
         var grab: () async throws -> [CGDirectDisplayID: CGImage] = { [:] }
-        var overlays: [(mode: ScreenshotMode, recordOnly: Bool, overlay: FakeOverlay)] = []
+        var overlays: [(mode: ScreenshotMode, start: CaptureStart, overlay: FakeOverlay)] = []
         var recordings: [FakeRecording] = []
 
         var environment: CaptureEnvironment {
@@ -930,9 +987,9 @@ struct ScreenshotRulesTests {
                 frontApp: { nil },
                 grabAll: { try await self.grab() },
                 hud: { self.huds.append(($0, $1, $2, $3)) },
-                makeOverlay: { mode, _, _, recordOnly, onRecord, onFinish in
+                makeOverlay: { mode, _, _, start, onRecord, onFinish in
                     let overlay = FakeOverlay(onRecord: onRecord, onFinish: onFinish)
-                    self.overlays.append((mode, recordOnly, overlay))
+                    self.overlays.append((mode, start, overlay))
                     return overlay
                 },
                 makeRecording: { _, _ in
@@ -961,7 +1018,7 @@ struct ScreenshotRulesTests {
         #expect(module.begin() == nil)
         #expect(mac.requested == 1 && mac.huds.isEmpty && mac.opened.isEmpty)
         #expect(mac.written[ScreenshotModule.askedKey] as? Bool == true)
-        #expect(module.begin(record: true) == nil)
+        #expect(module.begin(.record) == nil)
         #expect(mac.requested == 1)
         #expect(mac.huds.count == 1)
         expectText(mac.huds[0].title, english: "Screen Recording needed", es: "Falta permiso de Grabación de pantalla")
@@ -1008,7 +1065,7 @@ struct ScreenshotRulesTests {
         release?.resume()
         await task.value
         #expect(mac.overlays.count == 1 && mac.overlays[0].overlay.calls == ["show"])
-        #expect(mac.overlays[0].mode == .frozen && !mac.overlays[0].recordOnly)
+        #expect(mac.overlays[0].mode == .frozen && mac.overlays[0].start == .screenshot)
         #expect(module.begin() == nil)              // open
         // Holding Screenshot (or Record Screen) with the overlay open switches it to record mode.
         module.holdToRecord()
@@ -1036,8 +1093,28 @@ struct ScreenshotRulesTests {
         let module = ScreenshotModule(environment: mac.environment)
         module.toggleRecording()
         while mac.overlays.isEmpty { await Task.yield() }
-        #expect(mac.overlays[0].mode == .live && mac.overlays[0].recordOnly)
+        #expect(mac.overlays[0].mode == .live && mac.overlays[0].start == .record)
         #expect(!grabbed)
+    }
+
+    @Test("SS-66 Pick Color opens the overlay in the picker over the frozen screen; open, it toggles the picker; not while recording")
+    func pickColorShortcut() async {
+        let mac = FakeMac()
+        mac.defaults.values[ScreenshotModule.modeKey] = ScreenshotMode.live.rawValue
+        var grabbed = false
+        mac.grab = { grabbed = true; return [:] }
+        let module = ScreenshotModule(environment: mac.environment)
+        module.pickColor()
+        while mac.overlays.isEmpty { await Task.yield() }
+        #expect(mac.overlays[0].mode == .frozen && mac.overlays[0].start == .pickColor)
+        #expect(grabbed)
+        module.pickColor()
+        #expect(mac.overlays[0].overlay.calls == ["show", "picker"])
+        mac.overlays[0].overlay.onRecord(Self.request())
+        mac.overlays[0].overlay.onFinish()
+        module.pickColor()
+        await Task.yield()
+        #expect(mac.overlays.count == 1)
     }
 
     @Test("SS-03 module off cancels an open overlay and a running recording")
