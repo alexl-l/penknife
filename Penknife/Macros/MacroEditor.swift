@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import KeyboardShortcuts
 import SwiftUI
 import UniformTypeIdentifiers
@@ -344,6 +345,14 @@ private struct MacroDetail: View {
                     Menu {
                         ForEach(MacroStep.Kind.allCases, id: \.self) { kind in
                             Button { addStep(kind) } label: { Label(kind.title, systemImage: kind.symbol) }
+                            if kind == .key {
+                                // The key most steps need, without recording it (MAC-80).
+                                Button {
+                                    var step = MacroStep(kind: .key)
+                                    step.key = MacroKey(code: Int(kVK_Return))
+                                    insert([step])
+                                } label: { Label("Return", systemImage: "return") }
+                            }
                         }
                     } label: {
                         Label("Add Step", systemImage: "plus.circle")
