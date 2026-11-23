@@ -681,7 +681,7 @@ private struct RecordingEndView: View {
                     .progressViewStyle(.linear)
                     .frame(width: 120)
                 Text(String(localized: "Making the GIF… \(Int((value * 100).rounded()))%"))
-                    .font(.system(size: 12).monospacedDigit())
+                    .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button(String(localized: "Cancel")) { run(.cancelGIF) }
@@ -689,12 +689,12 @@ private struct RecordingEndView: View {
             case let work?:
                 ProgressView().controlSize(.small)
                 Text(work == .saving ? String(localized: "Saving…") : String(localized: "Copying…"))
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
                 Spacer()
             case nil:
                 (Text(verbatim: model.note) + Text(verbatim: model.trimNote.isEmpty ? "" : "  " + model.trimNote).foregroundStyle(.tertiary))
-                    .font(.system(size: 12).monospacedDigit())
+                    .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)

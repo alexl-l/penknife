@@ -284,17 +284,17 @@ private struct ModuleDetail: View {
         case .blockAppleMusic:
             Section { BlockAppleMusicNote() }
         case .weather:
-            Section { MenuBarToggle(kind: .weather) }
             Section {
+                MenuBarToggle(kind: .weather)
+            } footer: {
                 Text("Only an approximate location (about 11 km) is sent. Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         case .speedTest:
-            Section { MenuBarToggle(kind: .speedTest) }
             Section {
+                MenuBarToggle(kind: .speedTest)
+            } footer: {
                 Text("Tests against Apple's servers. Each takes 20–45 seconds and uses a few hundred MB of data.")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         case .touchBar:
@@ -302,7 +302,7 @@ private struct ModuleDetail: View {
                 AutoCloseToggle()
                 BarButtonsRow(manager: manager)
             }
-            Section { TouchBarColorOptions() }
+            TouchBarColorOptions()
         case .microphone:
             MeetingOptions()
         case .cpuTemperature:
@@ -531,9 +531,19 @@ private struct TouchBarColorOptions: View {
     @AppStorage(TouchBarModule.monochromeKey) private var monochrome = "FFFFFF"
 
     var body: some View {
-        Picker("Icon colors", selection: $mode) {
-            ForEach(BarColorMode.allCases, id: \.rawValue) { Text($0.title).tag($0.rawValue) }
+        Section {
+            Picker("Icon colors", selection: $mode) {
+                ForEach(BarColorMode.allCases, id: \.rawValue) { Text($0.title).tag($0.rawValue) }
+            }
+            // Only meaningful in monochrome mode (design audit 2026-11-22).
+            if mode == BarColorMode.monochrome.rawValue { monochromePicker }
+        } footer: {
+            Text("Hold the battery button to switch colors: one change per second.")
+                .foregroundStyle(.secondary)
         }
+    }
+
+    private var monochromePicker: some View {
         ColorPicker("Monochrome color", selection: Binding(
             get: { Color(nsColor: NSColor(hex: UInt32(monochrome, radix: 16) ?? 0xFFFFFF)) },
             set: { color in
@@ -543,9 +553,6 @@ private struct TouchBarColorOptions: View {
                 monochrome = hex
             }
         ), supportsOpacity: false)
-        Text("Hold the battery button to switch colors: one change per second.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
     }
 }
 
