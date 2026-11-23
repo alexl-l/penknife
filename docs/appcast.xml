@@ -3,6 +3,20 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.17</title>
+            <pubDate>Mon, 23 Nov 2026 10:48:23 -0500</pubDate>
+            <sparkle:version>371</sparkle:version>
+            <sparkle:shortVersionString>1.17</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Emoji search in the icon editor.** For macros and pinned clipboard items. Type a word in English, such as "smile", then click an emoji or press Return. The list comes from macOS, so new emojis arrive with macOS updates. Flags, skin tones and professions are still in the Emoji & Symbols button, without searching. macOS's own search couldn't hand the chosen emoji back to a menu bar app.</li>
+<li>**Macro editor.** Choosing an item in Clipboard History pastes it into the field you were typing in, with no ⌘V. An emoji picked in Emoji & Symbols is set the first time. Clicking outside a text or time field takes the focus away. Emoji icons are no longer clipped in the macro list.</li>
+<li>**Clipboard.** After you close a pin's icon editor, typing searches the history again.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.17/Penknife-1.17.zip" length="8345956" type="application/octet-stream" sparkle:edSignature="9P21/HJAJgDP5RQIy+KXBTNHMYLAGlzAjrf4fuRdt+A1ntWytxUcSdqdJKm0sI2KrrxEy8klwWIAM39MxJyFCQ=="/>
+        </item>
+        <item>
             <title>1.16</title>
             <pubDate>Mon, 23 Nov 2026 02:45:32 -0500</pubDate>
             <sparkle:version>360</sparkle:version>
@@ -40,20 +54,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.15/Penknife-1.15.zip" length="7979665" type="application/octet-stream" sparkle:edSignature="LxVqz4Y72l/rFEv4OusuIVuge2gFXnpf6etFWtmyBXDk5+2DoVqPGPLYvCz61mRryEIxMiDKpNeq6pcDjnypCw=="/>
-        </item>
-        <item>
-            <title>1.14</title>
-            <pubDate>Fri, 20 Nov 2026 07:43:36 -0500</pubDate>
-            <sparkle:version>270</sparkle:version>
-            <sparkle:shortVersionString>1.14</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Play opens Apple Music.** With "Any app (media keys)" as the player and nothing playing, Play from the Touch Bar, a shortcut or the menu opens Apple Music, and Block Apple Music no longer closes it. Headphone clicks are still blocked.</li>
-<li>**Apple Music is the default player.** New users who haven't picked a player start with Apple Music, not Spotify. Your existing choice is never changed.</li>
-<li>**Settings title.** The window title shows the current page from the moment it opens, instead of "Penknife Settings".</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.14/Penknife-1.14.zip" length="6688664" type="application/octet-stream" sparkle:edSignature="h+dIYhldkdG2NEfl66cw13wO4zZQQdd2tnNpzVKo1S19uEmW+r8j1axX0Gku0tPfwS598vihriQVbF9FLV3tAQ=="/>
         </item>
     </channel>
 </rss>
