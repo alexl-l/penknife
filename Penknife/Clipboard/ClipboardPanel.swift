@@ -562,6 +562,8 @@ struct ClipboardView: View {
             footer
         }
         .onAppear { searchFocused = true }
+        // Typing searches again once a pin's editor closes: its fields took the focus (QA 2026-11-23).
+        .onChange(of: model.editingIcon) { _, editing in if editing == nil { searchFocused = true } }
     }
 
     /// "Pinned" stays at the top and never scrolls away; only "History" scrolls. Past the chosen
@@ -873,6 +875,62 @@ struct ValueEditor: View {
     }
 }
 
+/// A search field and a grid of the emojis macOS can draw (CB-37); a click sets the icon.
+private struct EmojiSearch: View {
+    let pick: (String) -> Void
+    @State private var query = ""
+    private let columns = Array(repeating: GridItem(.fixed(32), spacing: 4), count: 9)
+
+    var body: some View {
+        let results = EmojiCatalog.search(query)
+        VStack(spacing: 8) {
+            TextField("Search Emoji", text: $query)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel("Search Emoji")
+                // Return picks the first result: the grid is out of reach of the keyboard (designer).
+                .onSubmit { if let first = results.first { pick(first.glyph) } }
+            ScrollView {
+                if results.isEmpty {
+                    Text("No emoji found")
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 60)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 4) {
+                        ForEach(results) { emoji in
+                            EmojiCell(emoji: emoji) { pick(emoji.glyph) }
+                        }
+                    }
+                }
+            }
+            .frame(height: 148)
+        }
+    }
+}
+
+private struct EmojiCell: View {
+    let emoji: EmojiCatalog.Emoji
+    let action: () -> Void
+    @State private var hover = false
+    private static let english = Bundle.main.preferredLocalizations.first?.hasPrefix("en") ?? true
+
+    var body: some View {
+        Button(action: action) {
+            Text(emoji.glyph)
+                .font(.system(size: 22))
+                .frame(width: 32, height: 32)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(hover ? Color(nsColor: .quaternaryLabelColor) : .clear))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hover = $0 }
+        // The names are macOS's Unicode names, in English: shown only when the app is in English.
+        // VoiceOver reads the emoji itself, in the user's language.
+        .help(Self.english ? emoji.name : "")
+        .accessibilityLabel(Text(emoji.glyph))
+    }
+}
+
 /// One view (user, 2026-11-20): a letter or emoji, a color ("no color" first); neither = the app's
 /// icon. Changes apply at once; Esc or a click outside closes it.
 struct IconEditor: View {
@@ -943,6 +1001,10 @@ struct IconEditor: View {
                 .help("Emoji & Symbols (⌃⌘Space)")
                 .accessibilityLabel("Emoji & Symbols")
             }
+
+            // Searching here, not in Emoji & Symbols: that viewer's search can't hand the pick
+            // back to a menu bar app (CB-37, measured 2026-11-23).
+            EmojiSearch { glyph = $0 }
 
             HStack(spacing: 10) {
                 swatch(nil, name: String(localized: "No color")) {

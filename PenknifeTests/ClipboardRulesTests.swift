@@ -736,4 +736,26 @@ struct ClipboardRulesTests {
             #expect(ScreenshotRulesTests.spanish[key]?.isEmpty == false, "no Spanish for \(key)")
         }
     }
+
+    // CB-37: the emoji search lists macOS's own single-symbol emojis by their Unicode names.
+    @Test func emojiCatalogComesFromTheSystem() {
+        let all = EmojiCatalog.all
+        #expect(all.count > 1_000)
+        #expect(all.first?.glyph == "😀")
+        #expect(Set(all.map(\.glyph)).count == all.count)
+        #expect(all.contains { $0.glyph == "❤\u{FE0F}" })
+        #expect(!all.contains { $0.glyph.unicodeScalars.contains { (0x1F1E6...0x1F1FF).contains($0.value) } })
+        #expect(all.allSatisfy { PinIcon(glyph: $0.glyph, color: nil)?.isEmoji == true })
+    }
+
+    @Test func emojiSearchMatchesWordStarts() {
+        #expect(EmojiCatalog.search("grinning").contains { $0.glyph == "😀" })
+        #expect(EmojiCatalog.search("smil fa").contains { $0.glyph == "😊" })
+        #expect(EmojiCatalog.search("  ").count == EmojiCatalog.all.count)
+        #expect(EmojiCatalog.search("zzqx").isEmpty)
+        #expect(EmojiCatalog.search("smile").count > 5)
+        #expect(EmojiCatalog.search("smile").contains { $0.glyph == "😊" })
+        #expect(EmojiCatalog.search("cats").contains { $0.glyph == "🐈" })
+        #expect(EmojiCatalog.search("hearts").contains { $0.glyph == "❤\u{FE0F}" })
+    }
 }

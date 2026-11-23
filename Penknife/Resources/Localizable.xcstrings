@@ -6636,6 +6636,26 @@
           }
         }
       }
+    },
+    "Search Emoji": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar emoji"
+          }
+        }
+      }
+    },
+    "No emoji found": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró ningún emoji"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
