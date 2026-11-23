@@ -19,6 +19,13 @@ struct MarkEditor {
     /// A text being typed again (double-click): the marks before, the old text and its depth.
     private var textEdit: (before: [Annotation], original: Annotation, index: Int)?
 
+    init() {}
+
+    /// R-40: a pin opened again: its marks, with no undo history.
+    init(marks: [Annotation]) {
+        self.marks = marks
+    }
+
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
     var selectedMark: Annotation? { selected.flatMap { marks.indices.contains($0) ? marks[$0] : nil } }

@@ -45,6 +45,8 @@ enum CaptureKeyAction: Equatable {
     /// ⇧⌘C: the text in the selection, read on the Mac (R-36).
     case copyText
     case save
+    /// ⌘P: the screenshot floats on the screen (R-40).
+    case pin
     case undo
     case redo
     case record
@@ -128,6 +130,7 @@ enum CaptureKeys {
             case "z": return flags.contains(.shift) ? .redo : .undo
             case "c": return flags.contains(.shift) ? .copyText : .copy
             case "s": return .save
+            case "p": return .pin
             case "d": return c.selectedMark.map { .duplicateMark($0) } ?? .swallow
             // No other ⌘ key leaves the editor: ⌘, would open Settings under the overlay and
             // take the keyboard, ⌘Q would quit and lose the screenshot (B-9).

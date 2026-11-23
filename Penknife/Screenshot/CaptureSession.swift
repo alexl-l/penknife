@@ -12,6 +12,9 @@ final class CaptureSession {
     private let onRecord: (RecordingRequest) -> Void
     private let onFinish: () -> Void
     private var finished = false
+    /// R-40: the pin this editor was opened from; hidden while editing, back on every exit.
+    private var pinSource: PinnedWindow?
+    var editingPin: Bool { pinSource != nil }
 
     /// `start`: `.record` = opened with the record shortcut (R-29), straight in record mode;
     /// `.pickColor` = opened with the Pick Color shortcut (R-38), straight in the color picker.
@@ -59,7 +62,8 @@ final class CaptureSession {
     /// Record (button, ⇧⌘R, or the record shortcut while the overlay is open): with a selection
     /// the recording starts at once (R-33); without one, choosing a region will start it.
     func enterRecordMode() {
-        guard !state.recordMode else { return }
+        // An editor opened from a pin has no Record (SS-70).
+        guard !state.recordMode, !state.fromPin else { return }
         state.recordMode = true
         if let canvas = windows.first(where: { $0.canvas.selection != nil })?.canvas {
             canvas.recordModeChanged()
@@ -97,9 +101,33 @@ final class CaptureSession {
         return true
     }
 
+    /// SS-70: opens the editor on a pin's screenshot, on the screen the pin is on.
+    func edit(_ pin: PinnedWindow) {
+        guard !finished else { return }
+        pinSource = pin
+        state.fromPin = true
+        let center = CGPoint(x: pin.frame.midX, y: pin.frame.midY)
+        guard let window = windows.first(where: { $0.frame.contains(center) }) ?? windows.first else { return }
+        window.makeKey()
+        window.canvas.load(pin.capture, at: CGPoint(x: pin.frame.minX, y: pin.frame.maxY))
+    }
+
+    /// Pin (SS-67), or an exit from an editor opened on a pin (SS-70): the overlay closes and
+    /// the screenshot floats (the same pin, updated, when it came from one).
+    func pin(_ capture: PinnedCapture) {
+        guard !finished else { return }
+        let source = pinSource
+        pinSource = nil
+        cancel()
+        if let source { source.update(capture) } else { PinBoard.shared.add(capture) }
+    }
+
     func cancel() {
         guard !finished else { return }
         finished = true
+        // Esc on an editor opened from a pin: the pin comes back as it was.
+        pinSource?.reappear()
+        pinSource = nil
         for window in windows {
             window.canvas.tearDown()
             window.orderOut(nil)
@@ -1032,6 +1060,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .record:
             session?.enterRecordMode()
             return
+        case .pin where state.recordMode:
+            return
         default: break
         }
         endText()
@@ -1042,6 +1072,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .copy: copyImage()
         case .copyText: copyText()
         case .save: saveImage()
+        case .pin: pinImage()
         case .pointer:
             state.tool = nil
             selectMark(nil)
@@ -1126,6 +1157,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .copy: copyImage()
         case .copyText: copyText()
         case .save: saveImage()
+        case .pin: pinImage()
         case .undo: undo()
         case .redo: redo()
         case .record: run(.record)
@@ -1474,28 +1506,29 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
 
     /// The selected part of the screen (or the window/desktop alone) with the marks, at full
     /// resolution.
-    private func render() -> NSBitmapImageRep? {
+    private func render() -> (image: CGImage, scale: CGFloat)? {
         guard let selection, !capturing, let (background, scale) = selectionImage(),
               let image = CaptureRender.image(background: background, scale: scale, selection: selection, marks: annotations)
         else { return nil }
-        let rep = NSBitmapImageRep(cgImage: image)
-        rep.size = CGSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
-        return rep
+        return (image, scale)
+    }
+
+    /// Copy, Copy Text and Save close the editor; opened from a pin, the pin comes back with the
+    /// changes (SS-70).
+    private func finish() {
+        if session?.editingPin == true, let capture = pinCapture() {
+            session?.pin(capture)
+        } else {
+            session?.cancel()
+        }
     }
 
     private func copyImage() {
         endText()
-        guard let rep = render(), let png = rep.representation(using: .png, properties: [:]) else { return }
-        if ScreenshotModule.copiesFile {
-            // Also as a file, so ⌘V in a Finder folder creates it; elsewhere it pastes as the image.
-            PastableImage.copy(png, named: PastableImage.timestampName { String(localized: "Screenshot \($0) at \($1)") })
-        } else {
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setData(png, forType: .png)
-        }
+        guard let (image, scale) = render(), let png = CaptureOutput.png(image, scale: scale) else { return }
+        CaptureOutput.copy(png)
         announce(String(localized: "Screenshot copied"))
-        session?.cancel()
+        finish()
     }
 
     /// R-36: reads the text of the output image (marks included, so blurred text stays hidden)
@@ -1503,39 +1536,67 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// an alert, and the screenshot stays open.
     private func copyText() {
         endText()
-        guard !readingText, let rep = render(), let image = rep.cgImage else { return }
+        guard !readingText, let (image, _) = render() else { return }
         readingText = true
         announce(String(localized: "Reading text…"))
         Task { [weak self] in
-            let text = await TextReader.text(in: image)
+            let found = await CaptureOutput.copyText(image)
             guard let self else { return }
             self.readingText = false
-            guard let text else {
-                HUD.shared.show(String(localized: "No text found"), detail: String(localized: "Select an area with text"),
-                                symbol: "text.viewfinder", kind: .error, category: .screenshot)
-                return
-            }
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(text, forType: .string)
+            guard found else { return }
             self.announce(String(localized: "Text copied"))
-            self.session?.cancel()
+            self.finish()
         }
     }
 
     private func saveImage() {
         endText()
-        guard let rep = render(), let png = rep.representation(using: .png, properties: [:]) else { return }
-        let folder = ScreenshotModule.folder
-        let url = CaptureGeometry.saveURL(folder: folder, date: .now) { FileManager.default.fileExists(atPath: $0.path) }
-        do {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try png.write(to: url, options: .atomic)
-            announce(String(localized: "Screenshot saved"))
-            session?.cancel()
-        } catch {
-            HUD.shared.show(String(localized: "Couldn't save the screenshot"), detail: folder.lastPathComponent,
-                            symbol: "exclamationmark.triangle.fill", kind: .error, category: .screenshot)
-        }
+        guard let (image, scale) = render(), let png = CaptureOutput.png(image, scale: scale) else { return }
+        guard CaptureOutput.save(png) else { return }
+        announce(String(localized: "Screenshot saved"))
+        finish()
+    }
+
+    // MARK: Pin (R-40)
+
+    /// Pin (button, ⌘P): the editor closes and the screenshot floats where it was taken.
+    private func pinImage() {
+        endText()
+        guard let capture = pinCapture() else { return }
+        announce(String(localized: "Screenshot pinned"))
+        session?.pin(capture)
+    }
+
+    /// Everything a pin needs to show the screenshot and to open it again with its marks: the
+    /// background on its own (a crop would keep the whole frozen screen alive), the marks and
+    /// where it sits on the screen.
+    private func pinCapture() -> PinnedCapture? {
+        guard let selection, !capturing, let (background, scale) = selectionImage(),
+              let alone = CaptureRender.image(background: background, scale: scale, selection: selection, marks: []),
+              let image = CaptureRender.image(background: background, scale: scale, selection: selection, marks: annotations)
+        else { return nil }
+        let frame = CGRect(x: screen.frame.minX + selection.minX, y: screen.frame.maxY - selection.maxY,
+                           width: selection.width, height: selection.height)
+        return PinnedCapture(background: alone, image: image, scale: scale, selection: selection, marks: annotations, frame: frame)
+    }
+
+    /// SS-70: the editor opened on a pin: its image as a fixed selection at the pin's place (its
+    /// original size), the marks moved along and still editable.
+    func load(_ capture: PinnedCapture, at origin: CGPoint) {
+        let size = capture.selection.size
+        var rect = CGRect(x: origin.x - screen.frame.minX, y: screen.frame.maxY - origin.y - size.height,
+                          width: size.width, height: size.height)
+        rect.origin.x = min(max(rect.minX, 0), max(bounds.width - size.width, 0))
+        rect.origin.y = min(max(rect.minY, 0), max(bounds.height - size.height, 0))
+        let delta = CGVector(dx: rect.minX - capture.selection.minX, dy: rect.minY - capture.selection.minY)
+        editor = MarkEditor(marks: capture.marks.map { var mark = $0; mark.move(by: delta); return mark })
+        updateUndoState()
+        session?.hideHints()
+        targetImage = capture.background
+        targetNSImage = NSImage(cgImage: capture.background, size: size)
+        selection = rect
+        needsDisplay = true
+        announceSelection()
+        showToolbar()
     }
 }

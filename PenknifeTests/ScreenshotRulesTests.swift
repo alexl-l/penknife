@@ -800,12 +800,13 @@ struct ScreenshotRulesTests {
         #expect(key(53, "", isRepeat: true, selected) == .swallow)
     }
 
-    @Test("SS-44 ⌘ keys in the editor: C, S, Z, ⇧Z, ⇧R; any other stays in the overlay (B-9)")
+    @Test("SS-44 SS-67 ⌘ keys in the editor: C, S, P, Z, ⇧Z, ⇧R; any other stays in the overlay (B-9)")
     func commandKeys() {
         let c = Self.editing
         #expect(key(8, "c", [.command], c) == .copy)
         #expect(key(8, "C", [.command, .shift], c) == .copyText)   // R-36
         #expect(key(1, "s", [.command], c) == .save)
+        #expect(key(35, "p", [.command], c) == .pin)   // R-40
         #expect(key(6, "z", [.command], c) == .undo)
         #expect(key(6, "Z", [.command, .shift], c) == .redo)
         #expect(key(15, "R", [.command, .shift], c) == .record)
@@ -1581,5 +1582,20 @@ struct ScreenshotRulesTests {
         let silent = RecordingWriter.Output(video: video, segments: [], duration: CMTime(value: 1, timescale: 1))
         let kept = try await RecordingExport.movie(silent, to: output)
         #expect(kept)
+    }
+
+    @Test("SS-69 a pin keeps its proportions: at least 64 pt on the short side, at most 2× and the visible screen")
+    func pinSize() {
+        let visible = CGSize(width: 1440, height: 875)
+        let original = CGSize(width: 400, height: 200)
+        #expect(PinnedCapture.clampedSize(CGSize(width: 600, height: 0), original: original, visible: visible) == CGSize(width: 600, height: 300))
+        #expect(PinnedCapture.clampedSize(CGSize(width: 10, height: 0), original: original, visible: visible) == CGSize(width: 128, height: 64))
+        #expect(PinnedCapture.clampedSize(CGSize(width: 5000, height: 0), original: original, visible: visible) == CGSize(width: 800, height: 400))
+        // Tall capture: the visible height limits it.
+        let tall = CGSize(width: 300, height: 600)
+        #expect(PinnedCapture.clampedSize(CGSize(width: 600, height: 0), original: tall, visible: visible) == CGSize(width: 437.5, height: 875))
+        // Already smaller than 64 pt: it can't shrink below itself.
+        let tiny = CGSize(width: 40, height: 20)
+        #expect(PinnedCapture.clampedSize(CGSize(width: 10, height: 0), original: tiny, visible: visible) == tiny)
     }
 }

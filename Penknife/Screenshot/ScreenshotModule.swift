@@ -122,13 +122,24 @@ final class ScreenshotModule: Module {
         ]
     }
 
-    func start() {}
+    func start() {
+        PinBoard.shared.edit = { [weak self] in self?.edit($0) }
+    }
 
     func stop() {
         session?.cancel()
         session = nil
+        PinBoard.shared.closeAll()
         recording?.cancel()
         recording = nil
+    }
+
+    /// SS-70: a pin's double-click or Edit opens the editor on it; the pin hides meanwhile and
+    /// comes back when the editor closes (also when it couldn't open).
+    func edit(_ pin: PinnedWindow) {
+        guard session == nil, !starting, recording == nil else { return }
+        pin.orderOut(nil)
+        if begin(.screenshot, editing: pin) == nil { pin.reappear() }
     }
 
     /// The record shortcut: stops a recording; with the overlay open, switches it to record mode;
@@ -198,7 +209,7 @@ final class ScreenshotModule: Module {
     /// color picker, always over the frozen screen (it reads its pixels).
     /// Returns the task that grabs the screen and opens the overlay (nil when nothing starts).
     @discardableResult
-    func begin(_ start: CaptureStart = .screenshot) -> Task<Void, Never>? {
+    func begin(_ start: CaptureStart = .screenshot, editing pin: PinnedWindow? = nil) -> Task<Void, Never>? {
         guard session == nil, !starting, recording == nil else { return nil }
         guard environment.hasPermission() else {
             requestPermission()
@@ -220,6 +231,7 @@ final class ScreenshotModule: Module {
                     images = try await environment.grabAll(start == .pickColor)
                 } catch {
                     environment.hud(String(localized: "Couldn't take the screenshot"), nil, "exclamationmark.triangle.fill", .error)
+                    pin?.reappear()
                     return
                 }
             }
@@ -229,6 +241,7 @@ final class ScreenshotModule: Module {
                                                   { [weak self] in self?.session = nil })
             self.session = session
             session.show()
+            if let pin, let editor = session as? CaptureSession { editor.edit(pin) }
         }
     }
 

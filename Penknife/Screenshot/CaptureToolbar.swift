@@ -19,6 +19,8 @@ final class CaptureEditorState {
     var picking = false
     /// Opened with the Pick Color shortcut: Esc cancels instead of going back to the screenshot.
     var pickOnly = false
+    /// R-40: opened again from a pinned screenshot: no Record (SS-70).
+    var fromPin = false
     var microphone = RecordingPrefs.microphone
     var macSound = RecordingPrefs.macSound
 
@@ -33,12 +35,12 @@ final class CaptureEditorState {
 }
 
 enum CaptureCommand {
-    case undo, redo, copy, copyText, save, toggle(CaptureEditorState.Expansion), pointer, tool(CaptureTool), color(Int), size(Int)
+    case undo, redo, copy, copyText, save, pin, toggle(CaptureEditorState.Expansion), pointer, tool(CaptureTool), color(Int), size(Int)
     case record
 }
 
 /// One glass capsule below the selection (variant B, chosen by the user): tools | color, size |
-/// undo, redo | copy, save. Icons only, with tooltips and VoiceOver labels.
+/// undo, redo | copy, copy text, save, pin | record. Icons only, with tooltips and VoiceOver labels.
 struct CaptureToolbar: View {
     let state: CaptureEditorState
     var hints: ShortcutHintModel?
@@ -91,8 +93,12 @@ struct CaptureToolbar: View {
             Button { run(.save) } label: { symbol("square.and.arrow.down") }
                 .shortcut("save", name: String(localized: "Save"), key: "⌘S", in: hints)
                 .accessibilityLabel(String(localized: "Save"))
+            Button { run(.pin) } label: { symbol("pin") }
+                .shortcut("pin", name: String(localized: "Pin"), key: "⌘P", in: hints)
+                .accessibilityLabel(String(localized: "Pin"))
             separator
             Button { run(.record) } label: { symbol("record.circle") }
+                .disabled(state.fromPin)
                 .shortcut("record", name: String(localized: "Record video"), key: "⇧⌘R", in: hints)
                 .accessibilityLabel(String(localized: "Record video"))
         }
