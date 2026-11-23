@@ -35,6 +35,13 @@ final class ClipboardModule: Module {
     var isPanelOpen: Bool { panel != nil }
     /// The app in front when the panel opened: the paste goes there and nowhere else.
     private var previousApp: NSRunningApplication?
+    /// Penknife's own window that had the keyboard when the panel opened (the macro editor,
+    /// Settings): the paste goes into it without ⌘V, since Penknife is already in front.
+    private weak var previousWindow: NSWindow?
+    /// The field it was typing in and where: the field loses its focus while the panel has the
+    /// keyboard (QA 2026-11-23), so it is focused again with the same selection before pasting.
+    private weak var previousField: NSView?
+    private var previousSelection: NSRange?
 
     /// Paste into the front app after choosing an item (needs Accessibility); otherwise only copy.
     static var pastes: Bool {
@@ -117,6 +124,22 @@ final class ClipboardModule: Module {
         panel?.close()
 
         guard paste, Self.pastes else { return }
+        // Into one of Penknife's own windows: the app that was in front is Penknife itself, so the
+        // ⌘V below never fired (it waits for no Penknife window to be key; user, 2026-11-23).
+        // The window takes the keyboard back and pastes directly, no Accessibility needed.
+        if let window = previousWindow, window.isVisible {
+            let field = previousField, selection = previousSelection
+            window.makeKeyAndOrderFront(nil)
+            DispatchQueue.main.async {
+                if let field, field.window === window, window.makeFirstResponder(field),
+                   let editor = window.firstResponder as? NSTextView, let selection,
+                   NSMaxRange(selection) <= (editor.string as NSString).length {
+                    editor.setSelectedRange(selection)
+                }
+                NSApp.sendAction(#selector(NSText.paste(_:)), to: nil, from: window)
+            }
+            return
+        }
         guard Permissions.shared.ensureAccessibility() else {
             HUD.shared.show(String(localized: "Copied"), detail: String(localized: "To paste it, open Settings › Permissions"),
                              symbol: "doc.on.clipboard.fill", kind: .permission, category: .clipboard)
@@ -147,6 +170,10 @@ final class ClipboardModule: Module {
             return
         }
         previousApp = NSWorkspace.shared.frontmostApplication
+        previousWindow = NSApp.isActive ? NSApp.keyWindow : nil
+        let editor = previousWindow?.firstResponder as? NSTextView
+        previousField = editor.flatMap { $0.isFieldEditor ? $0.delegate as? NSView : $0 }
+        previousSelection = editor?.selectedRange()
         let panel = ClipboardPanel(module: self) { [weak self] in self?.panel = nil }
         self.panel = panel
         panel.show()

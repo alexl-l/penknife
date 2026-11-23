@@ -50,6 +50,17 @@ final class MacroEditorWindow: NSWindow, NSWindowDelegate {
         setFrameAutosaveName("MacroEditor")
     }
 
+    /// A click on anything that isn't a text field lets the field go (user, 2026-11-23: "los campos
+    /// de texto o de tiempo no se les puede quitar el foco"): SwiftUI keeps the focus otherwise.
+    override func sendEvent(_ event: NSEvent) {
+        let editing = event.type == .leftMouseDown ? (firstResponder as? NSText)?.delegate as? NSView : nil
+        super.sendEvent(event)
+        guard let editing, editing.window === self,
+              (firstResponder as? NSText)?.delegate as? NSView === editing,
+              !editing.convert(editing.bounds, to: nil).contains(event.locationInWindow) else { return }
+        makeFirstResponder(nil)
+    }
+
     func windowWillClose(_ notification: Notification) {
         module?.store.saveNow()
         module?.refreshShortcuts()
@@ -236,10 +247,14 @@ private struct MacroDetail: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
             MacroIconButton(icon: macro.wrappedValue.icon) { editingIcon = true }
-                .popover(isPresented: $editingIcon, arrowEdge: .bottom) {
-                    IconEditor(initial: macro.wrappedValue.icon, appIcon: nil, fallbackSymbol: "play.fill",
-                               caption: String(localized: "Without a letter or color, ▶ is shown")) { icon in
-                        macro.wrappedValue.icon = icon
+                .background {
+                    // AppKit's popover, not SwiftUI's: SwiftUI's closes as soon as the emoji viewer
+                    // takes the keyboard, so the picked emoji went nowhere (user, 2026-11-23).
+                    StayingPopover(isPresented: $editingIcon) {
+                        IconEditor(initial: macro.wrappedValue.icon, appIcon: nil, fallbackSymbol: "play.fill",
+                                   caption: String(localized: "Without a letter or color, ▶ is shown")) { icon in
+                            macro.wrappedValue.icon = icon
+                        }
                     }
                 }
             TextField(macro.wrappedValue.name, text: $nameDraft)
@@ -313,6 +328,70 @@ private struct MacroDetail: View {
 
     private func addStep(_ kind: MacroStep.Kind) {
         macro.wrappedValue.steps.append(MacroStep(kind: kind))
+    }
+}
+
+/// A popover that stays while the emoji viewer (another process) has the keyboard, as the
+/// clipboard's icon editor (CB-33): Esc or a click elsewhere in the window closes it.
+private struct StayingPopover<Content: View>: NSViewRepresentable {
+    @Binding var isPresented: Bool
+    @ViewBuilder let content: () -> Content
+
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.onClose = { isPresented = false }
+        if isPresented, coordinator.popover == nil {
+            DispatchQueue.main.async { coordinator.show(NSHostingController(rootView: content()), from: view) }
+        } else if !isPresented {
+            coordinator.popover?.close()
+        }
+    }
+
+    static func dismantleNSView(_ view: NSView, coordinator: Coordinator) {
+        coordinator.popover?.close()
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator: NSObject, NSPopoverDelegate {
+        var popover: NSPopover?
+        var onClose: () -> Void = {}
+        private var monitors: [Any] = []
+
+        func show(_ controller: NSViewController, from view: NSView) {
+            guard popover == nil, view.window != nil else { return }
+            let popover = NSPopover()
+            popover.behavior = .applicationDefined
+            popover.animates = false
+            popover.contentViewController = controller
+            popover.contentSize = controller.view.fittingSize
+            popover.delegate = self
+            self.popover = popover
+            popover.show(relativeTo: view.bounds, of: view, preferredEdge: .maxY)
+            let window = controller.view.window
+            window?.makeKey()
+            // Nothing focused when it opens, as in the clipboard (user, 2026-11-20).
+            DispatchQueue.main.async { window?.makeFirstResponder(nil) }
+            let host = view.window
+            if let keys = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+                guard event.keyCode == 53, let self, self.popover != nil else { return event }
+                self.popover?.close()
+                return nil
+            }) { monitors.append(keys) }
+            if let clicks = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown], handler: { [weak self] event in
+                if let self, event.window === host { self.popover?.close() }
+                return event
+            }) { monitors.append(clicks) }
+        }
+
+        func popoverDidClose(_ notification: Notification) {
+            monitors.forEach(NSEvent.removeMonitor)
+            monitors.removeAll()
+            popover = nil
+            onClose()
+        }
     }
 }
 
