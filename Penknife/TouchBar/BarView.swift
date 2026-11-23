@@ -221,21 +221,31 @@ final class HoldFill {
     static let styleKey = "touchBar.holdFillStyle"
     static let delay: CFTimeInterval = 0.15
     private static let alpha: CGFloat = 0.22
+    /// The button's own corner radius, measured on the Touch Bar (12 px at 2×, circular).
+    private static let radius: CGFloat = 6
 
-    private let layer = CALayer()
+    /// Clips to the button's rounded shape; `bar` grows inside it with a straight leading edge
+    /// (scaling a rounded layer squashed its corners: user, 2026-11-22).
+    private let clip = CALayer()
+    private let bar = CALayer()
     private weak var host: NSView?
     private let duration: CFTimeInterval
     private var fired = false
+    private var watcher: NSGestureRecognizer?
     private var line: Bool { UserDefaults.standard.string(forKey: Self.styleKey) == "line" }
 
     init(on host: NSView, duration: CFTimeInterval) {
         self.host = host
         self.duration = duration
         host.wantsLayer = true
-        layer.anchorPoint = CGPoint(x: 0, y: 0.5)
-        layer.isHidden = true
-        layer.actions = ["transform": NSNull(), "opacity": NSNull(), "hidden": NSNull(), "bounds": NSNull(), "position": NSNull()]
-        host.layer?.addSublayer(layer)
+        let still: [String: CAAction] = ["bounds": NSNull(), "position": NSNull(), "opacity": NSNull(), "hidden": NSNull(),
+                                         "backgroundColor": NSNull(), "cornerRadius": NSNull(), "frame": NSNull()]
+        clip.actions = still
+        bar.actions = still
+        clip.masksToBounds = true
+        clip.isHidden = true
+        bar.anchorPoint = .zero
+        clip.addSublayer(bar)
         let watcher = TouchWatcher(target: nil, action: nil)
         watcher.allowedTouchTypes = .direct
         watcher.onBegan = { [weak self] in self?.begin() }
@@ -244,11 +254,9 @@ final class HoldFill {
         self.watcher = watcher
     }
 
-    private var watcher: NSGestureRecognizer?
-
     /// Takes the fill and its watcher off the button (the hold changed or went away).
     func remove() {
-        layer.removeFromSuperlayer()
+        clip.removeFromSuperlayer()
         if let watcher { host?.removeGestureRecognizer(watcher) }
     }
 
@@ -259,73 +267,76 @@ final class HoldFill {
         // below the icon (measured 2026-11-22: first sublayer = hidden under the bezel).
         let bezel = host.subviews.first { String(describing: type(of: $0)).contains("Bezel") }?.layer
         if let bezel, bezel.superlayer === root {
-            root.insertSublayer(layer, above: bezel)
-        } else {
-            layer.zPosition = 1   // no bezel view found: above everything, still a light tint
-            if layer.superlayer !== root { root.addSublayer(layer) }
+            root.insertSublayer(clip, above: bezel)
+        } else if clip.superlayer !== root {
+            clip.zPosition = 1   // no bezel view found: above everything, still a light tint
+            root.addSublayer(clip)
         }
         let b = host.bounds
         if line {
-            layer.frame = CGRect(x: 6, y: 1, width: max(b.width - 12, 0), height: 2)
-            layer.cornerRadius = 1
-            layer.backgroundColor = NSColor(white: 1, alpha: 0.7).cgColor
+            clip.frame = CGRect(x: 6, y: 1, width: max(b.width - 12, 0), height: 2)
+            clip.cornerRadius = 1
+            bar.backgroundColor = NSColor(white: 1, alpha: 0.7).cgColor
         } else {
-            layer.frame = b
-            layer.cornerRadius = 6
-            layer.backgroundColor = NSColor(white: 1, alpha: Self.alpha).cgColor
+            clip.frame = b
+            clip.cornerRadius = Self.radius
+            bar.backgroundColor = NSColor(white: 1, alpha: Self.alpha).cgColor
         }
+        bar.position = .zero
+        bar.bounds = CGRect(x: 0, y: 0, width: 0, height: clip.bounds.height)
     }
+
+    private var fullWidth: CGFloat { clip.bounds.width }
 
     private func begin() {
         fired = false
+        clip.removeAllAnimations()
+        bar.removeAllAnimations()
         place()
-        layer.removeAllAnimations()
-        layer.opacity = 1
-        layer.isHidden = false
-        let now = layer.convertTime(CACurrentMediaTime(), from: nil)
+        clip.opacity = 1
+        clip.isHidden = false
+        let now = bar.convertTime(CACurrentMediaTime(), from: nil)
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             // Reduce Motion: a still tint while held, no sweep.
-            layer.transform = CATransform3DIdentity
-            let show = CABasicAnimation(keyPath: "opacity")
-            show.fromValue = 0; show.toValue = 0
-            show.beginTime = now; show.duration = Self.delay
-            layer.add(show, forKey: "wait")
+            bar.bounds.size.width = fullWidth
+            let wait = CABasicAnimation(keyPath: "opacity")
+            wait.fromValue = 0; wait.toValue = 0
+            wait.beginTime = now; wait.duration = Self.delay
+            clip.add(wait, forKey: "wait")
             return
         }
-        layer.transform = CATransform3DMakeScale(0, 1, 1)
-        let grow = CABasicAnimation(keyPath: "transform.scale.x")
+        let grow = CABasicAnimation(keyPath: "bounds.size.width")
         grow.fromValue = 0
-        grow.toValue = 1
+        grow.toValue = fullWidth
         grow.beginTime = now + Self.delay
         grow.duration = max(duration - Self.delay, 0.05)
         grow.fillMode = .forwards
         grow.isRemovedOnCompletion = false
-        layer.add(grow, forKey: "grow")
+        bar.add(grow, forKey: "grow")
     }
 
     /// The hold action fired: full, then fades in 0.15 s.
     func fire() {
-        guard !fired, !layer.isHidden else { return }
+        guard !fired, !clip.isHidden else { return }
         fired = true
-        layer.removeAnimation(forKey: "grow")
-        layer.transform = CATransform3DIdentity
-        layer.opacity = 0
+        bar.removeAllAnimations()
+        bar.bounds.size.width = fullWidth
+        clip.opacity = 0
         let fade = CABasicAnimation(keyPath: "opacity")
         fade.fromValue = 1; fade.toValue = 0; fade.duration = 0.15
-        layer.add(fade, forKey: "fade")
+        clip.add(fade, forKey: "fade")
     }
 
+    /// The finger lifted before the hold fired: empties in 0.15 s.
     private func end() {
         guard !fired else { return }
-        let current = (layer.presentation()?.value(forKeyPath: "transform.scale.x") as? CGFloat) ?? 0
-        layer.removeAllAnimations()
-        layer.transform = CATransform3DMakeScale(0, 1, 1)
-        layer.opacity = 0
-        guard current > 0, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
-        layer.opacity = 1
-        let back = CABasicAnimation(keyPath: "transform.scale.x")
+        let current = bar.presentation()?.bounds.width ?? 0
+        bar.removeAllAnimations()
+        bar.bounds.size.width = 0
+        guard current > 0, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { clip.isHidden = true; return }
+        let back = CABasicAnimation(keyPath: "bounds.size.width")
         back.fromValue = current; back.toValue = 0; back.duration = 0.15
-        layer.add(back, forKey: "back")
+        bar.add(back, forKey: "back")
     }
 }
 
@@ -337,7 +348,8 @@ private final class TouchWatcher: NSGestureRecognizer {
     override func touchesBegan(with event: NSEvent) { onBegan?() }
     override func touchesEnded(with event: NSEvent) { onEnded?(); state = .failed }
     override func touchesCancelled(with event: NSEvent) { onEnded?(); state = .failed }
-    override func reset() {}
+    // Fails at the end of every touch so it never blocks the button; AppKit then resets it to
+    // .possible for the next touch (an empty `reset()` override kept it failed: 2nd hold showed nothing).
     override func canPrevent(_ other: NSGestureRecognizer) -> Bool { false }
 }
 
