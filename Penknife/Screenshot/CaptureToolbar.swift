@@ -29,7 +29,7 @@ final class CaptureEditorState {
 }
 
 enum CaptureCommand {
-    case undo, redo, copy, save, toggle(CaptureEditorState.Expansion), pointer, tool(CaptureTool), color(Int), size(Int)
+    case undo, redo, copy, copyText, save, toggle(CaptureEditorState.Expansion), pointer, tool(CaptureTool), color(Int), size(Int)
     case record
 }
 
@@ -81,6 +81,9 @@ struct CaptureToolbar: View {
             Button { run(.copy) } label: { symbol("doc.on.doc") }
                 .shortcut("copy", name: String(localized: "Copy"), key: "⌘C", in: hints)
                 .accessibilityLabel(String(localized: "Copy"))
+            Button { run(.copyText) } label: { symbol("text.viewfinder") }
+                .shortcut("copyText", name: String(localized: "Copy Text"), key: "⇧⌘C", in: hints)
+                .accessibilityLabel(String(localized: "Copy Text"))
             Button { run(.save) } label: { symbol("square.and.arrow.down") }
                 .shortcut("save", name: String(localized: "Save"), key: "⌘S", in: hints)
                 .accessibilityLabel(String(localized: "Save"))

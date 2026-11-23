@@ -216,6 +216,8 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     private var current: Annotation?
     private var drag: Drag = .none
     private var capturing = false
+    /// Copy Text is reading the selection (R-36); a second press waits for it.
+    private var readingText = false
     /// Record mode (R-29): the window to record.
     private var recordWindow: CGWindowID?
     private var selectedTarget: CaptureTarget?
@@ -1010,6 +1012,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         case .undo: undo()
         case .redo: redo()
         case .copy: copyImage()
+        case .copyText: copyText()
         case .save: saveImage()
         case .pointer:
             state.tool = nil
@@ -1093,6 +1096,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
             if let selection { beginText(at: CGPoint(x: selection.minX + 12, y: selection.minY + 12)) }
         case .placeMark(let tool): placeMark(tool)
         case .copy: copyImage()
+        case .copyText: copyText()
         case .save: saveImage()
         case .undo: undo()
         case .redo: redo()
@@ -1352,6 +1356,31 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
         }
         announce(String(localized: "Screenshot copied"))
         session?.cancel()
+    }
+
+    /// R-36: reads the text of the output image (marks included, so blurred text stays hidden)
+    /// with Vision on the Mac, puts it on the clipboard as plain text and closes. Nothing found:
+    /// an alert, and the screenshot stays open.
+    private func copyText() {
+        endText()
+        guard !readingText, let rep = render(), let image = rep.cgImage else { return }
+        readingText = true
+        announce(String(localized: "Reading text…"))
+        Task { [weak self] in
+            let text = await TextReader.text(in: image)
+            guard let self else { return }
+            self.readingText = false
+            guard let text else {
+                HUD.shared.show(String(localized: "No text found"), detail: String(localized: "Select an area with text"),
+                                symbol: "text.viewfinder", kind: .error, category: .screenshot)
+                return
+            }
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
+            self.announce(String(localized: "Text copied"))
+            self.session?.cancel()
+        }
     }
 
     private func saveImage() {

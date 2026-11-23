@@ -3,7 +3,7 @@
 The ordered task list. Read this first after `/clear`. Every checkpoint updates it (done items move to "Done", new approved work goes in order). Details live in `REQUIREMENTS.md` and `requirements/<module>.md`.
 
 ## Now
-1. **Screenshot → "Copy text" (R-36)** — approved 2026-11-22 (user: "eso está chévere. me gusta así"). Select an area, a new button next to Copy reads the text on the Mac (no internet), copies it and closes the capture.
+1. **Screenshot → "Copy text" (R-36, SS-46b)** — built and installed (build 300), designer approved, tests pass. Waiting for the user's live test.
 
 ## Next, in order
 2. **Touch Bar: fill while holding (O-34, `requirements/touchbar.md`)** — buttons with a hold action (Screenshot, time, jiggler, battery) fill up while held and are full when the action fires; the speed test button fills while the test runs.

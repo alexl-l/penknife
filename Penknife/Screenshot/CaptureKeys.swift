@@ -39,6 +39,8 @@ enum CaptureKeyAction: Equatable {
     /// selected (O-15; user: "solo con oprimir L, debería poner la línea").
     case placeMark(CaptureTool)
     case copy
+    /// ⇧⌘C: the text in the selection, read on the Mac (R-36).
+    case copyText
     case save
     case undo
     case redo
@@ -114,7 +116,7 @@ enum CaptureKeys {
             switch key {
             case "r" where flags.contains(.shift): return .record
             case "z": return flags.contains(.shift) ? .redo : .undo
-            case "c": return .copy
+            case "c": return flags.contains(.shift) ? .copyText : .copy
             case "s": return .save
             case "d": return c.selectedMark.map { .duplicateMark($0) } ?? .swallow
             // No other ⌘ key leaves the editor: ⌘, would open Settings under the overlay and

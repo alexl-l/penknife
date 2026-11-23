@@ -746,6 +746,7 @@ struct ScreenshotRulesTests {
     func commandKeys() {
         let c = Self.editing
         #expect(key(8, "c", [.command], c) == .copy)
+        #expect(key(8, "C", [.command, .shift], c) == .copyText)   // R-36
         #expect(key(1, "s", [.command], c) == .save)
         #expect(key(6, "z", [.command], c) == .undo)
         #expect(key(6, "Z", [.command, .shift], c) == .redo)
@@ -757,6 +758,28 @@ struct ScreenshotRulesTests {
         #expect(key(43, ",", [.command]) == .swallow)
         // Also before a selection.
         #expect(key(8, "c", [.command]) == .copy)
+    }
+
+    @Test("R-36 Copy Text reads the lines of an image on the Mac, top to bottom; no text = nil")
+    func copyTextReadsImage() async throws {
+        func image(_ lines: [String]) throws -> CGImage {
+            let size = CGSize(width: 700, height: 80 * CGFloat(lines.count) + 40)
+            let context = try #require(CGContext(data: nil, width: Int(size.width), height: Int(size.height), bitsPerComponent: 8,
+                                                 bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                                 bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            context.setFillColor(.white)
+            context.fill(CGRect(origin: .zero, size: size))
+            NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+            for (i, line) in lines.enumerated() {
+                NSAttributedString(string: line, attributes: [.font: NSFont.systemFont(ofSize: 44), .foregroundColor: NSColor.black])
+                    .draw(at: CGPoint(x: 20, y: size.height - 80 * CGFloat(i + 1)))
+            }
+            NSGraphicsContext.current = nil
+            return try #require(context.makeImage())
+        }
+        let text = await TextReader.text(in: try image(["Hello Penknife", "Second line 42"]))
+        #expect(text == "Hello Penknife\nSecond line 42")
+        #expect(await TextReader.text(in: try image([])) == nil)
     }
 
     @Test("SS-52 record mode: no tools or ⌘ keys but ⌘Q; Return chooses or starts; Esc closes")

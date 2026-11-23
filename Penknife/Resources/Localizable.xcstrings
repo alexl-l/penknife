@@ -6226,6 +6226,56 @@
           }
         }
       }
+    },
+    "Copy Text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar texto"
+          }
+        }
+      }
+    },
+    "Reading text…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyendo el texto…"
+          }
+        }
+      }
+    },
+    "No text found": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encontró texto"
+          }
+        }
+      }
+    },
+    "Select an area with text": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selecciona una zona con texto"
+          }
+        }
+      }
+    },
+    "Text copied": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto copiado"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
