@@ -8,6 +8,15 @@ final class ClipboardModule: Module {
     static let pasteKey = "clipboard.paste"
     static let positionKey = "clipboard.position"
     static let formattingKey = "clipboard.keepFormatting"
+    /// How many pinned rows show before the pinned area scrolls (CB-36); 0 = All.
+    static let pinnedRowsKey = "clipboard.pinnedRows"
+    static let pinnedRowChoices = [3, 5, 8, 12, 0]
+
+    /// The user's choice; any unknown value is the default, 5.
+    static func pinnedRowsChoice(_ defaults: UserDefaults = .standard) -> Int {
+        let value = defaults.object(forKey: pinnedRowsKey) as? Int ?? 5
+        return pinnedRowChoices.contains(value) ? value : 5
+    }
 
     /// Paste text with its formatting (fonts, bold, colors) or as plain text. ⇧ inverts it once.
     static var keepsFormatting: Bool {

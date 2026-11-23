@@ -6276,6 +6276,26 @@
           }
         }
       }
+    },
+    "Pinned rows shown": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filas de fijados visibles"
+          }
+        }
+      }
+    },
+    "Pinned scrolls beyond this and always leaves room for History.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los fijados hacen scroll al pasar de ahí y siempre dejan sitio al Historial."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

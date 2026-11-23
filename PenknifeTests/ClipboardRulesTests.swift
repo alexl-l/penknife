@@ -571,19 +571,45 @@ struct ClipboardRulesTests {
         #expect(store.thumbnails.isEmpty)
     }
 
-    @Test("CB-20 CB-21 panel height: grows with the items, pinned area capped at five rows")
+    @Test("CB-20 CB-21 panel height: grows with the items, pinned area capped at the chosen rows")
     func panelHeight() {
         // Few items: the minimum; many: 72 % of the visible screen, never above 680 pt.
-        #expect(PanelLayout.height(pinned: 0, history: 3, visible: 900) == 300)
-        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 900) == 648)
-        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 1400) == 680)
-        // 2 pins + 5 history: chrome 82 + rows 7 × 28 + two headers + line + padding.
-        #expect(PanelLayout.height(pinned: 2, history: 5, visible: 900) == 335)
-        // Past five pins the pinned area stops growing (it scrolls inside).
-        #expect(PanelLayout.pinnedArea(5) == PanelLayout.pinnedArea(12))
-        #expect(PanelLayout.pinnedArea(5) == 140)
+        #expect(PanelLayout.height(pinned: 0, history: 3, visible: 900, cap: 5) == 300)
+        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 900, cap: 5) == 648)
+        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 1400, cap: 5) == 680)
+        // 2 pins + 5 history: chrome 82 + rows 7 × 28 + two headers + line (5) + padding.
+        #expect(PanelLayout.height(pinned: 2, history: 5, visible: 900, cap: 5) == 339)
+        // Past the cap the pinned area stops growing (it scrolls inside).
+        #expect(PanelLayout.pinnedArea(5, cap: 5) == PanelLayout.pinnedArea(12, cap: 5))
+        #expect(PanelLayout.pinnedArea(5, cap: 5) == 140)
         // A small screen still gets the minimum.
-        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 400) == 300)
+        #expect(PanelLayout.height(pinned: 0, history: 30, visible: 400, cap: 5) == 300)
+    }
+
+    @Test("CB-36 pinned rows shown: the user's choice, capped so History keeps three rows")
+    func pinnedRows() {
+        // The choice wins while it fits.
+        #expect(PanelLayout.pinnedRows(choice: 3, history: 50, visible: 1400) == 3)
+        #expect(PanelLayout.pinnedRows(choice: 8, history: 50, visible: 1400) == 8)
+        // 800 pt screen: top 576 − overhead 143 − 3 History rows 84 → 12 pins.
+        #expect(PanelLayout.pinnedRows(choice: 0, history: 50, visible: 800) == 12)
+        #expect(PanelLayout.pinnedRows(choice: 12, history: 50, visible: 800) == 12)
+        // At the 680 pt cap "All" shows up to 16; with two History items only two are kept.
+        #expect(PanelLayout.pinnedRows(choice: 0, history: 50, visible: 1400) == 16)
+        #expect(PanelLayout.pinnedRows(choice: 0, history: 2, visible: 1400) == 17)
+        // No History: nothing reserved, no second header; still the user's choice.
+        #expect(PanelLayout.pinnedRows(choice: 0, history: 0, visible: 1400) == 19)
+        #expect(PanelLayout.pinnedRows(choice: 5, history: 0, visible: 1400) == 5)
+        // A tiny screen never gets a sliver: at least two rows.
+        #expect(PanelLayout.pinnedRows(choice: 12, history: 50, visible: 300) == 2)
+        // "All" with 5 pins: all five show, the panel fits them and three History rows.
+        let cap = PanelLayout.pinnedRows(choice: 0, history: 50, visible: 1400)
+        #expect(PanelLayout.pinnedArea(5, cap: cap) == 140)
+        #expect(PanelLayout.height(pinned: 40, history: 50, visible: 1400, cap: cap) == 680)
+        // Choice read from the settings; unknown values and nothing saved = 5.
+        #expect(ClipboardModule.pinnedRowsChoice(ScreenshotRulesTests.MemoryDefaults()) == 5)
+        #expect(ClipboardModule.pinnedRowsChoice(ScreenshotRulesTests.MemoryDefaults([ClipboardModule.pinnedRowsKey: 0])) == 0)
+        #expect(ClipboardModule.pinnedRowsChoice(ScreenshotRulesTests.MemoryDefaults([ClipboardModule.pinnedRowsKey: 7])) == 5)
     }
 
     @Test("CB-22 ↑↓ stop at the ends; delete keeps the place")

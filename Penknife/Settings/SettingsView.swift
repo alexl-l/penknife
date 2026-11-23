@@ -357,6 +357,7 @@ private struct ClipboardOptions: View {
     @AppStorage(ClipboardModule.pasteKey) private var paste = true
     @AppStorage(ClipboardModule.formattingKey) private var formatting = true
     @AppStorage(ClipboardModule.positionKey) private var position = ClipboardPosition.center.rawValue
+    @AppStorage(ClipboardModule.pinnedRowsKey) private var pinnedRows = 5
     @State private var confirmClear = false
 
     var body: some View {
@@ -375,6 +376,14 @@ private struct ClipboardOptions: View {
             ForEach(ClipboardPosition.allCases, id: \.rawValue) { option in
                 Text(option.title).tag(option.rawValue)
             }
+        }
+        Picker(selection: $pinnedRows) {
+            ForEach(ClipboardModule.pinnedRowChoices, id: \.self) { rows in
+                if rows == 0 { Text("All").tag(rows) } else { Text(verbatim: "\(rows)").tag(rows) }
+            }
+        } label: {
+            Text("Pinned rows shown")
+            Text("Pinned scrolls beyond this and always leaves room for History.")
         }
         LabeledContent {
             Button("Clear History…") { confirmClear = true }

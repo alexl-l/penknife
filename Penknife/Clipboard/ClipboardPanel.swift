@@ -80,6 +80,8 @@ final class ClipboardPanelModel {
         }
     }
     var selection: ClipItem.ID?
+    /// Pinned rows shown before the pinned area scrolls, set when the panel opens (CB-36).
+    var pinnedCap = 5
     /// The pinned item whose editor (icon, CB-33, or value, CB-34) is open; the panel stays open meanwhile.
     var editingIcon: ClipItem.ID?
     var editing: PinEditor = .icon
@@ -241,8 +243,10 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
 
     func show() {
         let visible = (NSScreen.screens.first { $0.frame.contains(NSEvent.mouseLocation) } ?? NSScreen.main)?.visibleFrame.height ?? 900
+        let pinned = model.pinned.count, history = model.history.count
+        model.pinnedCap = PanelLayout.pinnedRows(choice: ClipboardModule.pinnedRowsChoice(), history: history, visible: visible)
         setContentSize(NSSize(width: PanelLayout.width,
-                              height: PanelLayout.height(pinned: model.pinned.count, history: model.history.count, visible: visible)))
+                              height: PanelLayout.height(pinned: pinned, history: history, visible: visible, cap: model.pinnedCap)))
         position()
         makeKeyAndOrderFront(nil)
     }
@@ -464,32 +468,51 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
 // MARK: - View
 
 /// Sizes of the panel's list (CB-21): rows, headers, and how far the pinned area grows before it
-/// scrolls on its own.
+/// scrolls on its own (CB-36).
 enum PanelLayout {
     static let rowHeight: CGFloat = 28
     static let headerHeight: CGFloat = 22
-    static let pinnedRows = 5
     /// Search field, footer and their lines.
     static let chrome: CGFloat = 82
+    /// The History area's padding (6 above, 6 below).
+    static let listPadding: CGFloat = 12
+    /// The line between the two areas and the 4 pt above it.
+    static let separator: CGFloat = 5
+    /// History rows that always stay in view when pins would fill the panel (CB-36).
+    static let historyReserve = 3
     static let width: CGFloat = 480
     static let minHeight: CGFloat = 300
     static let maxHeight: CGFloat = 680
 
-    /// The pinned area: its rows up to `pinnedRows`; past that it scrolls inside.
-    static func pinnedArea(_ count: Int) -> CGFloat {
-        CGFloat(min(count, pinnedRows)) * rowHeight
+    /// The tallest the panel gets: 72 % of the visible screen, at most 680 pt, at least 300 pt.
+    static func top(_ visible: CGFloat) -> CGFloat {
+        max(min(maxHeight, (visible * 0.72).rounded(.down)), minHeight)
+    }
+
+    /// Pinned rows shown before the pinned area scrolls: the user's choice (0 = All), but never
+    /// more than fit in the tallest panel with room left for up to three History rows; at least 2.
+    static func pinnedRows(choice: Int, history: Int, visible: CGFloat) -> Int {
+        var overhead = chrome + listPadding + headerHeight + separator
+        if history > 0 { overhead += headerHeight }
+        let reserve = CGFloat(min(history, historyReserve)) * rowHeight
+        let fit = max(2, Int(((top(visible) - overhead - reserve) / rowHeight).rounded(.down)))
+        return choice > 0 ? min(choice, fit) : fit
+    }
+
+    /// The pinned area: its rows up to `cap`; past that it scrolls inside.
+    static func pinnedArea(_ count: Int, cap: Int) -> CGFloat {
+        CGFloat(min(count, cap)) * rowHeight
     }
 
     /// Height when the panel opens, from what it shows then; it doesn't change while open, so the
     /// window doesn't jump while typing a search (CB-20). Never above 72 % of the visible screen.
-    static func height(pinned: Int, history: Int, visible: CGFloat) -> CGFloat {
-        var content = CGFloat(history) * rowHeight + 12
+    static func height(pinned: Int, history: Int, visible: CGFloat, cap: Int) -> CGFloat {
+        var content = CGFloat(history) * rowHeight + listPadding
         if pinned > 0 {
-            content += headerHeight + pinnedArea(pinned) + 1
+            content += headerHeight + pinnedArea(pinned, cap: cap) + separator
             if history > 0 { content += headerHeight }
         }
-        let top = min(maxHeight, (visible * 0.72).rounded(.down))
-        return min(max(chrome + content, minHeight), max(top, minHeight))
+        return min(max(chrome + content, minHeight), top(visible))
     }
 }
 
@@ -541,8 +564,8 @@ struct ClipboardView: View {
         .onAppear { searchFocused = true }
     }
 
-    /// "Pinned" stays at the top and never scrolls away; only "History" scrolls. Past five pins the
-    /// pinned area scrolls on its own. Headers show only when something is pinned (CB-21).
+    /// "Pinned" stays at the top and never scrolls away; only "History" scrolls. Past the chosen
+    /// number of pins (CB-36) the pinned area scrolls on its own. Headers show only when something is pinned (CB-21).
     private var list: some View {
         let pinned = model.pinned
         let history = model.history
@@ -550,8 +573,8 @@ struct ClipboardView: View {
             if !pinned.isEmpty {
                 header("Pinned")
                 scrolling(pinned, first: 0, label: "Pinned")
-                    .frame(height: PanelLayout.pinnedArea(pinned.count))
-                    .scrollDisabled(pinned.count <= PanelLayout.pinnedRows)
+                    .frame(height: PanelLayout.pinnedArea(pinned.count, cap: model.pinnedCap))
+                    .scrollDisabled(pinned.count <= model.pinnedCap)
                 Divider().padding(.top, 4)
                 if !history.isEmpty { header("History") }
             }
