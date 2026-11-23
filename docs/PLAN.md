@@ -5,7 +5,7 @@ The ordered task list. Read this first after `/clear`. Every checkpoint updates 
 ## Now
 - 2026-11-24, user tests (they asked for these two, built while they slept): (1) Hold to talk (R-41): mic muted, hold F5 or the Touch Bar mic button, talk, let go → muted again; a tap still toggles. Ask whether 0.4 s feels right and whether it works in a Teams call (consent on). Not measured: holding F5 and opening the Penknife menu meanwhile (QA's synthetic test ended muted on release; log line "Hold ended without its release" now tells if a hold was ended by a pause). (2) Export/import settings (R-42): Settings › General › Settings File — export CONFIRMED by the user 2026-11-23 ("el export funciona"); import not said yet.
 - User confirmed 2026-11-23: Keep Awake works, the battery bolt works. Still pending: clipboard with more than 5 pins.
-- Menu icons gone on macOS 27 (user asked 2026-11-23): not our change; macOS 27 hides menu item symbols by default (`NSMenuItem.preferredImageVisibility`, new in the 27 SDK). Waiting for the user: follow Apple (no icons) or force them visible; then retake `docs/screenshots/menu.png` (shows the 1.10-era menu, without Keep Awake, Pick Color, Macros, weather).
+- Menu icons gone on macOS 27 (user asked 2026-11-23): not our change; macOS 27 hides menu item symbols by default (`NSMenuItem.preferredImageVisibility`, new in the 27 SDK). User chose "lo nativo de apple": no code change (the OS decides). Retake `docs/screenshots/menu.png` (shows the 1.10-era menu, without Keep Awake, Pick Color, Macros, weather).
 
 ## Next, in order
 - Nothing approved. Ideas: jiggler stop time (below).
