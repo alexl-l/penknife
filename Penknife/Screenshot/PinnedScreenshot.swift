@@ -19,6 +19,14 @@ struct PinnedCapture {
 
     /// SS-69: the size a resize may give it, keeping its proportions: at least 64 pt on the short
     /// side, at most twice the original and the screen's visible frame.
+    /// `rect` moved the least needed to lie inside `bounds` (when it fits).
+    static func inside(_ rect: CGRect, _ bounds: CGRect) -> CGRect {
+        var r = rect
+        r.origin.x = min(max(r.minX, bounds.minX), max(bounds.maxX - r.width, bounds.minX))
+        r.origin.y = min(max(r.minY, bounds.minY), max(bounds.maxY - r.height, bounds.minY))
+        return r
+    }
+
     static func clampedSize(_ proposed: CGSize, original: CGSize, visible: CGSize) -> CGSize {
         guard original.width > 0, original.height > 0 else { return original }
         let ratio = original.width / original.height
@@ -161,10 +169,14 @@ final class PinnedWindow: NSPanel {
     /// doesn't move while resizing).
     func resize(to proposed: CGSize, anchor: CGPoint, growsLeft: Bool, growsDown: Bool) {
         let visible = (screen ?? NSScreen.main)?.visibleFrame.size ?? proposed
+        let visibleFrame = (screen ?? NSScreen.main)?.visibleFrame
         let size = PinnedCapture.clampedSize(proposed, original: capture.size, visible: visible)
         let origin = CGPoint(x: growsLeft ? anchor.x - size.width : anchor.x,
                              y: growsDown ? anchor.y - size.height : anchor.y)
-        setFrame(CGRect(origin: origin, size: size), display: true)
+        var rect = CGRect(origin: origin, size: size)
+        // Never past the screen's edge: pushed back inside.
+        if let v = visibleFrame { rect = PinnedCapture.inside(rect, v) }
+        setFrame(rect, display: true)
         invalidateShadow()
     }
 
@@ -286,7 +298,7 @@ final class PinnedView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         guard window != nil, trackingAreas.isEmpty else { return }
-        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect, .cursorUpdate],
+        addTrackingArea(NSTrackingArea(rect: .zero, options: [.mouseEnteredAndExited, .mouseMoved, .activeAlways, .inVisibleRect, .cursorUpdate],
                                        owner: self))
     }
 
@@ -331,20 +343,24 @@ final class PinnedView: NSView {
         return (left, right, top, bottom)
     }
 
-    override func resetCursorRects() {
-        let (e, c) = zones, b = bounds
-        let nwse = NSCursor.frameResize(position: .topLeft, directions: .all)
-        let nesw = NSCursor.frameResize(position: .topRight, directions: .all)
-        // Corners first: where rectangles overlap, the first one added wins.
-        addCursorRect(CGRect(x: b.width - c, y: 0, width: c, height: c), cursor: nesw)
-        addCursorRect(CGRect(x: 0, y: b.height - c, width: c, height: c), cursor: nesw)
-        addCursorRect(CGRect(x: b.width - c, y: b.height - c, width: c, height: c), cursor: nwse)
-        addCursorRect(CGRect(x: 0, y: 0, width: e, height: e), cursor: nwse)
-        addCursorRect(CGRect(x: 0, y: e, width: e, height: b.height - e - c), cursor: .resizeLeftRight)
-        addCursorRect(CGRect(x: b.width - e, y: c, width: e, height: b.height - 2 * c), cursor: .resizeLeftRight)
-        addCursorRect(CGRect(x: e, y: 0, width: b.width - e - c, height: e), cursor: .resizeUpDown)
-        addCursorRect(CGRect(x: c, y: b.height - e, width: b.width - 2 * c, height: e), cursor: .resizeUpDown)
+    /// The cursor is set by hand on every move: cursor rects only work in the active app, and
+    /// Penknife never becomes active (the resize cursor never showed; user, 2026-11-23: "lo del
+    /// borde más ancho no funciona bien").
+    private func updateCursor(_ p: CGPoint) {
+        if closeButton.alphaValue > 0, closeButton.frame.contains(p) { NSCursor.arrow.set(); return }
+        let (left, right, top, bottom) = sides(at: p)
+        let horizontal = left || right, vertical = top || bottom
+        switch (horizontal, vertical) {
+        case (true, true):
+            NSCursor.frameResize(position: (top && left) || (bottom && right) ? .topLeft : .topRight, directions: .all).set()
+        case (true, false): NSCursor.frameResize(position: left ? .left : .right, directions: .all).set()
+        case (false, true): NSCursor.frameResize(position: top ? .top : .bottom, directions: .all).set()
+        case (false, false): NSCursor.arrow.set()
+        }
     }
+
+    override func cursorUpdate(with event: NSEvent) { updateCursor(convert(event.locationInWindow, from: nil)) }
+    override func mouseMoved(with event: NSEvent) { updateCursor(convert(event.locationInWindow, from: nil)) }
 
     // MARK: Mouse
 
@@ -379,8 +395,14 @@ final class PinnedView: NSView {
         let horizontal = left || right, vertical = top || bottom
         let width = vertical && (!horizontal || abs(byHeight - frame.width) > abs(byWidth - frame.width)) ? byHeight : byWidth
         // The opposite corner stays (this view is flipped; the window's frame is not).
-        let anchor = CGPoint(x: left ? frame.maxX : frame.minX, y: bottom ? frame.maxY : frame.minY)
-        pin.resize(to: CGSize(width: width, height: width / ratio), anchor: anchor, growsLeft: left, growsDown: bottom)
+        // The dragged side moves; the other axis grows away from the screen edge the pin is
+        // nearer to (user, 2026-11-23: "si lo tengo fijo abajo a la derecha, debería crecer hacia
+        // arriba y hacia la izquierda").
+        let visible = (pin.screen ?? NSScreen.main)?.visibleFrame ?? frame
+        let growsLeft = left || (!right && frame.midX > visible.midX)
+        let growsDown = bottom || (!top && frame.midY > visible.midY)
+        let anchor = CGPoint(x: growsLeft ? frame.maxX : frame.minX, y: growsDown ? frame.maxY : frame.minY)
+        pin.resize(to: CGSize(width: width, height: width / ratio), anchor: anchor, growsLeft: growsLeft, growsDown: growsDown)
     }
 
     override func mouseUp(with event: NSEvent) {

@@ -1617,4 +1617,12 @@ struct ScreenshotRulesTests {
         let full = (0..<8).map { CGRect(x: 16, y: 16 + CGFloat($0) * 108, width: 200, height: 100) }
         #expect(PinPlace.bottomLeft.frame(for: size, captured: captured, visible: visible, others: full) == first)
     }
+
+    @Test("SS-69 a resized pin is pushed back inside the screen")
+    func pinInside() {
+        let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)
+        #expect(PinnedCapture.inside(CGRect(x: 900, y: 750, width: 200, height: 100), screen) == CGRect(x: 800, y: 700, width: 200, height: 100))
+        #expect(PinnedCapture.inside(CGRect(x: -20, y: -5, width: 200, height: 100), screen) == CGRect(x: 0, y: 0, width: 200, height: 100))
+        #expect(PinnedCapture.inside(CGRect(x: 10, y: 10, width: 200, height: 100), screen) == CGRect(x: 10, y: 10, width: 200, height: 100))
+    }
 }
