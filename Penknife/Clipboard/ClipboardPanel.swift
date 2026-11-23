@@ -32,8 +32,8 @@ enum ClipboardKeyAction: Equatable {
     case editIcon
     /// ⌘1–⌘9: paste that visible row (0-based).
     case row(Int)
-    /// ⌘U: the selected pinned item takes what is on the clipboard now (R-35).
-    case updatePin
+    /// ⌘U: edit the selected text pin's value (CB-34).
+    case editValue
     /// ⌥⌘↑ / ⌥⌘↓: move the selected pinned item (R-35).
     case movePin(Int)
 }
@@ -56,7 +56,7 @@ enum ClipboardKeys {
         guard command, let key = characters?.lowercased() else { return nil }
         if key == "p" { return .togglePin }
         if key == "e" { return .editIcon }
-        if key == "u" { return .updatePin }
+        if key == "u" { return .editValue }
         if let digit = Int(key), (1...9).contains(digit) { return .row(digit - 1) }
         return nil
     }
@@ -78,7 +78,16 @@ final class ClipboardPanelModel {
     }
     var selection: ClipItem.ID?
     /// The pinned item whose icon editor is open (CB-33); the panel stays open meanwhile.
+    /// The pinned item whose editor (icon or value) is open.
     var editingIcon: ClipItem.ID?
+    var editing: PinEditor = .icon
+
+    enum PinEditor { case icon, value }
+
+    func edit(_ id: ClipItem.ID, _ editor: PinEditor) {
+        editing = editor
+        editingIcon = id
+    }
     /// Where VoiceOver announcements are posted (the panel; NSApp may be ignored while inactive).
     @ObservationIgnored weak var announcer: NSWindow?
     /// Rows scrolled by the keyboard slide under a resting pointer; hover is ignored meanwhile.
@@ -191,7 +200,6 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
                                  togglePin: { [weak self] id in self?.togglePin(id) },
                                  remove: { [weak self] id in self?.remove(id) },
                                  clear: { [weak self] in self?.confirmClear() },
-                                 updatePin: { [weak self] id in self?.updatePin(id) },
                                  showEditor: { [weak self] id, rect in self?.showIconEditor(id, at: rect) })
         let hosting = NSHostingView(rootView: view)
         self.hosting = hosting
@@ -282,13 +290,13 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
             togglePin(id)
         case .editIcon:
             guard let id = model.selection, model.store.item(id)?.pinned == true else { return false }
-            model.editingIcon = id
+            model.edit(id, .icon)
         case .row(let index):
             let rows = model.rows
             if rows.indices.contains(index) { module?.use(rows[index].id, paste: true) }
-        case .updatePin:
-            guard let id = model.selection, model.store.item(id)?.pinned == true else { return false }
-            updatePin(id)
+        case .editValue:
+            guard let id = model.selection, let item = model.store.item(id), item.pinned, item.kind == .text else { return false }
+            model.edit(id, .value)
         case .movePin(let step):
             guard let id = model.selection, let index = model.store.pinned.firstIndex(where: { $0.id == id }) else { return false }
             model.store.movePin(id, to: index + step)
@@ -296,16 +304,6 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
             model.announce(String(localized: "Moved"))
         }
         return true
-    }
-
-    /// "Update with Copied" (R-35): the pin keeps its place and icon, its content is what you copied.
-    private func updatePin(_ id: ClipItem.ID) {
-        guard let module else { return }
-        let before = model.store.item(id)?.key
-        module.updatePin(id)
-        let changed = model.store.item(id)?.key != before
-        model.selection = id
-        model.announce(changed ? String(localized: "Updated") : String(localized: "Nothing new to update with"))
     }
 
     private func togglePin(_ id: ClipItem.ID) {
@@ -364,18 +362,35 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
         let popover = NSPopover()
         popover.behavior = .applicationDefined
         popover.animates = false
-        popover.contentViewController = NSHostingController(
-            rootView: IconEditor(initial: item.icon, appIcon: model.icon(for: item)) { [store = model.store] icon in
-                store.setIcon(id, icon)
-            })
+        switch model.editing {
+        case .icon:
+            popover.contentViewController = NSHostingController(
+                rootView: IconEditor(initial: item.icon, appIcon: model.icon(for: item)) { [store = model.store] icon in
+                    store.setIcon(id, icon)
+                })
+        case .value:
+            guard item.kind == .text else {
+                model.editingIcon = nil
+                return
+            }
+            popover.contentViewController = NSHostingController(
+                rootView: ValueEditor(initial: item.text ?? "") { [weak self] text in
+                    guard let self else { return }
+                    if let text, self.model.store.setPinText(id, text) {
+                        self.model.announce(String(localized: "Value updated"))
+                    }
+                    self.closeIconEditor()
+                })
+        }
         popover.delegate = self
         iconPopover = popover
         popover.show(relativeTo: rect, of: hosting, preferredEdge: .maxX)
         let window = popover.contentViewController?.view.window
         window?.makeKey()
-        // Opens with nothing focused: the field takes the focus only when clicked, tabbed to or
-        // when 🙂 is used (user, 2026-11-20: "no me gusta que el foco siempre se quede en la caja").
-        DispatchQueue.main.async { window?.makeFirstResponder(nil) }
+        // The icon editor opens with nothing focused: the field takes the focus only when clicked,
+        // tabbed to or when 🙂 is used (user, 2026-11-20: "no me gusta que el foco siempre se quede
+        // en la caja"). The value editor opens on its field, all selected, to type or paste over.
+        if model.editing == .icon { DispatchQueue.main.async { window?.makeFirstResponder(nil) } }
         watchWhileEditing()
     }
 
@@ -476,7 +491,6 @@ struct ClipboardView: View {
     let togglePin: (ClipItem.ID) -> Void
     let remove: (ClipItem.ID) -> Void
     let clear: () -> Void
-    let updatePin: (ClipItem.ID) -> Void
     let showEditor: (ClipItem.ID, CGRect) -> Void
     @FocusState private var searchFocused: Bool
     /// Dragging a pinned row to reorder it (R-35); only without a search, when all pins show.
@@ -656,8 +670,8 @@ struct ClipboardView: View {
             Button("Copy") { use(item.id, false) }
             Button(item.pinned ? "Unpin" : "Pin") { togglePin(item.id) }
             if item.pinned {
-                Button("Update with Copied") { updatePin(item.id) }
-                Button("Customize Icon…") { model.editingIcon = item.id }
+                if item.kind == .text { Button("Update Value…") { model.edit(item.id, .value) } }
+                Button("Customize Icon…") { model.edit(item.id, .icon) }
             }
             Divider()
             Button("Delete") { remove(item.id) }
@@ -669,7 +683,7 @@ struct ClipboardView: View {
         .accessibilityAction(named: Text(item.pinned ? "Unpin" : "Pin")) { togglePin(item.id) }
         .accessibilityAction(named: Text("Copy")) { use(item.id, false) }
         .accessibilityAction(named: Text("Delete")) { remove(item.id) }
-        .modifier(PinActions(item: item, store: model.store, updatePin: updatePin))
+        .modifier(PinActions(item: item, store: model.store, editValue: { model.edit($0, .value) }))
         .modifier(IconEditorAnchor(item: item, model: model, show: showEditor))
     }
 
@@ -678,7 +692,10 @@ struct ClipboardView: View {
             hint("↩", "Paste")
             hint("⌘P", "Pin")
             hint("⌘⌫", "Delete")
-            if model.pinned.contains(where: { $0.id == model.selection }) { hint("⌘E", "Icon") }
+            if let pin = model.pinned.first(where: { $0.id == model.selection }) {
+                if pin.kind == .text { hint("⌘U", "clipboard.edit") }
+                hint("⌘E", "Icon")
+            }
             Spacer()
             Button("Clear History…", action: clear)
                 .buttonStyle(.borderless)
@@ -741,12 +758,16 @@ struct PinIconView: View {
 private struct PinActions: ViewModifier {
     let item: ClipItem
     let store: ClipboardStore
-    let updatePin: (ClipItem.ID) -> Void
+    let editValue: (ClipItem.ID) -> Void
 
     func body(content: Content) -> some View {
-        if item.pinned {
+        if item.pinned, item.kind == .text {
             content
-                .accessibilityAction(named: Text("Update with Copied")) { updatePin(item.id) }
+                .accessibilityAction(named: Text("Update Value")) { editValue(item.id) }
+                .accessibilityAction(named: Text("Move up")) { move(-1) }
+                .accessibilityAction(named: Text("Move down")) { move(1) }
+        } else if item.pinned {
+            content
                 .accessibilityAction(named: Text("Move up")) { move(-1) }
                 .accessibilityAction(named: Text("Move down")) { move(1) }
         } else {
@@ -776,7 +797,38 @@ private struct IconEditorAnchor: ViewModifier {
                     }
                 }
             }
-            .accessibilityAction(named: Text("Customize Icon")) { if item.pinned { model.editingIcon = item.id } }
+            .accessibilityAction(named: Text("Customize Icon")) { if item.pinned { model.edit(item.id, .icon) } }
+    }
+}
+
+/// "Update Value…" (CB-34, ux-ui-designer spec 2026-11-22): the pin's text, all selected, to type
+/// or paste over. One line that grows to five; Return saves, ⌥Return adds a line, Esc cancels.
+struct ValueEditor: View {
+    let initial: String
+    /// The new text, or nil to cancel.
+    let done: (String?) -> Void
+    @State private var text = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextField("Value", text: $text, axis: .vertical)
+                .textFieldStyle(.roundedBorder)
+                .lineLimit(1...5)
+                .focused($focused)
+                .onSubmit { done(text) }
+                .accessibilityLabel("Value")
+            Text("↩ Save   esc Cancel")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+        }
+        .padding(12)
+        .frame(width: 320)
+        .onAppear {
+            text = initial
+            DispatchQueue.main.async { focused = true }
+        }
     }
 }
 

@@ -128,16 +128,6 @@ final class ClipboardModule: Module {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { pasteWhenReady(6) }
     }
 
-    /// "Update with Copied" (R-35): the pinned item takes what is on the clipboard now.
-    /// Returns false when the clipboard holds nothing that can be kept (empty, a password).
-    @discardableResult
-    func updatePin(_ id: ClipItem.ID) -> Bool {
-        check()
-        guard let item = ClipboardReader.read(pasteboard, frontApp: frontApp()) else { return false }
-        store.updatePin(id, with: item)
-        return true
-    }
-
     // MARK: Panel
 
     /// Built when opened and released when closed, so it costs no memory while hidden (R-11).

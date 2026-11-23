@@ -369,23 +369,23 @@ final class ClipboardStore {
         savePins()
     }
 
-    /// "Update with Copied" (R-35): a pinned item takes the content of `item` (what is on the
-    /// clipboard now) and keeps its id, icon and place, so macros linked to it use the new value.
-    /// The same content in the history leaves it (it is the pin now).
-    func updatePin(_ id: ClipItem.ID, with item: ClipItem) {
-        guard let index = pinned.firstIndex(where: { $0.id == id }), pinned[index].key != item.key else { return }
-        if let other = pinned.firstIndex(where: { $0.key == item.key }), other != index { return }
-        if let old = history.firstIndex(where: { $0.key == item.key }) {
-            usedBytes -= history.remove(at: old).bytes
-        }
-        var updated = ClipItem(id: id, kind: item.kind, text: item.text, rtf: item.rtf, html: item.html, image: item.image,
-                               imageType: item.imageType, files: item.files, source: item.source, date: .now,
-                               pinned: true, key: item.key)
-        updated.icon = pinned[index].icon
-        pinned[index] = updated
-        makeThumbnail(for: updated)
-        dropUnusedThumbnails()
+    /// "Update Value…" (CB-34; user, 2026-11-22: "quiero escribir"): a text pin takes the text
+    /// typed or pasted in its editor and keeps its id (macros follow it), icon and place. Ends
+    /// trimmed; empty or unchanged does nothing (deleting is ⌘⌫). Formatting goes: it's plain text now.
+    @discardableResult
+    func setPinText(_ id: ClipItem.ID, _ text: String) -> Bool {
+        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, let index = pinned.firstIndex(where: { $0.id == id }),
+              pinned[index].kind == .text, pinned[index].text != text else { return false }
+        var item = pinned[index]
+        item.text = text
+        item.rtf = nil
+        item.html = nil
+        item.date = .now
+        item.key = item.contentKey
+        pinned[index] = item
         savePins()
+        return true
     }
 
     /// Reorders the pinned items (R-35, drag in the panel). Saved when the drag ends (`savePinOrder`):

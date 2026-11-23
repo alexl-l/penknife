@@ -6149,6 +6149,73 @@
           }
         }
       }
+    },
+    "Update Value…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar valor…"
+          }
+        }
+      }
+    },
+    "Update Value": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actualizar valor"
+          }
+        }
+      }
+    },
+    "Value": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor"
+          }
+        }
+      }
+    },
+    "↩ Save   esc Cancel": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "↩ Guardar   esc Cancelar"
+          }
+        }
+      }
+    },
+    "Value updated": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Valor actualizado"
+          }
+        }
+      }
+    },
+    "clipboard.edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

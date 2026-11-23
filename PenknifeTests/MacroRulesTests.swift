@@ -183,7 +183,7 @@ struct MacroRulesTests {
         #expect(store.macros.count == 2)
     }
 
-    @Test("MAC-50 Update with Copied: the pin keeps its id, icon and place; the copy leaves History")
+    @Test("MAC-50 Update Value: a text pin takes the typed text and keeps its id, icon and place")
     func updatePin() {
         let folder = Self.tempFolder()
         defer { try? FileManager.default.removeItem(at: folder) }
@@ -195,12 +195,14 @@ struct MacroRulesTests {
         store.togglePin(store.history[2].id)   // "first"
         store.togglePin(id)                     // "ID-1", second pin
         store.setIcon(id, PinIcon(glyph: "I", color: .blue))
-        store.add(.text("ID-2"))
-        store.updatePin(id, with: .text("ID-2"))
+        let changed = store.setPinText(id, "  ID-2\n")
+        let empty = store.setPinText(id, "   ")
+        let same = store.setPinText(id, "ID-2")
+        #expect(changed && !empty && !same)
         #expect(store.pinned.map(\.text) == ["first", "ID-2"])
         #expect(store.pinned[1].id == id)
         #expect(store.pinned[1].icon?.glyph == "I")
-        #expect(!store.history.contains { $0.text == "ID-2" })
+        #expect(store.pinned[1].key == ClipItem.text("ID-2").key)
         let reloaded = ClipboardStore(folder: folder, limit: { 100_000_000 })
         #expect(reloaded.item(id)?.text == "ID-2")
     }
@@ -219,9 +221,9 @@ struct MacroRulesTests {
         #expect(ClipboardStore(folder: folder, limit: { 100_000_000 }).pinned.map(\.text) == ["c", "a", "b"])
     }
 
-    @Test("MAC-52 panel keys: ⌘U updates the pin, ⌥⌘↑/↓ move it, plain arrows still move the selection")
+    @Test("MAC-52 panel keys: ⌘U edits the pin's value, ⌥⌘↑/↓ move it, plain arrows still move the selection")
     func pinKeys() {
-        #expect(ClipboardKeys.action(keyCode: 32, characters: "u", flags: .command) == .updatePin)
+        #expect(ClipboardKeys.action(keyCode: 32, characters: "u", flags: .command) == .editValue)
         #expect(ClipboardKeys.action(keyCode: 126, characters: nil, flags: [.command, .option]) == .movePin(-1))
         #expect(ClipboardKeys.action(keyCode: 125, characters: nil, flags: [.command, .option]) == .movePin(1))
         #expect(ClipboardKeys.action(keyCode: 125, characters: nil, flags: []) == .move(1))
