@@ -406,6 +406,10 @@ final class PinnedView: NSView {
     // MARK: Mouse
 
     override func mouseDown(with event: NSEvent) {
+        // macOS sends trackpad gestures (pinch, smart zoom) only to the active app: a click on a
+        // pin makes Penknife active, as a click on any Mac window does (measured 2026-11-23: no
+        // gesture reached the pin while Penknife was inactive, even after a click).
+        NSApp.activate()
         window?.makeKey()
         if event.clickCount == 2 {
             drag = .none
@@ -452,6 +456,15 @@ final class PinnedView: NSView {
         let factor = max(1 + event.magnification, 0.1)
         pin.resize(to: CGSize(width: frame.width * factor, height: frame.height * factor), from: frame,
                    left: false, right: false, top: false, bottom: false)
+    }
+
+    /// Two-finger double-tap, Apple's smart zoom: twice the size, and back to the original.
+    override func smartMagnify(with event: NSEvent) {
+        guard let pin else { return }
+        let frame = pin.imageFrame
+        let original = pin.capture.size
+        let target = abs(frame.width - original.width) < 1 ? CGSize(width: original.width * 2, height: original.height * 2) : original
+        pin.resize(to: target, from: frame, left: false, right: false, top: false, bottom: false)
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
