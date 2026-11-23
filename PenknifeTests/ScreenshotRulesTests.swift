@@ -707,6 +707,8 @@ struct ScreenshotRulesTests {
         #expect(middle.label.minY > middle.loupe.maxY && middle.label.midX == 400)
         let bottom = ColorLoupe.frames(pointer: CGPoint(x: 400, y: 590), bounds: bounds)
         #expect(bottom.label.maxY < bottom.loupe.minY)
+        let corner = ColorLoupe.frames(pointer: CGPoint(x: 2, y: 598), bounds: bounds)
+        #expect(corner.label.minX >= 0 && corner.label.maxY < corner.loupe.minY)
     }
 
     @Test("SS-14 arrows before a selection go through the windows in window mode only")
