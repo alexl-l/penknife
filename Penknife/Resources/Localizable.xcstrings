@@ -6110,6 +6110,16 @@
         }
       }
     },
+    "Key step: Return": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paso de tecla: Return"
+          }
+        }
+      }
+    },
     "A password field is active": {
       "localizations": {
         "es": {

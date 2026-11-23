@@ -352,6 +352,7 @@ private struct MacroDetail: View {
                                     step.key = MacroKey(code: Int(kVK_Return))
                                     insert([step])
                                 } label: { Label("Return", systemImage: "return") }
+                                .accessibilityLabel("Key step: Return")
                             }
                         }
                     } label: {
