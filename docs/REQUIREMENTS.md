@@ -420,7 +420,7 @@ Improvements to what exists, most useful first:
 1. **Screenshot → "Copy text"**: APPROVED as R-36 (below).
 2. **Microphone → push to talk**: while muted, holding F5 opens the mic; releasing mutes again. Medium; may clash with the Teams consent alert.
 3. **Screenshot → pin on screen**: the capture floats above everything. Small/medium.
-4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small.
+4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small. BUILT 2026-11-22 as R-38 (screenshot.md SS-63…66).
 5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium.
 6. **Lock → mute the mic when locking**: APPROVED as R-37.
 New ideas: **Keep awake** (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (AirPods ↔ speakers by shortcut or Touch Bar); **Mic-open warning** when a call ends.
