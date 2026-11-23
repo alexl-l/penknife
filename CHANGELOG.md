@@ -3,6 +3,21 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.16 — 2026-11-23
+
+Pin a screenshot above your windows, pick any color on screen, hold a key to talk while muted, and keep your Mac awake.
+
+- **Pin a screenshot.** A Pin button (⌘P) in the screenshot editor floats the capture above every window in a corner of the screen (bottom left by default, you can change it). Pins stack. Move one, resize it (drag the edges, pinch or scroll), double-click to edit it again with its marks still editable, or right-click to copy, save or close.
+- **Color picker.** Press I in the screenshot overlay, or use its own shortcut or the "Pick Color" menu item. A round loupe follows the pointer and a click copies the pixel's exact hex.
+- **Copy Text.** Copy the text in a screenshot. Recognition runs on your Mac.
+- **Hold to talk.** With the mic muted, hold the mute shortcut (F5) or the Touch Bar mic button to talk. Let go and it mutes again. It works in calls too. On by default, in Settings › Microphone.
+- **Mute when the Mac locks.** Optional, off by default.
+- **Keep Awake.** A new module that stops the Mac from sleeping without moving the pointer. Toggle it from the menu or with an optional shortcut. It turns off when Penknife starts and when you lock the Mac.
+- **Export and import settings.** Settings › General › Settings File saves your settings, shortcuts, Touch Bar, pinned items and macros in one file. Importing replaces them and restarts Penknife. The Teams consent switch is not included: you confirm it on each Mac.
+- **Touch Bar.** Hold buttons fill while you hold them. Holding Screenshot while the capture is open switches to recording. The battery bolt shows as soon as the Mac is plugged in.
+- **Clipboard.** Choose how many pinned rows show: 3, 5, 8, 12 or All.
+- **Settings.** Notes sit as footers under their options and shortcuts are grouped.
+
 ## 1.15 — 2026-11-22
 
 Macros fill forms for you, and you can update a pinned clipboard item without leaving the panel.

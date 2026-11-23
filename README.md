@@ -32,6 +32,8 @@ Every part is a module. Turn off what you don't need and it uses no CPU or memor
 <h3>Microphone mute for meetings</h3>
 One shortcut mutes the meeting you're in: Teams, Google Meet, Zoom, Slack Huddles or Webex. Only apps in a call count, and each uses its own shortcut, which you can edit in Settings. With no call, it mutes your Mac's microphone. The icon and status dot always show the real state.
 
+Hold to talk: with the mic muted, hold the shortcut (F5) or the Touch Bar mic button to talk, and let go to mute again. It works in calls too (Settings › Microphone). You can also mute when the Mac locks.
+
 Muted stays muted: when "Hey Siri" opens the Mac's microphone because the Mac played a sound, Penknife mutes it again within a moment ("Keep the microphone muted" in Settings, on by default).
 
 Optional, off by default: when you unmute in Teams with the shortcut and Teams asks for your consent, Penknife can accept it for you. You remain responsible for consent; check your employer's policy. Penknife is not affiliated with Microsoft.
@@ -46,7 +48,7 @@ Open it with ⌃⌥V, search, pin what you reuse (with a letter or emoji of your
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Screenshot editor">
 <h3>Screenshots and screen recording</h3>
-Press F1, select an area or a window (press Space), mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Paste the result into a Finder folder as a file. Nothing is uploaded.
+Press F1, select an area or a window (press Space), mark it with arrows, lines, text, highlighter, shapes, pen and blur, then copy or save. Move, resize or erase any mark afterwards. Pin it above your windows (⌘P), pick a color with a loupe (I) or copy the text in it. Paste the result into a Finder folder as a file. Nothing is uploaded.
 
 Record the full screen, an area or a window as a video or GIF (⌃⌥R), or hold the Screenshot shortcut (F1) for 2 seconds, pick an area and recording starts. Draw while you record, with sound from the Mac and your microphone if you want it, then trim the start and end and pick a speed (1×, 1.5×, 2× or 4×) before you save.
 </td>
@@ -63,6 +65,16 @@ Record or write a sequence of steps (keys, text, waits, files, values from a tab
 
 <img src="docs/screenshots/macros.gif" width="720" alt="Opening the Macros panel and running a macro that fills rows from its data table">
 
+### Pin a screenshot
+Press Pin (⌘P) in the editor and the capture floats above every window in a corner of the screen. Keep several, move them, resize them by dragging the edges, pinching or scrolling, and double-click one to edit its marks again.
+
+<img src="docs/screenshots/pin.gif" width="720" alt="A captured area is pinned: it glides to a corner of the screen and is then resized">
+
+### Pick any color on screen
+Press I in the screenshot overlay, or use its own shortcut. A round loupe follows the pointer; click and the pixel's exact hex is copied.
+
+<img src="docs/screenshots/color-picker.gif" width="720" alt="The loupe moves over colors on screen, showing each hex code, and a click copies it">
+
 ### Draw while you record
 Drag an area, or press Space and click a window, or press Return for the full screen: recording starts after a 3-2-1. Your marks appear in the file and stay or fade after the time you choose.
 
@@ -74,10 +86,10 @@ Pick 1.5×, 2× or 4× in the recording window. The preview, the saved video, th
 <img src="docs/screenshots/recording-speed.gif" width="720" alt="The recording window: the speed menu opens, 2× is chosen and the length changes from 0:14 to 0:07">
 
 ### And in the menu bar
-Mouse Jiggler keeps your Mac awake and your status active: it moves the pointer after 10 seconds without input (or the time you choose) and rests while the Mac is locked. Lock Screen locks your Mac at once. Speed Test shows download, upload and latency in kbps, Mbps or Gbps. Weather, Mac temperature and Speed Test can sit in the menu bar too, on by default on Macs without a Touch Bar. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet and appear at the top center, under the menu bar or the notch, so they never cover Apple's notification banners. You choose which ones appear and for how long (1 to 15 seconds).
+Mouse Jiggler keeps your Mac awake and your status active: it moves the pointer after 10 seconds without input (or the time you choose) and rests while the Mac is locked. Keep Awake stops the Mac from sleeping without moving the pointer; it turns off when you lock. Lock Screen locks your Mac at once. Speed Test shows download, upload and latency in kbps, Mbps or Gbps. Weather, Mac temperature and Speed Test can sit in the menu bar too, on by default on Macs without a Touch Bar. Every item has its own shortcut, and status dots show what is on. Alerts are small and quiet and appear at the top center, under the menu bar or the notch, so they never cover Apple's notification banners. You choose which ones appear and for how long (1 to 15 seconds).
 
 ### Settings
-One window in the style of System Settings: turn any module on or off and give it its own shortcut. Penknife opens at login (you can turn that off) and follows your system language, English or Spanish.
+One window in the style of System Settings: turn any module on or off and give it its own shortcut. Penknife opens at login (you can turn that off) and follows your system language, English or Spanish. Settings › General › Settings File saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, and imports them on another Mac.
 
 <img src="docs/screenshots/settings.png" alt="Penknife Settings">
 

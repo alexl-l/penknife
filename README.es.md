@@ -32,6 +32,8 @@ Cada parte es un módulo. Desactiva lo que no necesites y no gastará CPU ni mem
 <h3>Silenciar el micrófono en reuniones</h3>
 Un atajo silencia la reunión en la que estás: Teams, Google Meet, Zoom, Slack Huddles o Webex. Solo cuentan las apps con una llamada en curso, y cada una usa su propio atajo, que puedes editar en Ajustes. Sin llamada, silencia el micrófono del Mac. El icono y el punto de estado muestran siempre el estado real.
 
+Mantén para hablar: con el micrófono silenciado, mantén pulsado el atajo (F5) o el botón del micrófono de la Touch Bar para hablar, y suéltalo para volver a silenciar. También funciona en llamadas (Ajustes › Micrófono). Puedes silenciar además al bloquear el Mac.
+
 Silenciado se queda silenciado: si "Oye Siri" abre el micrófono del Mac porque el Mac ha reproducido un sonido, Penknife lo vuelve a silenciar en un momento ("Mantener el micrófono silenciado" en Ajustes, activado por defecto).
 
 Opcional, desactivado por defecto: si al activar el micrófono en Teams con el atajo, Teams te pide consentimiento, Penknife puede aceptarlo por ti. Sigues siendo responsable del consentimiento; consulta la política de tu empresa. Penknife no está afiliado a Microsoft.
@@ -46,7 +48,7 @@ Opcional, desactivado por defecto: si al activar el micrófono en Teams con el a
 <td width="50%" valign="top">
 <img src="docs/screenshots/screenshot-editor.jpg" alt="Editor de capturas">
 <h3>Capturas y grabación de pantalla</h3>
-Pulsa F1, selecciona un área o una ventana (con Espacio), márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. Pega el resultado en una carpeta del Finder como archivo. No se sube nada a internet.
+Pulsa F1, selecciona un área o una ventana (con Espacio), márcala con flechas, líneas, texto, resaltador, formas, lápiz y desenfoque, y copia o guarda. Después puedes mover, cambiar de tamaño o borrar cualquier marca. Fíjala sobre tus ventanas (⌘P), toma un color con una lupa (I) o copia el texto que contiene. Pega el resultado en una carpeta del Finder como archivo. No se sube nada a internet.
 
 Graba toda la pantalla, un área o una ventana como vídeo o GIF (⌃⌥R), o mantén pulsado el atajo de Captura de pantalla (F1) 2 segundos, elige un área y empieza a grabar. Dibuja mientras grabas, con el sonido del Mac y tu micrófono si quieres, y recorta el principio y el final y elige una velocidad (1×, 1,5×, 2× o 4×) antes de guardar.
 </td>
@@ -63,6 +65,16 @@ Graba o escribe una secuencia de pasos (teclas, texto, esperas, archivos, valore
 
 <img src="docs/screenshots/macros.gif" width="720" alt="Abrir el panel de Macros y ejecutar una macro que rellena filas desde su tabla de datos">
 
+### Fija una captura
+Pulsa Fijar (⌘P) en el editor y la captura flota sobre todas las ventanas, en una esquina de la pantalla. Puedes tener varias, moverlas, cambiar su tamaño arrastrando los bordes, con el gesto de pellizco o con el scroll, y hacer doble clic en una para editar sus marcas otra vez.
+
+<img src="docs/screenshots/pin.gif" width="720" alt="Se fija un área capturada: se desliza a una esquina de la pantalla y después cambia de tamaño">
+
+### Toma cualquier color de la pantalla
+Pulsa I en la superposición de captura, o usa su propio atajo. Una lupa redonda sigue al puntero; haz clic y se copia el hex exacto del píxel.
+
+<img src="docs/screenshots/color-picker.gif" width="720" alt="La lupa se mueve sobre los colores de la pantalla mostrando cada código hex, y un clic lo copia">
+
 ### Dibuja mientras grabas
 Arrastra una zona, o pulsa Espacio y haz clic en una ventana, o pulsa Intro para toda la pantalla: la grabación empieza tras un 3-2-1. Tus marcas aparecen en el archivo y se quedan o se desvanecen pasado el tiempo que elijas.
 
@@ -74,10 +86,10 @@ Elige 1,5×, 2× o 4× en la ventana de la grabación. La vista previa, el víde
 <img src="docs/screenshots/recording-speed.gif" width="720" alt="La ventana de la grabación: se abre el menú de velocidad, se elige 2× y la duración pasa de 0:14 a 0:07">
 
 ### Y en la barra de menús
-Mover ratón mantiene el Mac despierto y tu estado activo: mueve el puntero tras 10 segundos sin actividad (o el tiempo que elijas) y descansa con el Mac bloqueado. Bloquear pantalla bloquea el Mac al momento. Prueba de velocidad muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y Prueba de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
+Mover ratón mantiene el Mac despierto y tu estado activo: mueve el puntero tras 10 segundos sin actividad (o el tiempo que elijas) y descansa con el Mac bloqueado. Mantener despierto evita que el Mac se suspenda sin mover el puntero; se desactiva al bloquear. Bloquear pantalla bloquea el Mac al momento. Prueba de velocidad muestra bajada, subida y latencia en kbps, Mbps o Gbps. El tiempo, la temperatura del Mac y Prueba de velocidad también pueden estar en la barra de menús, activados por defecto en Macs sin Touch Bar. Cada opción tiene su propio atajo y unos puntos de estado muestran lo que está activado. Los avisos son discretos y aparecen arriba en el centro, bajo la barra de menús o el notch, así que nunca tapan las notificaciones de Apple. Tú eliges cuáles aparecen y cuánto duran (de 1 a 15 segundos).
 
 ### Ajustes
-Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo. Penknife se abre al iniciar sesión (puedes desactivarlo) y sigue el idioma del sistema, español o inglés.
+Una sola ventana al estilo de Ajustes del Sistema: activa o desactiva cada módulo y dale su propio atajo. Penknife se abre al iniciar sesión (puedes desactivarlo) y sigue el idioma del sistema, español o inglés. Ajustes › General › Archivo de ajustes guarda tus ajustes, atajos, Touch Bar, elementos fijados y macros en un solo archivo, y los importa en otro Mac.
 
 <img src="docs/screenshots/settings.png" alt="Ajustes de Penknife">
 
