@@ -3,6 +3,19 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.20</title>
+            <pubDate>Mon, 23 Nov 2026 12:58:42 -0500</pubDate>
+            <sparkle:version>399</sparkle:version>
+            <sparkle:shortVersionString>1.20</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Turn off at.** A new row in Settings › Mouse Jiggler, with a time and a switch. It is off by default and the time is 6:00 PM. Every day at that time the jiggler turns itself off and shows "Mouse Jiggler off — Scheduled time". If you turn it on after that time, it stays on until the same time the next day. If the Mac is asleep then, it turns off when the Mac wakes. No network and no background polling.</li>
+<li>**Return step.** The Add Step menu has a Return item that adds a Key step with ↩ already set. Before, you added a Key step and then recorded Return.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.20/Penknife-1.20.zip" length="8457181" type="application/octet-stream" sparkle:edSignature="0b1Nwk+H2ih7stejf2CBFpV8Fan9YIGCsN1Jo91nhmVs3FmUq8sHD7TTQ6RKTI26j8Dh3yHx0CEtvIwbFJncCg=="/>
+        </item>
+        <item>
             <title>1.19</title>
             <pubDate>Mon, 23 Nov 2026 12:07:35 -0500</pubDate>
             <sparkle:version>385</sparkle:version>
@@ -28,20 +41,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.18/Penknife-1.18.zip" length="8371645" type="application/octet-stream" sparkle:edSignature="oHreyHwYEMlwixooV1T/h+eJJkChzF1vVe8BizLN508/X9JGsbw0ID47ebHWXMd60vry9fka4Q80AZhguyCxBw=="/>
-        </item>
-        <item>
-            <title>1.17</title>
-            <pubDate>Mon, 23 Nov 2026 10:48:23 -0500</pubDate>
-            <sparkle:version>371</sparkle:version>
-            <sparkle:shortVersionString>1.17</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Emoji search in the icon editor.** For macros and pinned clipboard items. Type a word in English, such as "smile", then click an emoji or press Return. The list comes from macOS, so new emojis arrive with macOS updates. Flags, skin tones and professions are still in the Emoji & Symbols button, without searching. macOS's own search couldn't hand the chosen emoji back to a menu bar app.</li>
-<li>**Macro editor.** Choosing an item in Clipboard History pastes it into the field you were typing in, with no ⌘V. An emoji picked in Emoji & Symbols is set the first time. Clicking outside a text or time field takes the focus away. Emoji icons are no longer clipped in the macro list.</li>
-<li>**Clipboard.** After you close a pin's icon editor, typing searches the history again.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.17/Penknife-1.17.zip" length="8345956" type="application/octet-stream" sparkle:edSignature="9P21/HJAJgDP5RQIy+KXBTNHMYLAGlzAjrf4fuRdt+A1ntWytxUcSdqdJKm0sI2KrrxEy8klwWIAM39MxJyFCQ=="/>
         </item>
     </channel>
 </rss>
