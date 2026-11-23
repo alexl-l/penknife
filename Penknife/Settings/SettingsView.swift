@@ -645,6 +645,7 @@ private struct MeetingOptions: View {
     @AppStorage(TeamsConsent.enabledKey) private var teamsConsent = false
     @AppStorage(MicrophoneModule.keepMutedKey) private var keepMuted = true
     @AppStorage(MicrophoneModule.muteOnLockKey) private var muteOnLock = false
+    @AppStorage(MicrophoneModule.holdToTalkKey) private var holdToTalk = true
     @State private var confirmTeamsConsent = false
 
     var body: some View {
@@ -678,6 +679,12 @@ private struct MeetingOptions: View {
             Toggle("Mute the Mac's microphone too", isOn: $alsoMuteMac)
         } footer: {
             Text("When you press the shortcut, the meeting and the Mac's microphone are muted together. Turn off to mute only the meeting. With no meeting, the Mac's microphone is muted.")
+        }
+        // R-41: on by default; a tap still toggles.
+        Section {
+            Toggle("Hold to talk", isOn: $holdToTalk)
+        } footer: {
+            Text("While muted, hold the shortcut or the Touch Bar button to talk. Let go and it mutes again.")
         }
         // R-34 (designer + growth review, 2026-11-17): on by default; the Siri note only when
         // "Hey Siri" is on, stating the fact, with a way to change it.

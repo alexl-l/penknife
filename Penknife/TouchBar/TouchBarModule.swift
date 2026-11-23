@@ -283,6 +283,9 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         }
         screenshotHold = nil
         updateScreenshotHold()
+        endMicrophoneHold()
+        microphoneHold = nil
+        updateMicrophoneHold()
         barView.button(Item.lock.rawValue)?.show(symbol: "lock.fill", label: String(localized: "Lock Screen"))
         updateSources()
         updateBrightness()
@@ -304,7 +307,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         case .brightness: { [weak self] in self?.openSlider($0, DisplayBrightness(), String(localized: "Brightness")) }
         case .keyboardLight: { [weak self] in self?.openSlider($0, KeyboardBrightness(), String(localized: "Keyboard backlight")) }
         case .jiggler: { [weak self] _ in self?.jigglerTapped() }
-        case .microphone: { [weak self] _ in self?.run(.microphone) }
+        case .microphone: { [weak self] _ in self?.microphoneTapped() }
         case .screenshot: { [weak self] _ in self?.screenshotTapped() }
         case .lock: { [weak self] _ in self?.run(.lockScreen) }
         case .music: { [weak self] _ in self?.music.tap() }
@@ -346,6 +349,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         if mono != barView.monochromeColor { barView.monochromeColor = mono }
         if BarLayout.visible(isOn: isOn) != shownItems { rebuildButtons() }
         updateScreenshotHold()
+        updateMicrophoneHold()
         let player = MusicPlayer.current.id
         if player != playerID {
             playerID = player
@@ -768,6 +772,56 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             screenshotLongPressing = false
             screenshotLongPressEnded = Date()
             button?.show(symbol: "camera.viewfinder", label: String(localized: "Screenshot"))
+        default: break
+        }
+    }
+
+    /// R-41 hold to talk on the microphone button; follows the Settings switch at once.
+    private var microphoneHold: NSPressGestureRecognizer?
+    private var microphoneLongPressEnded = Date.distantPast
+    private var microphoneLongPressing = false
+
+    private func updateMicrophoneHold() {
+        guard let button = barView?.button(Item.microphone.rawValue) else { return }
+        let on = MicrophoneModule.holdToTalk(in: .standard)
+        guard on != (microphoneHold != nil) else { return }
+        if let microphoneHold { button.removeGestureRecognizer(microphoneHold) }
+        microphoneHold = nil
+        endMicrophoneHold()
+        button.setAccessibilityHelp(nil)
+        button.showsHold(on ? MicrophoneModule.holdToTalkSeconds : nil)
+        guard on else { return }
+        let press = NSPressGestureRecognizer(target: self, action: #selector(microphoneLongPressed(_:)))
+        press.allowedTouchTypes = .direct
+        press.minimumPressDuration = MicrophoneModule.holdToTalkSeconds
+        button.addGestureRecognizer(press)
+        button.setAccessibilityHelp(String(localized: "Hold to talk"))
+        microphoneHold = press
+    }
+
+    /// A hold whose end never arrives (the button was rebuilt) must not leave the mic open.
+    private func endMicrophoneHold() {
+        guard microphoneLongPressing else { return }
+        microphoneLongPressing = false
+        microphone.talkEnd()
+        updateMicrophone()
+    }
+
+    private func microphoneTapped() {
+        guard Self.tapAllowed(holding: microphoneLongPressing, holdEnded: microphoneLongPressEnded, now: Date()) else { return }
+        run(.microphone)
+    }
+
+    @objc private func microphoneLongPressed(_ recognizer: NSPressGestureRecognizer) {
+        switch recognizer.state {
+        case .began:
+            microphoneLongPressing = true
+            barView?.button(Item.microphone.rawValue)?.holdFired()
+            microphone.talkStart()
+            updateMicrophone()
+        case .ended, .cancelled, .failed:
+            endMicrophoneHold()
+            microphoneLongPressEnded = Date()
         default: break
         }
     }

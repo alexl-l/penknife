@@ -98,6 +98,8 @@ struct ModuleAction {
     /// Holding the shortcut this long runs `onHold` instead of `perform` (O-33); nil = no hold.
     var holdDelay: (() -> TimeInterval?)? = nil
     var onHold: (() -> Void)? = nil
+    /// The release after `onHold` ran (R-41 hold to talk); nil = the release does nothing.
+    var onHoldEnd: (() -> Void)? = nil
     let perform: () -> Void
 }
 

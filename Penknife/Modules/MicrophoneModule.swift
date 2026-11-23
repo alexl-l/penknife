@@ -50,7 +50,64 @@ final class MicrophoneModule: Module {
         [ModuleAction(shortcut: .toggleMicrophone, title: String(localized: "Mute Microphone"), symbol: "mic.slash",
                       state: { [weak self] in self?.showsMuted ?? false },
                       isAvailable: { [weak self] in self?.hasInput ?? true },
+                      holdDelay: { Self.holdToTalk(in: .standard) ? Self.holdToTalkSeconds : nil },
+                      onHold: { [weak self] in self?.talkStart() },
+                      onHoldEnd: { [weak self] in self?.talkEnd() },
                       perform: { [weak self] in self?.toggle() })]
+    }
+
+    // MARK: Hold to talk (R-41)
+
+    static let holdToTalkKey = "microphone.holdToTalk"
+    /// How long the shortcut or the Touch Bar button must be held before the mic opens.
+    static let holdToTalkSeconds: TimeInterval = 0.4
+    /// On by default: a tap still toggles as before; only a hold changes.
+    static func holdToTalk(in defaults: UserDefaults) -> Bool { defaults.object(forKey: holdToTalkKey) as? Bool ?? true }
+
+    /// Where a hold is: `opening` while its first press runs (`released` = the key was let go
+    /// meanwhile), `open` while the user talks, `idle` otherwise.
+    enum TalkPhase: Equatable { case idle, opening(released: Bool), open }
+    private(set) var talkPhase = TalkPhase.idle
+
+    /// What a hold does when it starts: muted → open it and mute again on release; open → a
+    /// plain toggle (it mutes, the release does nothing).
+    static func talkStartPhase(muted: Bool) -> TalkPhase { muted ? .opening(released: false) : .idle }
+
+    /// After the hold's first press: nothing changed (Siri listening, no microphone) → idle and
+    /// the release does nothing; released meanwhile → mute now; else the mic stays open.
+    static func talkAfterOpen(_ phase: TalkPhase, changed: Bool) -> (phase: TalkPhase, muteNow: Bool) {
+        guard case .opening(let released) = phase else { return (phase, false) }
+        guard changed else { return (.idle, false) }
+        return released ? (.idle, true) : (.open, false)
+    }
+
+    /// The release: open → mute now; still opening → mute once the first press is done.
+    static func talkRelease(_ phase: TalkPhase) -> (phase: TalkPhase, muteNow: Bool) {
+        switch phase {
+        case .idle: (.idle, false)
+        case .opening: (.opening(released: true), false)
+        case .open: (.idle, true)
+        }
+    }
+
+    func talkStart() {
+        talkPhase = Self.talkStartPhase(muted: isMuted)
+        log.notice("Hold to talk: \(self.talkPhase == .idle ? "mic open, toggling" : "opening", privacy: .public)")
+        toggle { [weak self] changed in
+            guard let self else { return }
+            let next = Self.talkAfterOpen(self.talkPhase, changed: changed)
+            self.talkPhase = next.phase
+            if next.muteNow { self.toggle() }
+        }
+    }
+
+    func talkEnd() {
+        let next = Self.talkRelease(talkPhase)
+        talkPhase = next.phase
+        if next.muteNow {
+            log.notice("Hold to talk: released, muting")
+            toggle()
+        }
     }
 
     private let meetings = MeetingTracker()
@@ -209,22 +266,28 @@ final class MicrophoneModule: Module {
     /// Mutes the current meeting (the one in front, or the last one used) with its own shortcut;
     /// with no meeting, or when the setting asks for it, also the Mac's microphone (R-28).
     /// What a press does is decided by `route`, `afterSend` and `macGate` (tested).
-    func toggle() {
+    /// `then` runs once the press is done (the meeting's own session too), with whether it
+    /// changed anything (R-41: a hold mutes again only after its first press is over).
+    func toggle(then: (@MainActor (Bool) -> Void)? = nil) {
         meetings.findCurrent { [weak self] target in
-            guard let self else { return }
+            guard let self else { then?(false); return }
             let alsoMac = Self.alsoMuteMac
             let route = Self.route(meeting: target.map { ($0.platform, $0.isBrowser) },
                                    axGranted: Permissions.shared.ensureAccessibility(),
                                    alsoMac: alsoMac, teamsConsent: TeamsConsent.isEnabled)
             switch route {
-            case .mac: self.toggleMac()
-            case .nothing: HUD.shared.showPermissionNeeded(.microphone) // O-3, MIC-36
-            case .meeting(let how): if let target { self.press(target, how, alsoMac: alsoMac) }
+            case .mac: then?(self.toggleMac())
+            case .nothing:
+                HUD.shared.showPermissionNeeded(.microphone) // O-3, MIC-36
+                then?(false)
+            case .meeting(let how):
+                if let target { self.press(target, how, alsoMac: alsoMac, then: then) } else { then?(false) }
             }
         }
     }
 
-    private func press(_ target: MeetingTracker.Target, _ how: MeetingPress, alsoMac: Bool) {
+    private func press(_ target: MeetingTracker.Target, _ how: MeetingPress, alsoMac: Bool,
+                       then: (@MainActor (Bool) -> Void)?) {
         log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
         let macMuted = isMuted
         let send: @MainActor () -> Void = { [weak self] in self?.meetings.send(to: target) }
@@ -242,32 +305,36 @@ final class MicrophoneModule: Module {
         case .teamsConsent:
             // R-31: one Accessibility session reads the call, sends the shortcut and answers
             // the consent alert that an unmute opens.
-            TeamsConsent.press(target.app, send: send, sent: after)
+            TeamsConsent.press(target.app, send: send, sent: after, finished: { then?(true) })
         case .readAndSend:
             meetings.readMuted(target) { appMuted in
                 send()
                 after(appMuted)
+                then?(true)
             }
         case .sendOnly:
             send()
             after(nil)
+            then?(true)
         }
     }
 
-    private func toggleMac() {
+    private func toggleMac() -> Bool {
         setMac(muted: Self.newMacMuted(appMuted: nil, macMuted: isMuted))
     }
 
-    private func setMac(muted mute: Bool) {
+    /// Returns whether the microphone was changed (or already as asked).
+    @discardableResult
+    private func setMac(muted mute: Bool) -> Bool {
         let device: AudioObjectID
         switch Self.macGate(siriListening: Self.isSiriListening, device: Self.defaultInputDevice()) {
         case .siriListening:
             log.notice("Toggle ignored: Siri is listening")
-            return
+            return false
         case .noDevice:
             HUD.shared.show(String(localized: "No microphone"), detail: String(localized: "Connect one to mute it"),
                             symbol: "mic.slash", kind: .error, category: .microphone)
-            return
+            return false
         case .write(let input):
             device = input
         }
@@ -284,13 +351,14 @@ final class MicrophoneModule: Module {
         if plan.write == .nothing {
             HUD.shared.show(String(localized: "This microphone can't be muted"),
                             symbol: "exclamationmark.triangle.fill", kind: .error, category: .microphone)
-            return
+            return false
         }
         if mute {
             HUD.shared.show(String(localized: "Microphone muted"), symbol: "mic.slash.fill", kind: .off, category: .microphone)
         } else {
             HUD.shared.show(String(localized: "Microphone unmuted"), symbol: "mic.fill", kind: .on, category: .microphone)
         }
+        return true
     }
 
     // MARK: Press rules (S1: plain values in, decision out; PenknifeTests checks them)

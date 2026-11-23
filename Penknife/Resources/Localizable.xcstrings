@@ -911,6 +911,26 @@
         }
       }
     },
+    "Hold to talk": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener para hablar"
+          }
+        }
+      }
+    },
+    "While muted, hold the shortcut or the Touch Bar button to talk. Let go and it mutes again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Con el micrófono silenciado, mantén el atajo o el botón de la Touch Bar para hablar. Al soltar, se silencia de nuevo."
+          }
+        }
+      }
+    },
     "Mute when the Mac locks": {
       "localizations": {
         "es": {

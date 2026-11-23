@@ -67,7 +67,8 @@ nonisolated enum TeamsConsent {
     /// `sent` gets the call's mic state read before the press (nil = unreadable), on the main
     /// thread, right after the first press.
     @MainActor static func press(_ app: NSRunningApplication, send: @escaping @MainActor () -> Void,
-                                 sent: @escaping @MainActor (Bool?) -> Void) {
+                                 sent: @escaping @MainActor (Bool?) -> Void,
+                                 finished: (@MainActor () -> Void)? = nil) {
         let pid = app.processIdentifier
         let chromium = MeetingTracker.isChromium(app)
         let previousApp = NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -185,6 +186,7 @@ nonisolated enum TeamsConsent {
                 }
             }
             let ms = Int(Date().timeIntervalSince(start) * 1000)
+            if let finished { DispatchQueue.main.async { MainActor.assumeIsolated { finished() } } }
             log.notice("Teams dialog: \(outcome ?? "no alert shown", privacy: .public) via \(via, privacy: .public)\(broughtForward ? ", Teams brought forward" : "", privacy: .public)\(openBefore > 0 ? ", \(openBefore) open before ignored" : "", privacy: .public) (\(ms) ms)")
         }
     }

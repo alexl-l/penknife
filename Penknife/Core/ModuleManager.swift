@@ -122,8 +122,9 @@ final class ModuleManager {
         let name = action.shortcut.rawValue
         holdTimers.removeValue(forKey: name)?.invalidate()
         if held.remove(name) != nil {
-            // O-33: the hold already ran; this release (and its Fn twin) does nothing.
+            // O-33: the hold already ran; this release (and its Fn twin) only ends it (R-41).
             lastHotKey[name] = (fn, now)
+            action.onHoldEnd?()
             return
         }
         guard Self.shouldRun(last: lastHotKey[name], fn: fn, now: now) else { return }

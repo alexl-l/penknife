@@ -729,4 +729,32 @@ struct MicrophoneRulesTests {
         module.stop()
         #expect(!module.holdsObservers)
     }
+
+    // MIC-89…92 (R-41): hold to talk. On by default; a hold on a muted mic opens it and the release
+    // mutes it again, once the first press is over; on an open mic it is a plain toggle.
+    @Test("MIC-89 MIC-90 MIC-91 hold to talk")
+    func holdToTalk() throws {
+        typealias M = MicrophoneModule
+        let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))
+        #expect(M.holdToTalk(in: empty))
+        #expect(M.holdToTalkSeconds == 0.4)
+        #expect(M.talkStartPhase(muted: true) == .opening(released: false))
+        #expect(M.talkStartPhase(muted: false) == .idle)
+        // The first press is done.
+        #expect(M.talkAfterOpen(.opening(released: false), changed: true) == (.open, false))
+        #expect(M.talkAfterOpen(.opening(released: true), changed: true) == (.idle, true))
+        #expect(M.talkAfterOpen(.opening(released: true), changed: false) == (.idle, false)) // Siri, no mic
+        #expect(M.talkAfterOpen(.idle, changed: true) == (.idle, false))
+        // The release.
+        #expect(M.talkRelease(.open) == (.idle, true))
+        #expect(M.talkRelease(.opening(released: false)) == (.opening(released: true), false))
+        #expect(M.talkRelease(.idle) == (.idle, false))
+    }
+
+    @Test("MIC-89 the shortcut's hold follows the setting")
+    func holdToTalkSetting() throws {
+        let action = try #require(MicrophoneModule().actions.first)
+        #expect(action.onHold != nil)
+        #expect(action.onHoldEnd != nil)
+    }
 }

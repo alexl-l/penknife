@@ -15,7 +15,7 @@ Count (2026-11-18, after S6 and the Touch Bar S2): 85 rules = 35 auto (all teste
 
 - **MIC-01** The same toggle runs from three places: the global shortcut "Mute Microphone" (default F5, editable in Settings › Shortcuts), the menu item "Mute Microphone" (checkmark on while the mic shows muted when the menu opens, MIC-40), and the Touch Bar mic button.
   Source: R-3; R-28 (11-16); menu checkmark code only · Code: MM:actions, Core/ModuleManager.swift:init/run, App/StatusMenu.swift (menu build), TouchBar/TouchBarModule.swift:run · Verify: manual — press F5, use the menu item, tap the Touch Bar button; each flips the mic.
-- **MIC-02** One press = one action: the shortcut runs on key release (once even when held); a bare F key's Fn twin arriving < 0.1 s after the same press is dropped; Touch Bar and menu presses always run; no de-dup window between real presses.
+- **MIC-02** One press = one action: the shortcut runs on key release (once even when held; with Hold to talk on, a hold ≥ 0.4 s is MIC-90 instead); a bare F key's Fn twin arriving < 0.1 s after the same press is dropped; Touch Bar and menu presses always run; no de-dup window between real presses.
   Source: D: One press = one action (11-16) · Code: ModuleManager:runHotKey, shouldRun, run · Verify: **auto, tested** (S6) — `shouldRun(last:fn:now:)`: no last → true; same twin 0.05 s later → true; other twin 0.05 s → false; other twin 0.2 s → true (the exact 0.1 s edge is not tested: date rounding); key release and holding stay manual (press and hold F5 → one toggle).
 - **MIC-03** With no call found (MIC-09), a press sets the Mac's default input to the opposite of its current real state (MIC-63).
   Source: R-28 (11-16) "No call → the Mac's microphone toggles" · Code: MM:toggle → toggleMac → setMac · Verify: **auto, tested** (S1) — `route(meeting: nil)` → `.mac` whatever the settings; `newMacMuted(appMuted: nil, macMuted:)` = the opposite.
@@ -234,6 +234,17 @@ Count (2026-11-18, after S6 and the Touch Bar S2): 85 rules = 35 auto (all teste
   Source: R-37 · Code: MM:lockWrite, muteForLock · Verify: **auto** — test "MIC-86 MIC-87" (`lockWrite`); manual — option on, mic open, F6, unlock: the Touch Bar shows the mic muted; log `Muted: the Mac locked`.
 - **MIC-88** Cost: the lock notification is listened to only while the module AND the option are on; nothing else runs (MIC-08, R-15).
   Source: R-11, R-15 · Code: MM:updateLockObserver, stop, holdsObservers · Verify: code — `lockObserver` added only when `muteOnLock`, removed in `stop`.
+
+### Q. Hold to talk (R-41)
+
+- **MIC-89** Setting "Hold to talk" / "Mantener para hablar", ON by default (`microphone.holdToTalk`), its own section right after "Mute the Mac's microphone too", footer "While muted, hold the shortcut or the Touch Bar button to talk. Let go and it mutes again." Off: the shortcut runs once on release however long it is held (MIC-02 as before) and the Touch Bar button has no hold.
+  Source: R-41 · Code: MM:holdToTalkKey, holdToTalk(in:), actions; SV:MeetingOptions · Verify: **auto** — test "MIC-89 MIC-90 MIC-91" (on in an empty suite), "MIC-89 the shortcut's hold"; manual — Settings › Microphone shows it.
+- **MIC-90** Holding the Mute Microphone shortcut (both Fn twins share one hold, O-33) or the Touch Bar mic button for 0.4 s (the button fills while held, O-34) runs one press (the same as a tap: the Mac or the call, MIC-03…MIC-37). If the mic read muted when the hold started, letting go runs a second press, which mutes it again; if it read open, the hold just mutes it and the release does nothing. A shorter press is a tap (toggle on release). The Touch Bar's tap after a hold is ignored (TB-12 guard).
+  Source: R-41 · Code: MM:talkStart, talkEnd, talkStartPhase, talkRelease; ModuleManager:runHotKey (onHoldEnd); TBM:microphoneLongPressed, updateMicrophoneHold · Verify: **auto** — test "MIC-89 MIC-90 MIC-91"; manual — muted, hold F5 2 s: "Microphone unmuted", let go: "Microphone muted".
+- **MIC-91** The release's press waits until the first press is over (the meeting read, and the whole Teams consent session, R-31), so the two never overlap; a first press that changed nothing (Siri listening MIC-39, no microphone MIC-06, no permission MIC-36) leaves nothing to undo and the release does nothing.
+  Source: R-41 (Teams consent clash, product idea #2) · Code: MM:toggle(then:), talkAfterOpen; TeamsConsent.press(finished:) · Verify: **auto** — `talkAfterOpen`; log — `Hold to talk: opening`, then `Hold to talk: released, muting`.
+- **MIC-92** A Touch Bar hold whose end never arrives (the bar rebuilt, the setting turned off) ends the hold, so the mic is never left open by a lost release.
+  Source: R-41 · Code: TBM:endMicrophoneHold · Verify: code.
 
 ## 2. Open decisions, questions and known bugs
 

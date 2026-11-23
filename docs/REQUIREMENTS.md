@@ -419,13 +419,17 @@ Noted only, nothing designed or built. Each one goes through clarify → require
 
 **R-40 Pin a screenshot on screen** — approved 2026-11-23 (user: "Eso me gusta"; then "sip" to the edit/copy proposal; product idea #3). A new Pin button in the screenshot toolbar, next to Copy / Copy Text / Save, with its own key. It closes the editor and leaves the image (marks included) floating where it was taken, above every window, like a sticky note; it can be moved, resized and closed (Esc or a ✕ on hover). Asked by the user: "Y si quiero abrirla para volverla a editar o copiar se puede?" → double-click reopens the editor with the marks still editable (copy, save, record or pin again from there); right-click menu Copy, Copy Text, Save, Edit, Close; ⌘C with the pointer over it copies. Rules SS-67…72 in `requirements/screenshot.md`. Not coded yet: design review first.
 
+**R-41 Hold to talk** — approved 2026-11-23 (user: "sip" to "push to talk" as the next idea; then "puedes trabajar en estas dos cosas y hacer la versión de release … mañana pruebo el botón de mantener"). Details decided by Claude while the user slept (they test them 2026-11-24): with the mic muted, holding the Mute Microphone shortcut (F5) or the Touch Bar mic button 0.4 s opens it, letting go mutes it again; a tap toggles as before; holding an open mic just mutes it. Works in calls too (the same press as a tap, twice; the release waits for the first press, the Teams consent session included). Setting "Hold to talk", ON by default, Settings › Microphone. Rules MIC-89…92 in `requirements/microphone.md`.
+
+**R-42 Export/import settings** — approved 2026-11-23 (same message; product idea #5). See `requirements/general.md`.
+
 ## Product ideas (product-ideas agent, 2026-11-22; user: "go" to start with #1)
 Improvements to what exists, most useful first:
 1. **Screenshot → "Copy text"**: APPROVED as R-36 (below).
-2. **Microphone → push to talk**: while muted, holding F5 opens the mic; releasing mutes again. Medium; may clash with the Teams consent alert.
+2. **Microphone → push to talk**: while muted, holding F5 opens the mic; releasing mutes again. Medium; may clash with the Teams consent alert. BUILT 2026-11-23 as R-41.
 3. **Screenshot → pin on screen**: the capture floats above everything. Small/medium. APPROVED 2026-11-23 as R-40.
 4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small. BUILT 2026-11-22 as R-38 (screenshot.md SS-63…66).
-5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium.
+5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium. APPROVED 2026-11-23 as R-42.
 6. **Lock → mute the mic when locking**: APPROVED as R-37.
 New ideas: **Keep awake** (BUILT 2026-11-22 as R-39) (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (REJECTED 2026-11-23, see below); **Mic-open warning** when a call ends (REJECTED 2026-11-23, see below).
 
