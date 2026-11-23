@@ -1,4 +1,5 @@
 import AppKit
+import os
 import KeyboardShortcuts
 import Observation
 
@@ -151,7 +152,10 @@ final class ModuleManager {
         for action in actions {
             let name = action.shortcut.rawValue
             holdTimers.removeValue(forKey: name)?.invalidate()
-            if held.remove(name) != nil { action.onHoldEnd?() }
+            if held.remove(name) != nil {
+                Logger(subsystem: "Penknife", category: "Shortcuts").notice("Hold ended without its release: \(name, privacy: .public)")
+                action.onHoldEnd?()
+            }
         }
     }
 

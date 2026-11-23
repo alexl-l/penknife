@@ -200,3 +200,5 @@ One IOKit assertion `PreventUserIdleDisplaySleep` (as `caffeinate -d`) held whil
 
 ## Battery bolt (TB-16, 2026-11-23)
 - `kIOPSIsChargingKey` turns true ~10 s after plugging in (macOS says "AC attached; not charging" meanwhile); `kIOPSPowerSourceStateKey == AC Power` changes at once. The bolt now follows either.
+- **Optional closure calls skip their arguments (R-41, 2026-11-23)**: `then?(toggleMac())` does NOT run `toggleMac()` when `then` is nil, so every plain F5 tap did nothing in build 356 (QA caught it on the real Mac; unit tests only checked the pure rules). Compute the value first, then `then?(value)`. Hold to talk ends every hold that can lose its release (hotkeys paused for a menu, module off, Touch Bar stop) and the release asks for "muted" instead of toggling (security review).
+- **Export into protected folders (R-42, 2026-11-23)**: the save panel grants access to the chosen file only; a temporary file + rename next to it failed in ~/Documents. The export is written in place with `open(O_CREAT|O_TRUNC, 0600)`; the staged import inside Application Support keeps the temp + rename.
