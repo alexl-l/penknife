@@ -38,7 +38,7 @@ final class MacroEditorWindow: NSWindow, NSWindowDelegate {
                    backing: .buffered, defer: false)
         title = String(localized: "Macros")
         isReleasedWhenClosed = false
-        minSize = NSSize(width: 620, height: 420)
+        minSize = NSSize(width: 680, height: 420) // narrower cut the detail on the right (QA 2026-11-23)
         delegate = self
         // The window keeps the size the user gave it: without this the hosting controller grows
         // it to the content's ideal size (the Data tab's text view made it fill the screen).
