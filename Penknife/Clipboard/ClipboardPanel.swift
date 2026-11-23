@@ -71,14 +71,16 @@ final class ClipboardPanelModel {
     var hidden: Set<ClipItem.ID>
     var query = "" {
         didSet {
+            // The search field writes the same text back when it loses the keyboard (an editor
+            // popover opening): that must not move the selection to the first row.
+            guard query != oldValue else { return }
             selectFirst()
             let count = rows.count
             announce(count == 0 ? String(localized: "No results") : String(localized: "\(count) results"))
         }
     }
     var selection: ClipItem.ID?
-    /// The pinned item whose icon editor is open (CB-33); the panel stays open meanwhile.
-    /// The pinned item whose editor (icon or value) is open.
+    /// The pinned item whose editor (icon, CB-33, or value, CB-34) is open; the panel stays open meanwhile.
     var editingIcon: ClipItem.ID?
     var editing: PinEditor = .icon
 
@@ -384,7 +386,13 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
         }
         popover.delegate = self
         iconPopover = popover
-        popover.show(relativeTo: rect, of: hosting, preferredEdge: .maxX)
+        // SwiftUI's global frame has its origin at the top, as the (flipped) hosting view's.
+        var anchor = rect
+        if !hosting.isFlipped { anchor.origin.y = hosting.bounds.height - rect.maxY }
+        // Its real size before it shows: otherwise it is placed for a bigger first guess and then
+        // shrinks, so it ended beside the footer, not the row (QA 2026-11-22).
+        if let content = popover.contentViewController?.view { popover.contentSize = content.fittingSize }
+        popover.show(relativeTo: anchor, of: hosting, preferredEdge: .maxX)
         let window = popover.contentViewController?.view.window
         window?.makeKey()
         // The icon editor opens with nothing focused: the field takes the focus only when clicked,
@@ -815,8 +823,13 @@ struct ValueEditor: View {
             TextField("Value", text: $text, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(1...5)
+                .fixedSize(horizontal: false, vertical: true)
                 .focused($focused)
-                .onSubmit { done(text) }
+                .onSubmit {
+                    // Empty: nothing to save, and the editor stays (deleting is ⌘⌫).
+                    guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+                    done(text)
+                }
                 .accessibilityLabel("Value")
             Text("↩ Save   esc Cancel")
                 .font(.caption)
@@ -827,7 +840,11 @@ struct ValueEditor: View {
         .frame(width: 320)
         .onAppear {
             text = initial
-            DispatchQueue.main.async { focused = true }
+            // All selected, to type or paste over it (ux-ui-designer spec).
+            DispatchQueue.main.async {
+                focused = true
+                DispatchQueue.main.async { NSApp.sendAction(#selector(NSText.selectAll(_:)), to: nil, from: nil) }
+            }
         }
     }
 }
