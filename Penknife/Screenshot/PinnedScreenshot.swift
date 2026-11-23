@@ -97,18 +97,18 @@ final class PinBoard {
         let screen = NSScreen.screens.first { $0.frame.contains(center) } ?? NSScreen.main
         let target = PinPlace.current(in: defaults).frame(for: capture.frame.size, captured: capture.frame,
                                                           visible: screen?.visibleFrame ?? capture.frame,
-                                                          others: pins.filter(\.isVisible).map(\.frame))
+                                                          others: pins.filter(\.isVisible).map(\.imageFrame))
         pins.append(pin)
         pin.orderFrontRegardless()
         guard target != capture.frame else { return }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
-            pin.setFrame(target, display: true)
+            pin.setImageFrame(target)
             return
         }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            pin.animator().setFrame(target, display: true)
+            pin.animator().setFrame(target.insetBy(dx: -PinnedWindow.grab, dy: -PinnedWindow.grab), display: true)
         }
     }
 
@@ -127,15 +127,30 @@ final class PinBoard {
 final class PinnedWindow: NSPanel {
     private(set) var capture: PinnedCapture
     private let view: PinnedView
+    /// The window reaches 8 pt past the photo on every side, an invisible grab zone for resizing,
+    /// as Mac windows have (user, 2026-11-23: "los 8 pts de apple están bien, no necesito que sean
+    /// visibles").
+    static let grab: CGFloat = 8
+
+    /// Where the photo itself is (global coordinates); the window is this plus the grab zone.
+    var imageFrame: CGRect { frame.insetBy(dx: Self.grab, dy: Self.grab) }
+
+    func setImageFrame(_ rect: CGRect) {
+        setFrame(rect.insetBy(dx: -Self.grab, dy: -Self.grab), display: true)
+    }
 
     init(capture: PinnedCapture) {
         self.capture = capture
-        view = PinnedView(frame: CGRect(origin: .zero, size: capture.frame.size))
-        super.init(contentRect: capture.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        let outer = capture.frame.insetBy(dx: -Self.grab, dy: -Self.grab)
+        view = PinnedView(frame: CGRect(origin: .zero, size: outer.size))
+        super.init(contentRect: outer, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isReleasedWhenClosed = false
         isOpaque = false
         backgroundColor = .clear
-        hasShadow = true
+        // The shadow is drawn by the view around the photo: the window has a clear margin.
+        hasShadow = false
+        // Clear parts take clicks too (the grab zone), not the window below.
+        ignoresMouseEvents = false
         level = .floating
         hidesOnDeactivate = false
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
@@ -154,8 +169,8 @@ final class PinnedWindow: NSPanel {
     func update(_ capture: PinnedCapture) {
         self.capture = capture
         view.image = capture.image
-        let size = frame.size
-        setFrame(CGRect(x: capture.frame.minX, y: capture.frame.maxY - size.height, width: size.width, height: size.height), display: true)
+        let size = imageFrame.size
+        setImageFrame(CGRect(x: capture.frame.minX, y: capture.frame.maxY - size.height, width: size.width, height: size.height))
         reappear()
     }
 
@@ -165,8 +180,6 @@ final class PinnedWindow: NSPanel {
         invalidateShadow()
     }
 
-    /// The frame for a proposed size, kept in proportion, anchored at `anchor` (the corner that
-    /// doesn't move while resizing).
     /// A drag on the given sides (none = a pinch): the dragged side moves; the other axis grows
     /// away from the screen edge the pin is nearer to (user, 2026-11-23: "si lo tengo fijo abajo a
     /// la derecha, debería crecer hacia arriba y hacia la izquierda").
@@ -187,7 +200,7 @@ final class PinnedWindow: NSPanel {
         var rect = CGRect(origin: origin, size: size)
         // Never past the screen's edge: pushed back inside.
         if let v = visibleFrame { rect = PinnedCapture.inside(rect, v) }
-        setFrame(rect, display: true)
+        setImageFrame(rect)
         invalidateShadow()
     }
 
@@ -253,6 +266,7 @@ final class PinnedView: NSView {
     }
 
     private let imageLayer = CALayer()
+    private let shadowLayer = CALayer()
     private let closeButton = PinCloseButton()
     private enum Drag { case none, move, resize(left: Bool, right: Bool, bottom: Bool, top: Bool, start: CGPoint, frame: CGRect) }
     private var drag: Drag = .none
@@ -265,6 +279,12 @@ final class PinnedView: NSView {
         imageLayer.cornerCurve = .continuous
         imageLayer.masksToBounds = true
         imageLayer.borderWidth = 0.5
+        // Like a window's shadow, kept within the 8 pt margin so it isn't cut.
+        shadowLayer.shadowColor = NSColor.black.cgColor
+        shadowLayer.shadowOpacity = 0.4
+        shadowLayer.shadowRadius = 5
+        shadowLayer.shadowOffset = CGSize(width: 0, height: -2)
+        layer?.addSublayer(shadowLayer)
         layer?.addSublayer(imageLayer)
         closeButton.alphaValue = 0
         closeButton.target = self
@@ -285,12 +305,15 @@ final class PinnedView: NSView {
         super.layout()
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        imageLayer.frame = bounds
-        imageLayer.cornerRadius = min(bounds.width, bounds.height) < 40 ? 6 : 10
+        imageLayer.frame = photo
+        imageLayer.cornerRadius = min(photo.width, photo.height) < 40 ? 6 : 10
+        shadowLayer.frame = photo
+        shadowLayer.shadowPath = CGPath(roundedRect: CGRect(origin: .zero, size: photo.size), cornerWidth: imageLayer.cornerRadius,
+                                        cornerHeight: imageLayer.cornerRadius, transform: nil)
         imageLayer.contentsScale = window?.backingScaleFactor ?? 2
         CATransaction.commit()
         // 24 pt target, the 16 pt glyph still 8 pt in (designer).
-        closeButton.frame = CGRect(x: 4, y: 4, width: 24, height: 24)
+        closeButton.frame = CGRect(x: PinnedWindow.grab + 4, y: PinnedWindow.grab + 4, width: 24, height: 24)
         updateBorder()
     }
 
@@ -338,19 +361,26 @@ final class PinnedView: NSView {
     /// Resize zones (user, 2026-11-23: "el borde para hacer re-size es muy pequeño"): 12 pt along
     /// each edge and 24 pt squares at the corners, smaller on a small pin so it can still be
     /// moved. The top-left corner keeps only its edges: the ✕ sits there.
+    private var photo: CGRect { bounds.insetBy(dx: PinnedWindow.grab, dy: PinnedWindow.grab) }
+
     private var zones: (edge: CGFloat, corner: CGFloat) {
-        let short = min(bounds.width, bounds.height)
+        let short = min(photo.width, photo.height)
         return (min(12, short / 6), min(24, short / 4))
     }
 
-    /// Which sides a point drags: left, right, top, bottom (none = move).
-    private func sides(at p: CGPoint) -> (left: Bool, right: Bool, top: Bool, bottom: Bool) {
-        let (e, c) = zones, b = bounds
-        var left = p.x < e, right = p.x > b.width - e, top = p.y < e, bottom = p.y > b.height - e
-        let nearLeft = p.x < c, nearRight = p.x > b.width - c, nearTop = p.y < c, nearBottom = p.y > b.height - c
+    /// Which sides a point drags: left, right, top, bottom (none = move). Everything outside the
+    /// photo (the 8 pt grab zone) resizes, plus 12 pt inside its edges and 24 pt at its corners;
+    /// inside the photo, the top-left corner keeps only its edge: the ✕ sits there.
+    private func sides(at point: CGPoint) -> (left: Bool, right: Bool, top: Bool, bottom: Bool) {
+        let (e, c) = zones, r = photo
+        let p = CGPoint(x: point.x - r.minX, y: point.y - r.minY)
+        var left = p.x < e, right = p.x > r.width - e, top = p.y < e, bottom = p.y > r.height - e
+        let nearLeft = p.x < c, nearRight = p.x > r.width - c, nearTop = p.y < c, nearBottom = p.y > r.height - c
+        let outside = !r.contains(point)
         if nearRight && nearTop { right = true; top = true }
         if nearLeft && nearBottom { left = true; bottom = true }
         if nearRight && nearBottom { right = true; bottom = true }
+        if nearLeft && nearTop && outside { left = true; top = true }
         return (left, right, top, bottom)
     }
 
@@ -383,7 +413,7 @@ final class PinnedView: NSView {
             return
         }
         let (left, right, top, bottom) = sides(at: convert(event.locationInWindow, from: nil))
-        if (left || right || top || bottom), let frame = window?.frame {
+        if (left || right || top || bottom), let frame = pin?.imageFrame {
             drag = .resize(left: left, right: right, bottom: bottom, top: top, start: NSEvent.mouseLocation, frame: frame)
         } else {
             drag = .move
@@ -418,7 +448,7 @@ final class PinnedView: NSView {
     /// proportion, growing away from the nearer screen edges.
     override func magnify(with event: NSEvent) {
         guard let pin else { return }
-        let frame = pin.frame
+        let frame = pin.imageFrame
         let factor = max(1 + event.magnification, 0.1)
         pin.resize(to: CGSize(width: frame.width * factor, height: frame.height * factor), from: frame,
                    left: false, right: false, top: false, bottom: false)

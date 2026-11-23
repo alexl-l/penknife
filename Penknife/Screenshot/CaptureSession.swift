@@ -106,10 +106,10 @@ final class CaptureSession {
         guard !finished else { return }
         pinSource = pin
         state.fromPin = true
-        let center = CGPoint(x: pin.frame.midX, y: pin.frame.midY)
+        let center = CGPoint(x: pin.imageFrame.midX, y: pin.imageFrame.midY)
         guard let window = windows.first(where: { $0.frame.contains(center) }) ?? windows.first else { return }
         window.makeKey()
-        window.canvas.load(pin.capture, at: CGPoint(x: pin.frame.minX, y: pin.frame.maxY))
+        window.canvas.load(pin.capture, at: CGPoint(x: pin.imageFrame.minX, y: pin.imageFrame.maxY))
     }
 
     /// Pin (SS-67), or an exit from an editor opened on a pin (SS-70): the overlay closes and
