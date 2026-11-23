@@ -763,7 +763,9 @@ struct PinIconView: View {
 
     var body: some View {
         if icon.isEmoji, icon.color == nil, let glyph = icon.glyph {
-            Text(glyph).font(.system(size: size * 0.875)).frame(width: size, height: size)
+            // Its own size, centered: an emoji's line is taller than the square, and a 16 pt frame
+            // clipped its top and bottom (user, 2026-11-23, macro sidebar).
+            Text(glyph).font(.system(size: size * 0.875)).fixedSize().frame(width: size, height: size)
         } else {
             let fill = icon.color.map { Color(nsColor: $0.color) } ?? Color(nsColor: .quaternarySystemFill)
             RoundedRectangle(cornerRadius: size / 4, style: .continuous)
