@@ -268,6 +268,7 @@ private struct ModuleDetail: View {
                     ))
                     JigglerIntervalPicker { jiggler.intervalChanged() }
                     JigglerKeyPicker()
+                    JigglerStopRow { jiggler.stopTimeChanged() }
                 }
             }
         case .clipboard:
@@ -623,6 +624,36 @@ private struct JigglerIntervalPicker: View {
             }
         }
         .onChange(of: interval) { changed() }
+    }
+}
+
+/// A daily time when the jiggler turns itself off (R-43, JG-18). Off by default, 18:00.
+private struct JigglerStopRow: View {
+    @AppStorage(JigglerStop.enabledKey) private var enabled = false
+    @AppStorage(JigglerStop.minutesKey) private var minutes = JigglerStop.defaultMinutes
+    let changed: () -> Void
+
+    private var time: Binding<Date> {
+        Binding(get: { Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: .now) ?? .now },
+                set: {
+                    let parts = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                    minutes = (parts.hour ?? 18) * 60 + (parts.minute ?? 0)
+                })
+    }
+
+    var body: some View {
+        LabeledContent("Turn off at") {
+            HStack(spacing: 10) {
+                DatePicker("Turn off at", selection: time, displayedComponents: .hourAndMinute)
+                    .labelsHidden()
+                    .disabled(!enabled)
+                Toggle("Turn off at", isOn: $enabled)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+            }
+        }
+        .onChange(of: enabled) { changed() }
+        .onChange(of: minutes) { changed() }
     }
 }
 

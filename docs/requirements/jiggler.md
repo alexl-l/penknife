@@ -41,13 +41,13 @@ Code abbreviations: JM = `Modules/JigglerModule.swift`, LM = `Modules/LockModule
 
 ### D. Settings, menu bar, module off
 
-- **JG-11** The Mouse Jiggler page in Settings, in this order: "Turn on when unlocking, off when locking" (JG-08), "Move the mouse after" (JG-10), "Also press" (JG-07). General › Accessibility explains: "Needed for the mouse jiggler, the meeting mute shortcuts and dialog detection." / "Necesario para mover el ratón, los atajos para silenciar reuniones y la detección de diálogos."
+- **JG-11** The Mouse Jiggler page in Settings, in this order: "Turn on when unlocking, off when locking" (JG-08), "Move the mouse after" (JG-10), "Also press" (JG-07), "Turn off at" (JG-18). General › Accessibility explains: "Needed for the mouse jiggler, the meeting mute shortcuts and dialog detection." / "Necesario para mover el ratón, los atajos para silenciar reuniones y la detección de diálogos."
   Source: R-3; R-24; R-16 · Code: SV:options (.jiggler); GeneralTab.swift:68 · Verify: manual — Settings › Mouse Jiggler shows those three rows in that order.
 - **JG-12** Turning the module off stops everything at once: the timer, the lock notifications, the jiggler (off, no alert); the menu item and the shortcut go away; the Touch Bar button is hidden (TB-08) and the menu bar dot too (JG-13). Turning it back on starts it as at launch (JG-08). A module that is off holds no timer and no observer.
   Source: R-15 "A module that is off uses no CPU/RAM: no timers, observers or event taps" · Code: JM:stop, deactivate, updateLockObservers; MGR:setEnabled · Verify: **auto** (S3) — start, stop: no timer, no observers, off; manual — module off: F12 does nothing and the dot is gone.
 - **JG-13** The bottom of the two dots beside the menu bar icon (system blue, 4 pt): filled while the jiggler is on, a 1 pt ring while it is off; shown only while the module is on and "status dots" are on (`menuBar.statusDots`, on by default); the microphone's dot stays on top. VoiceOver reads the icon's value "Mouse Jiggler on" / "Mover ratón activado" or "Mouse Jiggler off" / "Mover ratón desactivado". Redrawn only when the state changes (observation, no timer); kept while recording, next to the time.
   Source: R-20 MENU BAR DOTS (IMPERATIVE, 2026-11-13); D: Menu bar dots · Code: SM:trackState, update, icon, showRecording · Verify: **auto** — `StatusMenu.dotsOn(in:)`: nothing stored → true; manual — F12: the bottom dot fills; F12: a ring. See "For later: Bigger dots" in REQUIREMENTS.md.
-- **JG-14** Cost: off = nothing runs; on = one timer wakeup per interval at most, plus the lock notifications while JG-08 is on. Nothing reads keys or the pointer between wakeups.
+- **JG-14** Cost: off = nothing runs; on = one timer wakeup per interval at most, plus the lock notifications while JG-08 is on, plus (only with JG-18 set) one timer at the turn-off time and the wake/clock-change notifications. Nothing reads keys or the pointer between wakeups.
   Source: R-11; D: Jiggler without event tap ("≤1 wakeup per ~10 s while on, none while off") · Code: JM:schedule, tick · Verify: measure — `measure-resources` with the jiggler on and the Mac idle: about one wakeup per interval; none with it off.
 - **JG-15** Privacy: no network; it reads only how many seconds since the last input (never which keys or where), and uses Accessibility only to post its own mouse moves and key.
   Source: general privacy rule; D: Jiggler without event tap ("no Input Monitoring permission") · Code: JM (no URLSession, no event tap) · Verify: **auto** — a source check: no `URLSession`, `CGEvent.tapCreate` or `addGlobalMonitorForEvents` in `JigglerModule.swift` (as CB-30).
@@ -56,6 +56,10 @@ Code abbreviations: JM = `Modules/JigglerModule.swift`, LM = `Modules/LockModule
 - **JG-17** While Penknife itself waits for the user — a recording (from its countdown to Stop), the capture overlay, or the clipboard panel — a due jiggle is skipped (no move, no key) and the next wait starts as usual; the jiggler stays on, no alert. Otherwise the square would be recorded, or the pointer could pick another row or window under it.
   Source: O-23 (user: "sip", 2026-11-19) · Code: JM:holdsOff, tick; AppDelegate (screenshot.session / recording, clipboard.isPanelOpen) · Verify: **auto** — test "JG-17 O-23" (fake Mac: held off → nothing posted, still scheduled; released → moves); manual — start a recording, leave the Mac idle past the interval: no cursor twitch in the file.
 
+### E. Turn-off time
+
+- **JG-18** "Turn off at" / "Desactivar a las" (R-43, 2026-11-23): one row in the Mouse Jiggler page, a time (hours and minutes, in the Mac's format) and a switch. Off by default (`jiggler.stopEnabled`); time 18:00 by default (`jiggler.stopMinutes`, minutes after midnight; any value outside the day means 18:00); the time can't be edited while the switch is off. Every day. While the jiggler is on and the option is set, ONE one-shot timer waits for the next moment the clock reads that time, strictly after now (turned on after that time → it stays on until the next day's time). At that time the jiggler turns off with the alert "Mouse Jiggler off" — "Scheduled time" / "Mover ratón desactivado" — "Hora programada" (`cursorarrow`, "off" kind, "Mouse Jiggler" type). A timer doesn't count sleep, so while it waits Penknife also listens to the Mac waking and to clock changes: then, past the time → off with that alert (Mac asleep at that time → off on wake); otherwise the timer waits the rest. Turning the jiggler on (by hand, by unlocking, at launch) plans it; turning it off (by hand, lock, module off) cancels the timer and the observers. Changing the switch or the time while the jiggler is on plans it again from now. No polling. Tests: "JG-18 …" in `JigglerRulesTests.swift` (seen to fail with the rule broken).
+
 ## 2. Open decisions, questions and known bugs
 
 Questions for the user (asked 2026-11-19; recommendation in brackets):
@@ -63,7 +67,7 @@ Questions for the user (asked 2026-11-19; recommendation in brackets):
 - DECIDED 2026-11-19 (user: "sip"), kept as is: **O-24 An alert at every unlock.** With JG-08 on, every unlock (and every launch) shows "Mouse Jiggler on"; without Accessibility, every unlock shows "Open Settings › Permissions to allow it" / "Abre Ajustes › Permisos para permitirlo" (O-31, 2026-11-19). [Leave as is: it is how you know it is on, and the type can be hidden in Settings › Alerts.]
 
 Ideas for later (not designed):
-- **Stop time** (user, 2026-11-19): each person picks a time when the jiggler turns itself off (e.g. 18:00). Details and open points in REQUIREMENTS.md › Future ideas "Jiggler stop time". Phone remote control was discussed and not chosen (REQUIREMENTS.md › Rejected).
+- DONE 2026-11-23 as JG-18 (R-43): **Stop time** (user, 2026-11-19). Phone remote control was discussed and not chosen (REQUIREMENTS.md › Rejected).
 
 Not measured (check live; nothing to decide yet):
 - Whether Teams and Slack really count the jiggle as activity with each key choice (the user is happy with Caps Lock ×2; Shift, Control and Option are posted as plain key presses, not as modifier changes).

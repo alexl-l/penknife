@@ -6716,6 +6716,26 @@
           }
         }
       }
+    },
+    "Turn off at": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivar a las"
+          }
+        }
+      }
+    },
+    "Scheduled time": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hora programada"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

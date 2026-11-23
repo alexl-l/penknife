@@ -75,6 +75,27 @@ enum JigglerMotion {
     }
 }
 
+/// The daily turn-off time (JG-18): the next moment the clock reads `minutes` after midnight,
+/// strictly after `now` (so turning it on after that time keeps it on until the next day).
+enum JigglerStop {
+    static let enabledKey = "jiggler.stopEnabled"
+    static let minutesKey = "jiggler.stopMinutes"
+    static let defaultMinutes = 18 * 60
+
+    /// Minutes after midnight when the jiggler turns itself off, or nil when the option is off.
+    static func minutes(in defaults: UserDefaults) -> Int? {
+        guard defaults.bool(forKey: enabledKey) else { return nil }
+        let value = defaults.object(forKey: minutesKey) as? Int ?? defaultMinutes
+        return (0..<24 * 60).contains(value) ? value : defaultMinutes
+    }
+
+    static func deadline(after now: Date, minutes: Int, calendar: Calendar = .current) -> Date {
+        let time = DateComponents(hour: minutes / 60, minute: minutes % 60)
+        return calendar.nextDate(after: now, matching: time, matchingPolicy: .nextTime)
+            ?? now.addingTimeInterval(24 * 3600)
+    }
+}
+
 /// Everything the jiggler touches outside itself (S3): `live` is the real Mac; tests pass fakes.
 struct JigglerEnvironment {
     var defaults: UserDefaults
@@ -85,6 +106,10 @@ struct JigglerEnvironment {
     /// A one-shot wakeup after `seconds`; the returned closure cancels it.
     var schedule: (_ seconds: TimeInterval, _ fire: @escaping @MainActor () -> Void) -> () -> Void
     var idleSeconds: () -> TimeInterval
+    var now: () -> Date = { Date() }
+    /// Calls `woke` after the Mac wakes or its clock changes (a timer doesn't count sleep time);
+    /// the returned closure stops it.
+    var observeWake: (_ woke: @escaping @MainActor () -> Void) -> () -> Void = { _ in {} }
     var mouseLocation: () -> CGPoint
     var moveMouse: (CGPoint) -> Void
     var key: (CGKeyCode) -> Void
@@ -116,6 +141,19 @@ struct JigglerEnvironment {
              idleSeconds: {
                  CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)
              },
+             observeWake: { woke in
+                 let workspace = NSWorkspace.shared.notificationCenter
+                 let wake = workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+                     MainActor.assumeIsolated { woke() }
+                 }
+                 let clock = NotificationCenter.default.addObserver(forName: .NSSystemClockDidChange, object: nil, queue: .main) { _ in
+                     MainActor.assumeIsolated { woke() }
+                 }
+                 return {
+                     workspace.removeObserver(wake)
+                     NotificationCenter.default.removeObserver(clock)
+                 }
+             },
              mouseLocation: { EventPoster.mouseLocation },
              moveMouse: { EventPoster.moveMouse(to: $0) },
              key: { EventPoster.key($0) })
@@ -140,6 +178,10 @@ final class JigglerModule: Module {
     @ObservationIgnored private var isJiggling = false
     @ObservationIgnored private var stopObservingLock: (() -> Void)?
     @ObservationIgnored private var running = false
+    /// The turn-off time while it is set and the jiggler is on (JG-18), its timer and wake observer.
+    @ObservationIgnored private(set) var stopAt: Date?
+    @ObservationIgnored private var cancelStop: (() -> Void)?
+    @ObservationIgnored private var stopObservingWake: (() -> Void)?
 
     static let followsLockKey = "jiggler.followsLock"
     static func followsLock(in defaults: UserDefaults) -> Bool {
@@ -179,6 +221,11 @@ final class JigglerModule: Module {
         if isActive { schedule(after: idleThreshold) }
     }
 
+    /// Settings changed the turn-off time or switched it: plan it again from now.
+    func stopTimeChanged() {
+        if isActive { scheduleStop() }
+    }
+
     var actions: [ModuleAction] {
         [ModuleAction(shortcut: .toggleJiggler, title: String(localized: "Mouse Jiggler"), symbol: id.symbol,
                       state: { [weak self] in self?.isActive ?? false },
@@ -216,6 +263,7 @@ final class JigglerModule: Module {
         }
         isActive = true
         schedule(after: idleThreshold)
+        scheduleStop()
         env.hud(String(localized: "Mouse Jiggler on"), nil, "cursorarrow.motionlines", .on)
     }
 
@@ -235,7 +283,43 @@ final class JigglerModule: Module {
     func deactivate() {
         cancelTimer?()
         cancelTimer = nil
+        cancelStopTimer()
         isActive = false
+    }
+
+    /// One timer for the turn-off time, plus a wake observer: a timer stops counting while the Mac
+    /// sleeps, so after waking it is checked against the clock (asleep at that time → off on wake).
+    private func scheduleStop() {
+        cancelStopTimer()
+        guard let minutes = JigglerStop.minutes(in: env.defaults) else { return }
+        let deadline = JigglerStop.deadline(after: env.now(), minutes: minutes)
+        stopAt = deadline
+        armStop()
+        stopObservingWake = env.observeWake { [weak self] in self?.checkStop() }
+    }
+
+    private func armStop() {
+        guard let stopAt else { return }
+        cancelStop?()
+        cancelStop = env.schedule(stopAt.timeIntervalSince(env.now())) { [weak self] in self?.checkStop() }
+    }
+
+    private func checkStop() {
+        guard isActive, let stopAt else { return }
+        if env.now() >= stopAt.addingTimeInterval(-1) {
+            deactivate()
+            env.hud(String(localized: "Mouse Jiggler off"), String(localized: "Scheduled time"), "cursorarrow", .off)
+        } else {
+            armStop()
+        }
+    }
+
+    private func cancelStopTimer() {
+        cancelStop?()
+        cancelStop = nil
+        stopObservingWake?()
+        stopObservingWake = nil
+        stopAt = nil
     }
 
     private func schedule(after seconds: TimeInterval) {

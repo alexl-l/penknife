@@ -3,16 +3,15 @@
 The ordered task list. Read this first after `/clear`. Every checkpoint updates it (done items move to "Done", new approved work goes in order). Details live in `REQUIREMENTS.md` and `requirements/<module>.md`.
 
 ## Now
+- R-43 Jiggler turn-off time (JG-18): code + tests done (342 pass), local build; next: designer review of the Settings row, QA, user tries it.
 - Menu icons gone on macOS 27 (user asked 2026-11-23): not our change; macOS 27 hides menu item symbols by default (`NSMenuItem.preferredImageVisibility`, new in the 27 SDK). User chose "lo nativo de apple": no code change (the OS decides). `docs/screenshots/menu.png` retaken 2026-11-23 (1.16 menu, no icons, no personal data); committed locally, NOT pushed.
 
 ## Next, in order
-- Jiggler stop time: proposal sent 2026-11-23 (Settings row "Turn off at" + time, off by default, daily, one timer, off on wake if missed, alert), waiting for the user's yes.
 
 ## To choose
 All product ideas of 2026-11-22 are done or rejected.
 
 ## Later (ideas only)
-- Jiggler stop time ("stop jiggling at 6:00 pm").
 
 ## Done recently
 - 2026-11-23: security review of `disable-library-validation`: KEEP it. Cannot be removed while self/ad-hoc signed (no Team ID); risk moderate-to-low (see DECISIONS, Sparkle updates). Real fix only with a paid Developer ID.

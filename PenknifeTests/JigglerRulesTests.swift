@@ -39,6 +39,8 @@ struct JigglerRulesTests {
         var idle: TimeInterval = 0
         var pointer = CGPoint(x: 100, y: 100)
         private(set) var posted: [String] = []
+        var now = Date(timeIntervalSinceReferenceDate: 800_000_000)
+        private(set) var wakeHandler: (@MainActor () -> Void)?
 
         init(_ values: [String: Any] = [:]) { defaults = MemoryDefaults(values) }
 
@@ -57,6 +59,11 @@ struct JigglerRulesTests {
                     return { [self] in cancelled.insert(index) }
                 },
                 idleSeconds: { [self] in idle },
+                now: { [self] in now },
+                observeWake: { [self] woke in
+                    wakeHandler = woke
+                    return { [self] in wakeHandler = nil }
+                },
                 mouseLocation: { [self] in pointer },
                 moveMouse: { [self] in pointer = $0; posted.append("move \(Int($0.x)),\(Int($0.y))") },
                 key: { [self] in posted.append("key \($0)") })
@@ -271,5 +278,88 @@ struct JigglerRulesTests {
         #expect(mac.liveTimers.isEmpty && mac.alerts.isEmpty)
         mac.unlock()
         #expect(!jiggler.isActive)
+    }
+
+    // MARK: E. Turn-off time
+
+    @Test("JG-18 the turn-off time is the next 18:00 (or the chosen time), tomorrow once it has passed")
+    func stopDeadline() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Madrid")!
+        let at = { (day: Int, hour: Int, minute: Int) in
+            calendar.date(from: DateComponents(year: 2026, month: 11, day: day, hour: hour, minute: minute))!
+        }
+        #expect(JigglerStop.deadline(after: at(23, 9, 0), minutes: 18 * 60, calendar: calendar) == at(23, 18, 0))
+        #expect(JigglerStop.deadline(after: at(23, 18, 0), minutes: 18 * 60, calendar: calendar) == at(24, 18, 0))
+        #expect(JigglerStop.deadline(after: at(23, 19, 30), minutes: 18 * 60, calendar: calendar) == at(24, 18, 0))
+        #expect(JigglerStop.deadline(after: at(23, 23, 59), minutes: 7 * 60 + 15, calendar: calendar) == at(24, 7, 15))
+    }
+
+    @Test("JG-18 off by default; when set, 18:00 unless another valid time is stored")
+    func stopSetting() {
+        #expect(JigglerStop.minutes(in: MemoryDefaults()) == nil)
+        #expect(JigglerStop.minutes(in: MemoryDefaults([JigglerStop.enabledKey: false, JigglerStop.minutesKey: 600])) == nil)
+        #expect(JigglerStop.minutes(in: MemoryDefaults([JigglerStop.enabledKey: true])) == 18 * 60)
+        #expect(JigglerStop.minutes(in: MemoryDefaults([JigglerStop.enabledKey: true, JigglerStop.minutesKey: 600])) == 600)
+        #expect(JigglerStop.minutes(in: MemoryDefaults([JigglerStop.enabledKey: true, JigglerStop.minutesKey: 5000])) == 18 * 60)
+    }
+
+    @Test("JG-18 no turn-off timer while the option is off")
+    func stopOffByDefault() {
+        let mac = FakeMac([JigglerModule.followsLockKey: false])
+        let jiggler = JigglerModule(env: mac.env)
+        jiggler.start()
+        jiggler.toggle()
+        #expect(jiggler.stopAt == nil && mac.wakeHandler == nil && mac.liveTimers.count == 1)
+    }
+
+    @Test("JG-18 at the time the jiggler turns off with an alert, and only one timer waits for it")
+    func stopFires() {
+        let mac = FakeMac([JigglerModule.followsLockKey: false, JigglerStop.enabledKey: true])
+        let jiggler = JigglerModule(env: mac.env)
+        jiggler.start()
+        jiggler.toggle()
+        let deadline = JigglerStop.deadline(after: mac.now, minutes: 18 * 60)
+        #expect(jiggler.stopAt == deadline && mac.wakeHandler != nil)
+        #expect(mac.liveTimers.count == 2 && mac.liveTimers.contains(deadline.timeIntervalSince(mac.now)))
+        mac.clearAlerts()
+        mac.now = deadline
+        mac.timers.last!.fire()
+        #expect(!jiggler.isActive && mac.liveTimers.isEmpty && mac.wakeHandler == nil)
+        #expect(mac.alerts.count == 1 && mac.alerts[0].kind == .off && mac.alerts[0].detail != nil)
+    }
+
+    @Test("JG-18 asleep at the time: off on wake; awake earlier: the timer waits the rest")
+    func stopOnWake() {
+        let mac = FakeMac([JigglerModule.followsLockKey: false, JigglerStop.enabledKey: true])
+        let jiggler = JigglerModule(env: mac.env)
+        jiggler.start()
+        jiggler.toggle()
+        let deadline = jiggler.stopAt!
+        mac.now = deadline.addingTimeInterval(-60)
+        mac.wakeHandler?()
+        #expect(jiggler.isActive && mac.liveTimers.count == 2 && mac.liveTimers.contains(60))
+        mac.now = deadline.addingTimeInterval(3600)
+        mac.wakeHandler?()
+        #expect(!jiggler.isActive && mac.liveTimers.isEmpty)
+    }
+
+    @Test("JG-18 switching the option or changing the time while on plans it again; turning off by hand cancels it")
+    func stopChanged() {
+        let mac = FakeMac([JigglerModule.followsLockKey: false])
+        let jiggler = JigglerModule(env: mac.env)
+        jiggler.start()
+        jiggler.toggle()
+        mac.defaults.set(true, forKey: JigglerStop.enabledKey)
+        mac.defaults.set(23 * 60, forKey: JigglerStop.minutesKey)
+        jiggler.stopTimeChanged()
+        #expect(jiggler.stopAt == JigglerStop.deadline(after: mac.now, minutes: 23 * 60))
+        mac.defaults.set(false, forKey: JigglerStop.enabledKey)
+        jiggler.stopTimeChanged()
+        #expect(jiggler.stopAt == nil && mac.liveTimers.count == 1)
+        mac.defaults.set(true, forKey: JigglerStop.enabledKey)
+        jiggler.stopTimeChanged()
+        jiggler.toggle()
+        #expect(jiggler.stopAt == nil && mac.liveTimers.isEmpty && mac.wakeHandler == nil)
     }
 }
