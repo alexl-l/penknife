@@ -163,7 +163,7 @@ final class PinnedWindow: NSPanel {
 }
 
 /// The image with rounded corners and a hairline border; a ✕ on hover; drag moves it, the edges
-/// resize it (6 pt), double-click edits it, right-click shows its menu.
+/// resize it (12 pt, corners 24 pt), double-click edits it, right-click shows its menu.
 final class PinnedView: NSView {
     weak var pin: PinnedWindow?
     var image: CGImage? {
@@ -172,7 +172,6 @@ final class PinnedView: NSView {
 
     private let imageLayer = CALayer()
     private let closeButton = PinCloseButton()
-    private static let edge: CGFloat = 6
     private enum Drag { case none, move, resize(left: Bool, right: Bool, bottom: Bool, top: Bool, start: CGPoint, frame: CGRect) }
     private var drag: Drag = .none
 
@@ -254,17 +253,38 @@ final class PinnedView: NSView {
 
     // MARK: Resize cursors (SS-69)
 
+    /// Resize zones (user, 2026-11-23: "el borde para hacer re-size es muy pequeño"): 12 pt along
+    /// each edge and 24 pt squares at the corners, smaller on a small pin so it can still be
+    /// moved. The top-left corner keeps only its edges: the ✕ sits there.
+    private var zones: (edge: CGFloat, corner: CGFloat) {
+        let short = min(bounds.width, bounds.height)
+        return (min(12, short / 6), min(24, short / 4))
+    }
+
+    /// Which sides a point drags: left, right, top, bottom (none = move).
+    private func sides(at p: CGPoint) -> (left: Bool, right: Bool, top: Bool, bottom: Bool) {
+        let (e, c) = zones, b = bounds
+        var left = p.x < e, right = p.x > b.width - e, top = p.y < e, bottom = p.y > b.height - e
+        let nearLeft = p.x < c, nearRight = p.x > b.width - c, nearTop = p.y < c, nearBottom = p.y > b.height - c
+        if nearRight && nearTop { right = true; top = true }
+        if nearLeft && nearBottom { left = true; bottom = true }
+        if nearRight && nearBottom { right = true; bottom = true }
+        return (left, right, top, bottom)
+    }
+
     override func resetCursorRects() {
-        let e = Self.edge, b = bounds
-        addCursorRect(CGRect(x: 0, y: e, width: e, height: b.height - 2 * e), cursor: .resizeLeftRight)
-        addCursorRect(CGRect(x: b.width - e, y: e, width: e, height: b.height - 2 * e), cursor: .resizeLeftRight)
-        addCursorRect(CGRect(x: e, y: 0, width: b.width - 2 * e, height: e), cursor: .resizeUpDown)
-        addCursorRect(CGRect(x: e, y: b.height - e, width: b.width - 2 * e, height: e), cursor: .resizeUpDown)
-        for corner in [CGPoint(x: 0, y: 0), CGPoint(x: b.width - e, y: 0), CGPoint(x: 0, y: b.height - e), CGPoint(x: b.width - e, y: b.height - e)] {
-            let diagonal = (corner.x == 0) == (corner.y == 0) ? NSCursor.frameResize(position: .topLeft, directions: .all)
-                                                             : NSCursor.frameResize(position: .topRight, directions: .all)
-            addCursorRect(CGRect(origin: corner, size: CGSize(width: e, height: e)), cursor: diagonal)
-        }
+        let (e, c) = zones, b = bounds
+        let nwse = NSCursor.frameResize(position: .topLeft, directions: .all)
+        let nesw = NSCursor.frameResize(position: .topRight, directions: .all)
+        // Corners first: where rectangles overlap, the first one added wins.
+        addCursorRect(CGRect(x: b.width - c, y: 0, width: c, height: c), cursor: nesw)
+        addCursorRect(CGRect(x: 0, y: b.height - c, width: c, height: c), cursor: nesw)
+        addCursorRect(CGRect(x: b.width - c, y: b.height - c, width: c, height: c), cursor: nwse)
+        addCursorRect(CGRect(x: 0, y: 0, width: e, height: e), cursor: nwse)
+        addCursorRect(CGRect(x: 0, y: e, width: e, height: b.height - e - c), cursor: .resizeLeftRight)
+        addCursorRect(CGRect(x: b.width - e, y: c, width: e, height: b.height - 2 * c), cursor: .resizeLeftRight)
+        addCursorRect(CGRect(x: e, y: 0, width: b.width - e - c, height: e), cursor: .resizeUpDown)
+        addCursorRect(CGRect(x: c, y: b.height - e, width: b.width - 2 * c, height: e), cursor: .resizeUpDown)
     }
 
     // MARK: Mouse
@@ -276,10 +296,7 @@ final class PinnedView: NSView {
             pin?.editPin()
             return
         }
-        let p = convert(event.locationInWindow, from: nil)
-        let e = Self.edge
-        let left = p.x < e, right = p.x > bounds.width - e
-        let top = p.y < e, bottom = p.y > bounds.height - e
+        let (left, right, top, bottom) = sides(at: convert(event.locationInWindow, from: nil))
         if (left || right || top || bottom), let frame = window?.frame {
             drag = .resize(left: left, right: right, bottom: bottom, top: top, start: NSEvent.mouseLocation, frame: frame)
         } else {
