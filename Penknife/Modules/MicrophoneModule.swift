@@ -91,23 +91,28 @@ final class MicrophoneModule: Module {
     }
 
     func talkStart() {
+        guard talkPhase == .idle else { return } // the shortcut and the Touch Bar at once
         talkPhase = Self.talkStartPhase(muted: isMuted)
         log.notice("Hold to talk: \(self.talkPhase == .idle ? "mic open, toggling" : "opening", privacy: .public)")
         toggle { [weak self] changed in
             guard let self else { return }
             let next = Self.talkAfterOpen(self.talkPhase, changed: changed)
             self.talkPhase = next.phase
-            if next.muteNow { self.toggle() }
+            if next.muteNow { self.muteAfterTalk() }
         }
     }
 
     func talkEnd() {
         let next = Self.talkRelease(talkPhase)
         talkPhase = next.phase
-        if next.muteNow {
-            log.notice("Hold to talk: released, muting")
-            toggle()
-        }
+        if next.muteNow { muteAfterTalk() }
+    }
+
+    /// MIC-91: the release asks for muted, it doesn't toggle: a mic or call already muted
+    /// meanwhile is left muted.
+    private func muteAfterTalk() {
+        log.notice("Hold to talk: released, muting")
+        toggle(muteOnly: true)
     }
 
     private let meetings = MeetingTracker()
@@ -136,6 +141,11 @@ final class MicrophoneModule: Module {
     }
 
     func stop() {
+        // MIC-92: turned off mid-hold, the release never comes: mute now.
+        if talkPhase != .idle {
+            talkPhase = .idle
+            setMac(muted: true)
+        }
         meetings.stop()
         if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
         defaultsObserver = nil
@@ -268,7 +278,9 @@ final class MicrophoneModule: Module {
     /// What a press does is decided by `route`, `afterSend` and `macGate` (tested).
     /// `then` runs once the press is done (the meeting's own session too), with whether it
     /// changed anything (R-41: a hold mutes again only after its first press is over).
-    func toggle(then: (@MainActor (Bool) -> Void)? = nil) {
+    /// `muteOnly` (the end of a hold): never opens anything; the Mac is set to muted, a call whose
+    /// button reads muted gets no key, and the Teams consent watch is skipped (nothing to accept).
+    func toggle(muteOnly: Bool = false, then: (@MainActor (Bool) -> Void)? = nil) {
         meetings.findCurrent { [weak self] target in
             guard let self else { then?(false); return }
             let alsoMac = Self.alsoMuteMac
@@ -276,18 +288,20 @@ final class MicrophoneModule: Module {
                                    axGranted: Permissions.shared.ensureAccessibility(),
                                    alsoMac: alsoMac, teamsConsent: TeamsConsent.isEnabled)
             switch route {
-            case .mac: then?(self.toggleMac())
+            case .mac: then?(muteOnly ? self.setMac(muted: true) : self.toggleMac())
             case .nothing:
                 HUD.shared.showPermissionNeeded(.microphone) // O-3, MIC-36
                 then?(false)
             case .meeting(let how):
-                if let target { self.press(target, how, alsoMac: alsoMac, then: then) } else { then?(false) }
+                guard let target else { then?(false); return }
+                let how = muteOnly && how == .teamsConsent ? .readAndSend : how
+                self.press(target, how, alsoMac: alsoMac, muteOnly: muteOnly, then: then)
             }
         }
     }
 
     private func press(_ target: MeetingTracker.Target, _ how: MeetingPress, alsoMac: Bool,
-                       then: (@MainActor (Bool) -> Void)?) {
+                       muteOnly: Bool = false, then: (@MainActor (Bool) -> Void)?) {
         log.notice("Meeting: \(target.platform.rawValue, privacy: .public)")
         let macMuted = isMuted
         let send: @MainActor () -> Void = { [weak self] in self?.meetings.send(to: target) }
@@ -307,7 +321,13 @@ final class MicrophoneModule: Module {
             // the consent alert that an unmute opens.
             TeamsConsent.press(target.app, send: send, sent: after, finished: { then?(true) })
         case .readAndSend:
-            meetings.readMuted(target) { appMuted in
+            meetings.readMuted(target) { [weak self] appMuted in
+                if muteOnly, appMuted == true {
+                    // Already muted in the call: no key; the Mac follows if it should.
+                    if alsoMac { self?.setMac(muted: true) }
+                    then?(false)
+                    return
+                }
                 send()
                 after(appMuted)
                 then?(true)

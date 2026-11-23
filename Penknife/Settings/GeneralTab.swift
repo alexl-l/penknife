@@ -52,7 +52,7 @@ struct GeneralPage: View {
                     }
                 }
             } footer: {
-                Text("Saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, to keep a copy or move them to another Mac.")
+                Text("Saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, to keep a copy or move them to another Mac. The file isn't encrypted: keep it private.")
                     .foregroundStyle(.secondary)
             }
         }
@@ -96,7 +96,7 @@ enum SettingsFile {
         }
         let alert = NSAlert()
         alert.messageText = String(localized: "Replace your settings?")
-        alert.informativeText = String(localized: "Your settings, shortcuts, Touch Bar, pinned items and macros are replaced with the ones in “\(url.lastPathComponent)”. Penknife restarts.")
+        alert.informativeText = String(localized: "Your settings, shortcuts, Touch Bar, pinned items and macros are replaced with the ones in “\(url.lastPathComponent)”. Import only files you made. Penknife restarts.")
         alert.addButton(withTitle: String(localized: "Replace and Restart"))
         alert.addButton(withTitle: String(localized: "Cancel"))
         guard alert.runModal() == .alertFirstButtonReturn else { return }

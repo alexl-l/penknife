@@ -76,6 +76,7 @@ final class ModuleManager {
             module.start()
         } else {
             enabled.remove(id)
+            endHolds(of: module.actions)
             setShortcuts(of: module, active: false)
             module.stop()
         }
@@ -101,6 +102,8 @@ final class ModuleManager {
         for module in modules where isEnabled(module.id) {
             names += module.actions.map(\.shortcut)
         }
+        // MIC-92: a paused shortcut never reports its release, so a hold ends now.
+        if paused { endHolds(of: enabledActions) }
         for name in names {
             paused ? KeyboardShortcuts.disable(name) : KeyboardShortcuts.enable(name)
         }
@@ -140,6 +143,15 @@ final class ModuleManager {
         held.remove(name)
         holdTimers[name] = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.holdReached(action) }
+        }
+    }
+
+    /// Ends the holds of these actions as if released (R-41: never leave the mic open).
+    private func endHolds(of actions: [ModuleAction]) {
+        for action in actions {
+            let name = action.shortcut.rawValue
+            holdTimers.removeValue(forKey: name)?.invalidate()
+            if held.remove(name) != nil { action.onHoldEnd?() }
         }
     }
 

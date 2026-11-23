@@ -243,8 +243,8 @@ Count (2026-11-18, after S6 and the Touch Bar S2): 85 rules = 35 auto (all teste
   Source: R-41 · Code: MM:talkStart, talkEnd, talkStartPhase, talkRelease; ModuleManager:runHotKey (onHoldEnd); TBM:microphoneLongPressed, updateMicrophoneHold · Verify: **auto** — test "MIC-89 MIC-90 MIC-91"; manual — muted, hold F5 2 s: "Microphone unmuted", let go: "Microphone muted".
 - **MIC-91** The release's press waits until the first press is over (the meeting read, and the whole Teams consent session, R-31), so the two never overlap; a first press that changed nothing (Siri listening MIC-39, no microphone MIC-06, no permission MIC-36) leaves nothing to undo and the release does nothing.
   Source: R-41 (Teams consent clash, product idea #2) · Code: MM:toggle(then:), talkAfterOpen; TeamsConsent.press(finished:) · Verify: **auto** — `talkAfterOpen`; log — `Hold to talk: opening`, then `Hold to talk: released, muting`.
-- **MIC-92** A Touch Bar hold whose end never arrives (the bar rebuilt, the setting turned off) ends the hold, so the mic is never left open by a lost release.
-  Source: R-41 · Code: TBM:endMicrophoneHold · Verify: code.
+- **MIC-92** The mic is never left open by a lost release: a hold ends (and mutes) when the hotkeys pause for a menu, when the Microphone module is turned off (it mutes the Mac directly), when the Touch Bar module stops or its bar is rebuilt. The release ASKS for muted, it doesn't toggle: no call → the Mac is set muted (already muted stays muted); a call whose button reads muted gets no key; the Teams consent watch is skipped on release. A blind call (Mute the Mac's microphone too off, or an unreadable button) still gets one key. Shortcut and Touch Bar held together count as one hold. Accepted limit: the release goes to the meeting in front at that moment (as any press, MIC-13).
+  Source: R-41; security review 2026-11-23 · Code: ModuleManager:endHolds, pauseShortcuts, setEnabled; MM:stop, muteAfterTalk, toggle(muteOnly:); TBM:stop, endMicrophoneHold · Verify: code; log — `Hold to talk: released, muting`.
 
 ## 2. Open decisions, questions and known bugs
 

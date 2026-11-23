@@ -192,6 +192,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
     func stop() {
         guard running else { return }
         running = false
+        endMicrophoneHold()
         // B-7: a step-aside is not kept for the next start; Native Dialogs tells again then.
         stepAside = false
         dialogs.onChange = nil

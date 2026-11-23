@@ -941,12 +941,12 @@
         }
       }
     },
-    "Saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, to keep a copy or move them to another Mac.": {
+    "Saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, to keep a copy or move them to another Mac. The file isn't encrypted: keep it private.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Guarda tus ajustes, atajos, Touch Bar, elementos fijados y macros en un archivo, para tener una copia o pasarlos a otro Mac."
+            "value": "Guarda tus ajustes, atajos, Touch Bar, elementos fijados y macros en un archivo, para tener una copia o pasarlos a otro Mac. El archivo no está cifrado: guárdalo en privado."
           }
         }
       }
@@ -1001,12 +1001,12 @@
         }
       }
     },
-    "Your settings, shortcuts, Touch Bar, pinned items and macros are replaced with the ones in “%@”. Penknife restarts.": {
+    "Your settings, shortcuts, Touch Bar, pinned items and macros are replaced with the ones in “%@”. Import only files you made. Penknife restarts.": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tus ajustes, atajos, Touch Bar, elementos fijados y macros se reemplazan por los de “%@”. Penknife se reinicia."
+            "value": "Tus ajustes, atajos, Touch Bar, elementos fijados y macros se reemplazan por los de “%@”. Importa solo archivos que hayas creado tú. Penknife se reinicia."
           }
         }
       }
