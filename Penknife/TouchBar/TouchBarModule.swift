@@ -531,7 +531,11 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             IOPSGetPowerSourceDescription(info, $0).takeUnretainedValue() as? [String: Any]
         }.first { $0[kIOPSCurrentCapacityKey] != nil }
         let percent = description?[kIOPSCurrentCapacityKey] as? Int
-        let charging = description?[kIOPSIsChargingKey] as? Bool ?? false
+        // The bolt shows as soon as the Mac is on power: macOS says "AC Power" at once but sets
+        // "is charging" ~10 s later, after talking to the charger (measured 2026-11-23; user:
+        // "el ícono de carga tardó como 10 segundo en salir").
+        let charging = description?[kIOPSIsChargingKey] as? Bool == true
+            || description?[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue
         let look = BarLooks.battery(percent: percent, charging: charging, showIcon: Self.showsBatteryIcon(in: .standard))
 
         // Level colors only in multicolor mode (applyColors), on the icon.
