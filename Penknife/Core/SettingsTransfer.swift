@@ -154,6 +154,17 @@ enum SettingsTransfer {
                                                 attributes: [.posixPermissions: 0o700])
     }
 
+    /// The exported file, where the user chose it: written in place (a temporary file next to it
+    /// could be refused in a protected folder such as Documents), owner-only from the first byte.
+    static func writeExport(_ data: Data, to url: URL) throws {
+        let fd = open(url.path, O_WRONLY | O_CREAT | O_TRUNC, 0o600)
+        guard fd >= 0 else { throw CocoaError(.fileWriteNoPermission) }
+        defer { close(fd) }
+        fchmod(fd, 0o600)
+        let written = data.withUnsafeBytes { write(fd, $0.baseAddress, data.count) }
+        guard written == data.count else { throw CocoaError(.fileWriteUnknown) }
+    }
+
     /// Owner-only from the first byte, then moved into place in one step.
     static func writeOwnerOnly(_ data: Data, to url: URL) throws {
         let temp = url.deletingLastPathComponent().appending(path: ".\(UUID().uuidString).tmp")

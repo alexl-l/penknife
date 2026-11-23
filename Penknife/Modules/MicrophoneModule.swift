@@ -288,7 +288,10 @@ final class MicrophoneModule: Module {
                                    axGranted: Permissions.shared.ensureAccessibility(),
                                    alsoMac: alsoMac, teamsConsent: TeamsConsent.isEnabled)
             switch route {
-            case .mac: then?(muteOnly ? self.setMac(muted: true) : self.toggleMac())
+            case .mac:
+                // Run first: `then?(f())` skips `f()` when `then` is nil (QA, build 356).
+                let changed = muteOnly ? self.setMac(muted: true) : self.toggleMac()
+                then?(changed)
             case .nothing:
                 HUD.shared.showPermissionNeeded(.microphone) // O-3, MIC-36
                 then?(false)

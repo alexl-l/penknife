@@ -72,7 +72,7 @@ enum SettingsFile {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
         do {
             let package = SettingsTransfer.package(defaults: .standard, folder: ClipboardStore.defaultFolder)
-            try SettingsTransfer.writeOwnerOnly(SettingsTransfer.encode(package, version: version), to: url)
+            try SettingsTransfer.writeExport(SettingsTransfer.encode(package, version: version), to: url)
         } catch {
             fail(String(localized: "The settings couldn't be saved."), error.localizedDescription)
         }
