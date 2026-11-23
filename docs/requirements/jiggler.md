@@ -87,6 +87,7 @@ Doc conflicts (code wins; marked in REQUIREMENTS.md/DECISIONS.md on 2026-11-19):
 - An event tap or Input Monitoring to notice activity (D: Jiggler without event tap: idle time is enough).
 - Polling every second (D: Jiggler without event tap).
 - Keys that type something, and F15 (D: Jiggler key).
+- A menu of half-hour times instead of the time field for JG-18 (user 2026-11-23: "no, déjale así", though picking the time isn't great).
 - The "End of day" action (R-3: replaced by following the lock).
 - Remembering on/off across launches (JG-04: launch counts as unlocking).
 
