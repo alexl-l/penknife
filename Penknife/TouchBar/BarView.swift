@@ -119,6 +119,14 @@ final class BarButton: NSButton {
 
     @objc private func pressed() { onPress?(self) }
 
+    /// O-34: shows a hold's progress; `holdFired()` when the hold action runs.
+    private var holdFill: HoldFill?
+    func showsHold(_ seconds: CFTimeInterval?) {
+        holdFill?.remove()
+        holdFill = seconds.map { HoldFill(on: self, duration: $0) }
+    }
+    func holdFired() { holdFill?.fire() }
+
     /// Updates what the button shows. `label` is what VoiceOver reads (R-19). With `unit`, the text
     /// is a number with its unit in small type underneath (speed test, user's pick C, 2026-11-16).
     func show(symbol: String?, text: String = "", unit: String = "", dimmed: Bool = false, label: String) {
@@ -203,6 +211,124 @@ final class BarButton: NSButton {
             imagePosition = .noImage
         }
     }
+}
+
+/// O-34: a hold's progress drawn on its button. A flat fill grows while the finger is down and is
+/// full exactly when the hold action fires; lifting early empties it. Nothing runs at idle: one
+/// Core Animation per hold, no timer (TB-61). Taps shorter than `delay` show nothing.
+final class HoldFill {
+    /// Style under test (user picks from the real Touch Bar): "fill" (A) or "line" (B).
+    static let styleKey = "touchBar.holdFillStyle"
+    static let delay: CFTimeInterval = 0.15
+    private static let alpha: CGFloat = 0.22
+
+    private let layer = CALayer()
+    private weak var host: NSView?
+    private let duration: CFTimeInterval
+    private var fired = false
+    private var line: Bool { UserDefaults.standard.string(forKey: Self.styleKey) == "line" }
+
+    init(on host: NSView, duration: CFTimeInterval) {
+        self.host = host
+        self.duration = duration
+        host.wantsLayer = true
+        layer.anchorPoint = CGPoint(x: 0, y: 0.5)
+        layer.isHidden = true
+        layer.actions = ["transform": NSNull(), "opacity": NSNull(), "hidden": NSNull(), "bounds": NSNull(), "position": NSNull()]
+        host.layer?.addSublayer(layer)
+        let watcher = TouchWatcher(target: nil, action: nil)
+        watcher.allowedTouchTypes = .direct
+        watcher.onBegan = { [weak self] in self?.begin() }
+        watcher.onEnded = { [weak self] in self?.end() }
+        host.addGestureRecognizer(watcher)
+        self.watcher = watcher
+    }
+
+    private var watcher: NSGestureRecognizer?
+
+    /// Takes the fill and its watcher off the button (the hold changed or went away).
+    func remove() {
+        layer.removeFromSuperlayer()
+        if let watcher { host?.removeGestureRecognizer(watcher) }
+    }
+
+    private func place() {
+        guard let host else { return }
+        let b = host.bounds
+        if line {
+            layer.frame = CGRect(x: 6, y: 1, width: max(b.width - 12, 0), height: 2)
+            layer.cornerRadius = 1
+            layer.backgroundColor = NSColor(white: 1, alpha: 0.7).cgColor
+        } else {
+            layer.frame = b
+            layer.cornerRadius = 6
+            layer.backgroundColor = NSColor(white: 1, alpha: Self.alpha).cgColor
+        }
+    }
+
+    private func begin() {
+        fired = false
+        place()
+        layer.removeAllAnimations()
+        layer.opacity = 1
+        layer.isHidden = false
+        let now = layer.convertTime(CACurrentMediaTime(), from: nil)
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
+            // Reduce Motion: a still tint while held, no sweep.
+            layer.transform = CATransform3DIdentity
+            let show = CABasicAnimation(keyPath: "opacity")
+            show.fromValue = 0; show.toValue = 0
+            show.beginTime = now; show.duration = Self.delay
+            layer.add(show, forKey: "wait")
+            return
+        }
+        layer.transform = CATransform3DMakeScale(0, 1, 1)
+        let grow = CABasicAnimation(keyPath: "transform.scale.x")
+        grow.fromValue = 0
+        grow.toValue = 1
+        grow.beginTime = now + Self.delay
+        grow.duration = max(duration - Self.delay, 0.05)
+        grow.fillMode = .forwards
+        grow.isRemovedOnCompletion = false
+        layer.add(grow, forKey: "grow")
+    }
+
+    /// The hold action fired: full, then fades in 0.15 s.
+    func fire() {
+        guard !fired, !layer.isHidden else { return }
+        fired = true
+        layer.removeAnimation(forKey: "grow")
+        layer.transform = CATransform3DIdentity
+        layer.opacity = 0
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1; fade.toValue = 0; fade.duration = 0.15
+        layer.add(fade, forKey: "fade")
+    }
+
+    private func end() {
+        guard !fired else { return }
+        let current = (layer.presentation()?.value(forKeyPath: "transform.scale.x") as? CGFloat) ?? 0
+        layer.removeAllAnimations()
+        layer.transform = CATransform3DMakeScale(0, 1, 1)
+        layer.opacity = 0
+        guard current > 0, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+        layer.opacity = 1
+        let back = CABasicAnimation(keyPath: "transform.scale.x")
+        back.fromValue = current; back.toValue = 0; back.duration = 0.15
+        layer.add(back, forKey: "back")
+    }
+}
+
+/// Sees a finger go down and up on a view without ever recognizing, so the button's own tap and
+/// the hold recognizers work as before.
+private final class TouchWatcher: NSGestureRecognizer {
+    var onBegan: (() -> Void)?
+    var onEnded: (() -> Void)?
+    override func touchesBegan(with event: NSEvent) { onBegan?() }
+    override func touchesEnded(with event: NSEvent) { onEnded?(); state = .failed }
+    override func touchesCancelled(with event: NSEvent) { onEnded?(); state = .failed }
+    override func reset() {}
+    override func canPrevent(_ other: NSGestureRecognizer) -> Bool { false }
 }
 
 /// The whole bar: equal-width buttons and, on top, the slider panel when one is open.

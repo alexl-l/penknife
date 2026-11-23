@@ -257,12 +257,14 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             press.allowedTouchTypes = .direct
             press.minimumPressDuration = 0.8
             time.addGestureRecognizer(press)
+            time.showsHold(0.8)
         }
         if let jiggler = barView.button(Item.jiggler.rawValue) {
             let press = NSPressGestureRecognizer(target: self, action: #selector(jigglerLongPressed(_:)))
             press.allowedTouchTypes = .direct
             press.minimumPressDuration = 3
             jiggler.addGestureRecognizer(press)
+            jiggler.showsHold(3)
         }
         // A hold on the old battery or jiggler button may never report its end.
         endBatteryHold()
@@ -272,6 +274,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
             press.allowedTouchTypes = .direct
             press.minimumPressDuration = 1
             battery.addGestureRecognizer(press)
+            battery.showsHold(1)
         }
 
         screenshotLongPressing = false
@@ -683,6 +686,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         switch recognizer.state {
         case .began:
             longPressing = true
+            barView?.button(Item.time.rawValue)?.holdFired()
             barView?.playEasterEgg()
         case .ended, .cancelled, .failed:
             longPressing = false
@@ -705,6 +709,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         switch recognizer.state {
         case .began:
             jigglerLongPressing = true
+            barView?.button(Item.jiggler.rawValue)?.holdFired()
             barView?.playGame()
         case .ended, .cancelled, .failed:
             jigglerLongPressing = false
@@ -726,6 +731,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         screenshotHold = nil
         screenshotLongPressing = false
         screenshot.setAccessibilityHelp(nil)
+        screenshot.showsHold(seconds)
         guard let seconds else { return }
         let press = NSPressGestureRecognizer(target: self, action: #selector(screenshotLongPressed(_:)))
         press.allowedTouchTypes = .direct
@@ -748,6 +754,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         switch recognizer.state {
         case .began:
             screenshotLongPressing = true
+            button?.holdFired()
             button?.show(symbol: "record.circle", label: String(localized: "Record Screen"))
             if let manager, let action = manager.module(.screenshot)?.actions.first { action.onHold?() }
         case .ended, .cancelled, .failed:
@@ -772,6 +779,7 @@ final class TouchBarModule: NSObject, Module, NSTouchBarDelegate {
         switch recognizer.state {
         case .began:
             batteryLongPressing = true
+            barView?.button(Item.battery.rawValue)?.holdFired()
             nextColorMode()
             // Still held: the next mode every second, until the finger lifts.
             batteryRepeatTimer?.invalidate()
