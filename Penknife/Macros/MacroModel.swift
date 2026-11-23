@@ -667,10 +667,26 @@ final class MacroStore {
 }
 
 extension MacroStep {
-    /// Where a new step goes (MAC-76): right below `selected`, or at the end when nothing is
-    /// selected or the selected step is gone.
-    static func insertionIndex(after selected: MacroStep.ID?, in steps: [MacroStep]) -> Int {
-        guard let selected, let index = steps.firstIndex(where: { $0.id == selected }) else { return steps.count }
+    /// Where a new step goes (MAC-76): right below the lowest selected step, or at the end when
+    /// nothing is selected or the selected steps are gone.
+    static func insertionIndex(after selected: Set<MacroStep.ID>, in steps: [MacroStep]) -> Int {
+        guard let index = steps.lastIndex(where: { selected.contains($0.id) }) else { return steps.count }
         return index + 1
+    }
+
+    /// ⇧-click (MAC-79): every step from `anchor` to `id`, either way; just `id` without an anchor.
+    static func range(from anchor: MacroStep.ID?, to id: MacroStep.ID, in steps: [MacroStep]) -> Set<MacroStep.ID> {
+        guard let end = steps.firstIndex(where: { $0.id == id }) else { return [] }
+        guard let anchor, let start = steps.firstIndex(where: { $0.id == anchor }) else { return [id] }
+        return Set(steps[min(start, end)...max(start, end)].map(\.id))
+    }
+
+    /// Steps copied in the editor (MAC-79): kept in Penknife, not on the system clipboard, so the
+    /// clipboard history and what the user copied stay untouched. Gone when Penknife quits.
+    @MainActor static var copied: [MacroStep] = []
+
+    /// The selected steps in list order, for ⌘C.
+    static func copy(_ selected: Set<MacroStep.ID>, from steps: [MacroStep]) -> [MacroStep] {
+        steps.filter { selected.contains($0.id) }
     }
 }

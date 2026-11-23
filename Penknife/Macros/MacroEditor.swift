@@ -50,6 +50,20 @@ final class MacroEditorWindow: NSWindow, NSWindowDelegate {
         setFrameAutosaveName("MacroEditor")
     }
 
+    /// ⌘C / ⌘V copy and paste the selected steps (MAC-79), unless a text field is being edited:
+    /// then they are the field's.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if !(firstResponder is NSText),
+           event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.capsLock, .numericPad, .function]) == .command {
+            switch event.charactersIgnoringModifiers {
+            case "c": if selection.copySteps?() == true { return true }
+            case "v": if selection.pasteSteps?() == true { return true }
+            default: break
+            }
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     /// A click on anything that isn't a text field lets the field go (user, 2026-11-23: "los campos
     /// de texto o de tiempo no se les puede quitar el foco"): SwiftUI keeps the focus otherwise.
     override func sendEvent(_ event: NSEvent) {
@@ -72,6 +86,9 @@ final class MacroEditorWindow: NSWindow, NSWindowDelegate {
 @Observable
 final class EditorSelection {
     var id: Macro.ID?
+    /// ⌘C / ⌘V on the steps (MAC-79), set by the shown macro; true when it handled the key.
+    @ObservationIgnored var copySteps: (() -> Bool)?
+    @ObservationIgnored var pasteSteps: (() -> Bool)?
 }
 
 struct MacroEditorView: View {
@@ -98,7 +115,7 @@ struct MacroEditorView: View {
             .safeAreaInset(edge: .bottom) { sidebarBar }
         } detail: {
             if let id = selection.id, store.macro(id) != nil {
-                MacroDetail(module: module, id: id).id(id)
+                MacroDetail(module: module, id: id, editor: selection).id(id)
             } else {
                 VStack(spacing: 8) {
                     Text(store.macros.isEmpty ? "No Macros" : "Choose a macro").font(.headline)
@@ -232,13 +249,15 @@ struct MacroEditorView: View {
 private struct MacroDetail: View {
     let module: MacrosModule
     let id: Macro.ID
+    let editor: EditorSelection
     @State private var tab = 0
     @State private var creating = false
     @State private var nameDraft = ""
     @State private var editingIcon = false
     @State private var confirmingSecureInput = false
-    /// The step the user is on (clicked or editing): a new step goes right below it (MAC-76).
-    @State private var selectedStep: MacroStep.ID?
+    /// The steps the user is on (clicked, ⌘/⇧-clicked or editing): a new step goes right below
+    /// the lowest one (MAC-76, MAC-79).
+    @State private var selectedSteps: Set<MacroStep.ID> = []
     @FocusState private var nameFocused: Bool
     private var store: MacroStore { module.store }
 
@@ -314,7 +333,8 @@ private struct MacroDetail: View {
             }
 
             if tab == 0 {
-                StepList(module: module, macro: macro, selected: $selectedStep)
+                StepList(module: module, macro: macro, selected: $selectedSteps,
+                         copy: copySelected, paste: pasteCopied)
                 HStack {
                     Menu {
                         ForEach(MacroStep.Kind.allCases, id: \.self) { kind in
@@ -342,20 +362,40 @@ private struct MacroDetail: View {
         } message: {
             Text("Esc won't stop it there; click or switch apps instead. You use this at your own risk, and Penknife isn't responsible for what it types.")
         }
-        .onChange(of: macro.wrappedValue.id) { selectedStep = nil }
+        .onChange(of: macro.wrappedValue.id) { selectedSteps = [] }
+        .onAppear {
+            editor.copySteps = { tab == 0 && copySelected() }
+            editor.pasteSteps = { tab == 0 && pasteCopied() }
+        }
+    }
+
+    @discardableResult
+    private func copySelected() -> Bool {
+        let steps = MacroStep.copy(selectedSteps, from: macro.wrappedValue.steps)
+        guard !steps.isEmpty else { return false }
+        MacroStep.copied = steps
+        return true
+    }
+
+    /// New ids on every paste, so the same steps can be pasted again (MAC-79).
+    @discardableResult
+    private func pasteCopied() -> Bool {
+        guard !MacroStep.copied.isEmpty else { return false }
+        insert(MacroStep.copied.map(\.duplicate))
+        return true
     }
 
     private func addStep(_ kind: MacroStep.Kind) {
         insert([MacroStep(kind: kind)])
     }
 
-    /// Below the selected step, or at the end when none is selected (MAC-76); the last new
-    /// step becomes the selected one, so adding again keeps the order.
+    /// Below the selected steps, or at the end when none is selected (MAC-76); the new steps
+    /// become the selection, so adding again keeps the order.
     private func insert(_ steps: [MacroStep]) {
-        guard let last = steps.last else { return }
-        let at = MacroStep.insertionIndex(after: selectedStep, in: macro.wrappedValue.steps)
+        guard !steps.isEmpty else { return }
+        let at = MacroStep.insertionIndex(after: selectedSteps, in: macro.wrappedValue.steps)
         macro.wrappedValue.steps.insert(contentsOf: steps, at: at)
-        selectedStep = last.id
+        selectedSteps = Set(steps.map(\.id))
     }
 }
 
@@ -483,7 +523,11 @@ private struct MacroIconButton: View {
 private struct StepList: View {
     let module: MacrosModule
     @Binding var macro: Macro
-    @Binding var selected: MacroStep.ID?
+    @Binding var selected: Set<MacroStep.ID>
+    let copy: () -> Bool
+    let paste: () -> Bool
+    /// Where a ⇧-click range starts: the last step clicked without ⇧.
+    @State private var anchor: MacroStep.ID?
     @FocusState private var editing: MacroStep.ID?
     @State private var dragging: MacroStep.ID?
     @State private var startIndex = 0
@@ -507,16 +551,20 @@ private struct StepList: View {
                 .coordinateSpace(.named(Self.space))
                 .padding(4)
             }
-            // A new step is selected on insert: bring it into view (MAC-77).
+            // New steps are selected on insert: bring the last one into view (MAC-77).
             .onChange(of: macro.steps.count) { old, new in
-                guard new > old, let id = selected else { return }
+                guard new > old, let id = macro.steps.last(where: { selected.contains($0.id) })?.id else { return }
+                anchor = id
                 withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(id) }
             }
         }
         // A click on the empty part of the list selects nothing: new steps go at the end.
         .contentShape(Rectangle())
-        .onTapGesture { selected = nil }
-        .onChange(of: editing) { if let id = editing { selected = id } }
+        .onTapGesture { selected = []; anchor = nil }
+        .onChange(of: editing) { if let id = editing { selected = [id]; anchor = id } }
+        .contextMenu {
+            Button("Paste") { _ = paste() }.disabled(MacroStep.copied.isEmpty)
+        }
         .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor)))
     }
@@ -559,17 +607,28 @@ private struct StepList: View {
         .background {
             if isDragged {
                 RoundedRectangle(cornerRadius: 6).fill(.background).shadow(color: .black.opacity(0.25), radius: 6, y: 2)
-            } else if selected == step.id {
+            } else if selected.contains(step.id) {
                 RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
             } else if !index.isMultiple(of: 2) {
                 RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.035))
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture { selected = step.id }
+        .onTapGesture { click(step.id) }
         .offset(y: isDragged ? offset : 0)
         .zIndex(isDragged ? 1 : 0)
         .contextMenu {
+            // On a selected row they act on the whole selection; elsewhere on that row (MAC-79).
+            Button("Copy") {
+                if !selected.contains(step.id) { selected = [step.id]; anchor = step.id }
+                _ = copy()
+            }
+            Button("Paste") {
+                if !selected.contains(step.id) { selected = [step.id]; anchor = step.id }
+                _ = paste()
+            }
+            .disabled(MacroStep.copied.isEmpty)
+            Divider()
             Button("Duplicate") { duplicate(step.id) }
             Button("Move Up") { move(step.id, by: -1) }.disabled(index == 0)
             Button("Move Down") { move(step.id, by: 1) }.disabled(index == macro.steps.count - 1)
@@ -582,6 +641,20 @@ private struct StepList: View {
         .accessibilityAction(named: Text("Move down")) { move(step.id, by: 1) }
         .accessibilityAction(named: Text("Duplicate")) { duplicate(step.id) }
         .accessibilityAction(named: Text("Delete")) { delete(step.id) }
+    }
+
+    /// As in Finder (MAC-79): click selects one, ⌘-click adds or removes, ⇧-click a range.
+    private func click(_ id: MacroStep.ID) {
+        let flags = NSEvent.modifierFlags
+        if flags.contains(.command) {
+            if selected.contains(id) { selected.remove(id) } else { selected.insert(id) }
+            anchor = id
+        } else if flags.contains(.shift) {
+            selected = MacroStep.range(from: anchor, to: id, in: macro.steps)
+        } else {
+            selected = [id]
+            anchor = id
+        }
     }
 
     private func drag(_ id: MacroStep.ID) -> some Gesture {

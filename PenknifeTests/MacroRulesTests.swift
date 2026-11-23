@@ -303,11 +303,23 @@ struct MacroRulesTests {
     @Test("MAC-76 a new step goes below the selected one, else at the end")
     func insertBelowSelected() {
         let steps = (0..<5).map { _ in MacroStep(kind: .text) }
-        #expect(MacroStep.insertionIndex(after: steps[2].id, in: steps) == 3)
-        #expect(MacroStep.insertionIndex(after: steps[4].id, in: steps) == 5)
-        #expect(MacroStep.insertionIndex(after: nil, in: steps) == 5)
-        #expect(MacroStep.insertionIndex(after: MacroStep(kind: .key).id, in: steps) == 5)
-        #expect(MacroStep.insertionIndex(after: nil, in: []) == 0)
+        #expect(MacroStep.insertionIndex(after: [steps[2].id], in: steps) == 3)
+        #expect(MacroStep.insertionIndex(after: [steps[4].id], in: steps) == 5)
+        #expect(MacroStep.insertionIndex(after: [], in: steps) == 5)
+        #expect(MacroStep.insertionIndex(after: [MacroStep(kind: .key).id], in: steps) == 5)
+        #expect(MacroStep.insertionIndex(after: [], in: []) == 0)
+        // MAC-79: several selected → below the lowest one.
+        #expect(MacroStep.insertionIndex(after: [steps[3].id, steps[1].id], in: steps) == 4)
+    }
+
+    @Test("MAC-79 ⇧-click range, copy keeps list order")
+    func selectRangeAndCopy() {
+        let steps = (0..<5).map { _ in MacroStep(kind: .text) }
+        let ids = steps.map(\.id)
+        #expect(MacroStep.range(from: ids[3], to: ids[1], in: steps) == Set(ids[1...3]))
+        #expect(MacroStep.range(from: ids[1], to: ids[3], in: steps) == Set(ids[1...3]))
+        #expect(MacroStep.range(from: nil, to: ids[2], in: steps) == [ids[2]])
+        #expect(MacroStep.copy([ids[4], ids[0], ids[2]], from: steps).map(\.id) == [ids[0], ids[2], ids[4]])
     }
 
     @Test("MAC-78 password fields are off unless allowed, also for macros saved before")
