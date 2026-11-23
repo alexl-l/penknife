@@ -903,4 +903,21 @@ struct TouchBarRulesTests {
         #expect(v.last! <= 0.92)
         #expect(v[3] > 0.45 && v[3] < 0.6)   // ~15 s: about half
     }
+
+    @Test("O-34 b a second speed test shows its fill again (the first one hides when it ends)")
+    func speedTestFillRepeats() async throws {
+        let host = NSView(frame: NSRect(x: 0, y: 0, width: 78, height: 30))
+        host.wantsLayer = true
+        let fill = TestFill(on: host)
+        fill.start()
+        #expect(fill.isShown)
+        fill.finish(succeeded: true)
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(!fill.isShown)
+        fill.start()
+        #expect(fill.isShown)
+        fill.finish(succeeded: false)
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(!fill.isShown)
+    }
 }

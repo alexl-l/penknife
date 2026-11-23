@@ -261,7 +261,8 @@ final class ButtonFill {
 
     /// Shows an empty fill (or, with Reduce Motion, a still full tint) after `delay`.
     func show(delay: CFTimeInterval) {
-        guard let host, let root = host.layer else { return }
+        guard let host else { return }
+        generation += 1
         clip.removeAllAnimations()
         bar.removeAllAnimations()
         // The button draws its gray background in its own bezel subview: the fill view goes right
@@ -317,6 +318,20 @@ final class ButtonFill {
         let fade = CABasicAnimation(keyPath: "opacity")
         fade.fromValue = 1; fade.toValue = 0; fade.duration = 0.15
         clip.add(fade, forKey: "fade")
+        hide(after: 0.15)
+    }
+
+    /// Bumped by every show, so a hide left over from the previous fill doesn't hide a new one.
+    private var generation = 0
+
+    /// Hidden once its last animation is over, so the next `show` starts fresh (it stayed
+    /// "shown" at opacity 0, and a second speed test got no fill: performance review 2026-11-22).
+    private func hide(after delay: TimeInterval) {
+        let current = generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, self.generation == current else { return }
+            self.view.isHidden = true
+        }
     }
 
     /// Stopped early: empties in 0.15 s.
@@ -328,6 +343,7 @@ final class ButtonFill {
         let back = CABasicAnimation(keyPath: "bounds.size.width")
         back.fromValue = current; back.toValue = 0; back.duration = 0.15
         bar.add(back, forKey: "back")
+        hide(after: 0.15)
     }
 }
 
@@ -393,6 +409,8 @@ final class TestFill {
     static let values: [CGFloat] = stride(from: 0.0, through: span, by: 5).map { 0.92 * (1 - exp(-$0 / 20)) }
 
     init(on host: NSView) { fill = ButtonFill(on: host, alpha: 0.14) }
+
+    var isShown: Bool { fill.isShown }
 
     func start() {
         guard !fill.isShown else { return }
