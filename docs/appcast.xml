@@ -3,6 +3,24 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.15</title>
+            <pubDate>Sun, 22 Nov 2026 20:35:21 -0500</pubDate>
+            <sparkle:version>294</sparkle:version>
+            <sparkle:shortVersionString>1.15</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Macros.** A new module. Record or write a sequence of steps (keys, text, waits, files, values from your data table) and run it from a panel (⌃⌥M) or from its own shortcut. It types in the app in front and stops if you switch apps, click or press Esc. The menu bar icon shows a play symbol while it runs.</li>
+<li>**A data table for repeated runs.** The Data tab is a table you edit in place. Each run uses the next row, and `{name}` in a text step is filled from the column of that name. Paste a table from Excel, Numbers or Sheets to start.</li>
+<li>**An icon for each macro.** Give a macro a letter or an emoji on a background color, the same as pinned clipboard items. It shows in the editor and in the list.</li>
+<li>**Import and export.** Share a macro as a file. Macros from someone else ask before they can paste files or press ⌘ shortcuts. Changes are saved automatically.</li>
+<li>**Update a pinned value.** In the clipboard, "Update Value…" (⌘U) opens an editor beside the row. Type or paste the new text and the pin keeps its place and icon. Pins can also be reordered.</li>
+<li>**Alerts on the Touch Bar.** Alerts show their buttons on the Touch Bar, with Delete in red, instead of leaving it black.</li>
+<li>**Shortcut recorders.** Updated KeyboardShortcuts to 3.1.0: shortcut fields record on the first click again on macOS 26.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.15/Penknife-1.15.zip" length="7979665" type="application/octet-stream" sparkle:edSignature="LxVqz4Y72l/rFEv4OusuIVuge2gFXnpf6etFWtmyBXDk5+2DoVqPGPLYvCz61mRryEIxMiDKpNeq6pcDjnypCw=="/>
+        </item>
+        <item>
             <title>1.14</title>
             <pubDate>Fri, 20 Nov 2026 07:43:36 -0500</pubDate>
             <sparkle:version>270</sparkle:version>
@@ -31,29 +49,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.13/Penknife-1.13.zip" length="6686803" type="application/octet-stream" sparkle:edSignature="Qt9TzwugLJlnuHY9TqC45Uf5Q/EAOwGEudueyamFmbhVSTCDsF+mNoB+C62OdxUtfv+JLLDSCfqAsxMkJCloCg=="/>
-        </item>
-        <item>
-            <title>1.12</title>
-            <pubDate>Thu, 19 Nov 2026 22:05:57 -0500</pubDate>
-            <sparkle:version>240</sparkle:version>
-            <sparkle:shortVersionString>1.12</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Hold to record.** Hold the Screenshot shortcut (F1 by default) or the Touch Bar Screenshot button (2 seconds by default), pick the area, and the 3-2-1 countdown starts. Choose 1, 1.5, 2 or 3 seconds, or turn it off. The Touch Bar follows your settings at once.</li>
-<li>**Toolbar during the countdown.** The recording toolbar now shows while the 3-2-1 runs. Stop cancels the recording. Switch the microphone and Mac sound with M and S, and the first change restarts the count.</li>
-<li>**A key for every button.** Every button in the screenshot editor and the recording toolbar has a keyboard key, shown on hover or while you hold ⌘. Drawing while you record uses the same keys as the editor, and a shape's letter places it. ⌘D duplicates a mark. ⇧⌘R stops a recording while Penknife has the keyboard, and ⌃⌥D switches Mouse and Edit in one press.</li>
-<li>**Close after saving.** A new setting, off by default, closes the recording window after you save the video or GIF, or copy it.</li>
-<li>**Safer recordings.** Quitting Penknife asks before it discards a recording you have not saved. If the sound fails, the video is kept without sound. ⌃⌥P opens the menu while you record.</li>
-<li>**Microphone just works.** Recording with the microphone unmutes a muted Mac mic, then mutes it again afterwards. With no microphone connected, the Touch Bar button and the menu item are dimmed.</li>
-<li>**Screenshot fixes.** The toolbar stays on screen for a window that extends past the bottom edge. Main-menu keys no longer leave the editor. Recording from the editor now captures the right part of the screen.</li>
-<li>**New Permissions page.** Settings lists the five macOS permissions Penknife can use, with the state of each, and permission alerts point to it. New alerts cover missing meeting and media key access, a refused Automation request, and a microphone that can't be muted.</li>
-<li>**Settings and menu bar look.** Sidebar icons now look like macOS System Settings tiles, in solid colors. The menu bar status dots are bigger, at 6 pt like Apple's.</li>
-<li>**Smoother Touch Bar.** The bar comes back at once when you close a dialog with its button on the Touch Bar. Sliders follow your finger and keep their level when you lift outside the slider.</li>
-<li>**Clipboard history.** The panel opens at once even with many screenshots. Web formatting is kept, and files that no longer exist leave the list. The Clipboard page shows the space pasted images use.</li>
-<li>**Smaller fixes.** Launch at login now follows System Settings, so removing it there turns the choice off. Mouse Jiggler stops when you move the mouse. The speed test reports a crash of its tool as a failure, and weather older than 2 hours shows as no data.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.12/Penknife-1.12.zip" length="6480770" type="application/octet-stream" sparkle:edSignature="NLUS6LxsyXtmUwX8+0fVh4j2qzcA2wMIjNLmqGwtxQWXVLsOfhQ9yyWitPZCILCLOgb544A+aD65gNLtdovdDQ=="/>
         </item>
     </channel>
 </rss>
