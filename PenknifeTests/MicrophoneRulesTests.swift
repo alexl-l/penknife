@@ -577,6 +577,22 @@ struct MicrophoneRulesTests {
         #expect(M.unmuteForRecording(FakeControls(mute: 1)) == nil) // can't be set
     }
 
+    @Test("MIC-86 MIC-87 locking mutes an open microphone, off by default, never unmutes")
+    func muteOnLock() throws {
+        typealias M = MicrophoneModule
+        let empty = try #require(UserDefaults(suiteName: "PenknifeTests.empty.\(UUID().uuidString)"))
+        #expect(!M.muteOnLock(in: empty))
+        let open = try #require(M.lockWrite(FakeControls(muteSettable: true, mute: 0, volume: 0.7), savedVolume: nil))
+        #expect(open.write == .mute(1))
+        let byVolume = try #require(M.lockWrite(FakeControls(volumeSettable: true, volume: 0.4), savedVolume: nil))
+        #expect(byVolume.write == .volume(0))
+        #expect(byVolume.savedVolume == 0.4) // the next unmute brings it back
+        #expect(M.lockWrite(FakeControls(muteSettable: true, mute: 1), savedVolume: nil) == nil) // already muted
+        #expect(M.lockWrite(FakeControls(volumeSettable: true, volume: 0), savedVolume: 0.5) == nil)
+        #expect(M.lockWrite(FakeControls(mute: 0, volume: 0.7), savedVolume: nil) == nil) // can't be set: silent
+        #expect(M.lockWrite(FakeControls?.none, savedVolume: nil) == nil) // no microphone
+    }
+
     // MIC-64: the state is read from the control a press writes (D: Mic state bug).
     @Test("MIC-64 the state is read from the control a press writes", arguments: [
         (FakeControls(muteSettable: true, mute: 1, volume: 0.7), true),

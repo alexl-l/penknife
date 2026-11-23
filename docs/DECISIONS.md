@@ -180,3 +180,6 @@
 - O-34 final review (2026-11-22). `ux-ui-designer`: approved, matches variant A, nothing needed for VoiceOver or Increase Contrast. `performance-reviewer`: idle 0.0 % CPU, 5 wakeups in 62 s, RSS flat, no timers, no animation left running. Its one bug: after a fill ended it stayed "shown" at opacity 0, so a second speed test got no fill. Fix: the view is hidden 0.15 s after its fade or empty animation, guarded by a generation counter so the hide can't catch a newer fill. Test `speedTestFillRepeats`.
 
 - 2026-11-22, CB-36: the pinned-row cap is computed once when the panel opens (`ClipboardPanelModel.pinnedCap`), from the same `top` as the panel height, so a search never resizes anything. The Pinned/History line counts 5 pt in the height (it was 1, the 4 pt above it was missing, so History lost 4 pt).
+
+## Testing settings from outside (2026-11-22, R-37)
+`defaults write` from another process does NOT post `UserDefaults.didChangeNotification` inside the running app, so options that start/stop observers live (keepMuted, muteOnLock) look broken when a QA agent flips them that way. Flip them in Settings, or `defaults write` and relaunch Penknife. A lock can be simulated by posting the distributed notification `com.apple.screenIsLocked` (no real lock needed).

@@ -636,6 +636,7 @@ private struct MeetingOptions: View {
     @AppStorage(MicrophoneModule.alsoMuteMacKey) private var alsoMuteMac = true
     @AppStorage(TeamsConsent.enabledKey) private var teamsConsent = false
     @AppStorage(MicrophoneModule.keepMutedKey) private var keepMuted = true
+    @AppStorage(MicrophoneModule.muteOnLockKey) private var muteOnLock = false
     @State private var confirmTeamsConsent = false
 
     var body: some View {
@@ -691,6 +692,12 @@ private struct MeetingOptions: View {
             }
         } footer: {
             Text("If the Mac opens the microphone on its own (for example, “Hey Siri” when a sound plays), Penknife mutes it again.")
+        }
+        // R-37: off by default; any lock counts, unlocking leaves it muted.
+        Section {
+            Toggle("Mute when the Mac locks", isOn: $muteOnLock)
+        } footer: {
+            Text("When you lock the Mac, its microphone is muted. It stays muted when you come back.")
         }
         // R-31: opt-in, confirmed once (legal-advisor, 2026-11-17); no Teams text is quoted or matched.
         Section {

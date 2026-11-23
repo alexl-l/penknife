@@ -413,6 +413,8 @@ Noted only, nothing designed or built. Each one goes through clarify → require
 
 **R-36 Copy text from a screenshot** — approved 2026-11-22 (user, after the explanation: "eso está chévere. me gusta así"). In the screenshot editor, after selecting an area, a new button next to Copy, "Copy text" / "Copiar texto", reads the text in the selection on the Mac (Vision, on device, no network: SS-06) and puts it on the clipboard as plain text, then closes the capture like Copy. Built 2026-11-22 (build 300): rules in `requirements/screenshot.md` SS-46b (icon `text.viewfinder` after Copy, ⇧⌘C, marks included so blur keeps hiding text, no text = alert and the capture stays open).
 
+**R-37 Mute the mic when the Mac locks** — approved 2026-11-22 (user: "sip, sigue en el orden que consideres"; product idea #6). Optional, OFF by default, in Settings › Microphone: any lock mutes the Mac's microphone silently; unlocking leaves it muted (you unmute on purpose when you're back). Rules MIC-86…88 in `requirements/microphone.md`.
+
 ## Product ideas (product-ideas agent, 2026-11-22; user: "go" to start with #1)
 Improvements to what exists, most useful first:
 1. **Screenshot → "Copy text"**: APPROVED as R-36 (below).
@@ -420,7 +422,7 @@ Improvements to what exists, most useful first:
 3. **Screenshot → pin on screen**: the capture floats above everything. Small/medium.
 4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small.
 5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium.
-6. **Lock → mute the mic when locking**: optional, off by default. Small.
+6. **Lock → mute the mic when locking**: APPROVED as R-37.
 New ideas: **Keep awake** (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (AirPods ↔ speakers by shortcut or Touch Bar); **Mic-open warning** when a call ends.
 
 ## Rejected / out of scope

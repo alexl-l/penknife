@@ -41,6 +41,8 @@ final class MicrophoneModule: Module {
     private var defaultsObserver: NSObjectProtocol?
     /// B-2: tells when the user called Siri, who hears them with the mute left on.
     private var siri: SiriWatcher?
+    /// R-37: the screen-lock notification, only while "Mute when the Mac locks" is on.
+    private var lockObserver: NSObjectProtocol?
     /// Posted when what `showsMuted` says changes without the device changing (a Siri session).
     static let shownStateChanged = Notification.Name("PenknifeMicrophoneShownStateChanged")
 
@@ -66,9 +68,13 @@ final class MicrophoneModule: Module {
             siri = watcher
         }
         updateKeeper()
+        updateLockObserver()
         defaultsObserver = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
                                                                   queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.updateKeeper() }
+            MainActor.assumeIsolated {
+                self?.updateKeeper()
+                self?.updateLockObserver()
+            }
         }
     }
 
@@ -83,10 +89,55 @@ final class MicrophoneModule: Module {
         outputWatcher = nil
         siri?.stop()
         siri = nil
+        if let lockObserver { DistributedNotificationCenter.default().removeObserver(lockObserver) }
+        lockObserver = nil
     }
 
     /// For tests (R-15, MIC-80): whether the module still holds an observer or listener.
-    var holdsObservers: Bool { keeper != nil || outputWatcher != nil || defaultsObserver != nil || siri != nil }
+    var holdsObservers: Bool {
+        keeper != nil || outputWatcher != nil || defaultsObserver != nil || siri != nil || lockObserver != nil
+    }
+
+    // MARK: Mute when the Mac locks (R-37)
+
+    static let muteOnLockKey = "microphone.muteOnLock"
+    /// Off by default (product idea #6, 2026-11-22): it changes the mic without a press.
+    static var muteOnLock: Bool { muteOnLock(in: .standard) }
+    static func muteOnLock(in defaults: UserDefaults) -> Bool { defaults.bool(forKey: muteOnLockKey) }
+
+    /// MIC-87: what a lock writes. Only an open microphone that can be muted; never unmutes.
+    static func lockWrite(_ input: (some MicControls)?,
+                          savedVolume: Float32?) -> (write: MicWrite, savedVolume: Float32?)? {
+        guard let input, !readMuted(input) else { return nil }
+        let plan = writePlan(input, mute: true, savedVolume: savedVolume)
+        return plan.write == .nothing || plan.write == .unchanged ? nil : plan
+    }
+
+    /// Any lock counts (F6, ⌃⌘Q, the Apple menu, closing the lid with "require password"):
+    /// macOS posts the same notification. Listened to only while the option is on (R-15).
+    private func updateLockObserver() {
+        let wanted = Self.muteOnLock
+        guard wanted != (lockObserver != nil) else { return }
+        if wanted {
+            lockObserver = DistributedNotificationCenter.default().addObserver(
+                forName: .init("com.apple.screenIsLocked"), object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.muteForLock() }
+            }
+        } else if let lockObserver {
+            DistributedNotificationCenter.default().removeObserver(lockObserver)
+            self.lockObserver = nil
+        }
+    }
+
+    /// MIC-87: silent (the screen is locked), the Mac's microphone only; unlocking leaves it muted.
+    private func muteForLock() {
+        guard let device = Self.defaultInputDevice(),
+              let plan = Self.lockWrite(InputDevice(id: device), savedVolume: savedVolume) else { return }
+        ownChangeUntil = Date().addingTimeInterval(1)
+        savedVolume = plan.savedVolume
+        Self.write(plan.write, to: device)
+        log.notice("Muted: the Mac locked")
+    }
 
     // MARK: Keep muted (R-34)
 

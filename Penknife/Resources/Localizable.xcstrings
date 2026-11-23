@@ -821,6 +821,16 @@
         }
       }
     },
+    "Mute when the Mac locks": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Silenciar al bloquear el Mac"
+          }
+        }
+      }
+    },
     "Mutes it again if the Mac opens the microphone on its own.": {
       "localizations": {
         "es": {
@@ -2817,6 +2827,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrir el menú de Penknife"
+          }
+        }
+      }
+    },
+    "When you lock the Mac, its microphone is muted. It stays muted when you come back.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al bloquear el Mac se silencia su micrófono. Sigue silenciado cuando vuelves."
           }
         }
       }
