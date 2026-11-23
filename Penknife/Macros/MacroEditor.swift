@@ -312,6 +312,11 @@ private struct MacroDetail: View {
                 .pickerStyle(.segmented)
                 .fixedSize()
                 .help("Paste is faster. Keystrokes works in fields that block paste.")
+            }
+            // Its own line under "Type as": in the same row it made the detail wider than the
+            // window and cut it on the right (QA 2026-11-23, MAC-78).
+            HStack {
+                Spacer()
                 // Turning it on asks first; turning it off doesn't (MAC-78).
                 Toggle("Allow in password fields", isOn: Binding(
                     get: { macro.wrappedValue.allowsSecureInput },
