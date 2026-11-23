@@ -833,8 +833,11 @@ struct IconEditor: View {
                         let one = PinIcon.oneGlyph(old: old, new: new)
                         if one != new { glyph = one; return }
                         save()
-                        // One character is all it takes: the field lets the focus go (user, 2026-11-20).
-                        if !new.isEmpty { focused = false }
+                        // One letter is all it takes: the field lets the focus go (user, 2026-11-20).
+                        // An emoji keeps it: it comes from the Emoji & Symbols viewer, which types
+                        // into the focused field, so a second pick there must replace the first
+                        // (user, 2026-11-22: "si selecciono un emoji y luego otro, no cambia").
+                        if !new.isEmpty, PinIcon(glyph: new, color: nil)?.isEmoji != true { focused = false }
                     }
                 Button {
                     focused = true
