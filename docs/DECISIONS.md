@@ -183,3 +183,8 @@
 
 ## Testing settings from outside (2026-11-22, R-37)
 `defaults write` from another process does NOT post `UserDefaults.didChangeNotification` inside the running app, so options that start/stop observers live (keepMuted, muteOnLock) look broken when a QA agent flips them that way. Flip them in Settings, or `defaults write` and relaunch Penknife. A lock can be simulated by posting the distributed notification `com.apple.screenIsLocked` (no real lock needed).
+
+## Color picker capture and loupe (R-38, 2026-11-22)
+- ScreenCaptureKit's default screenshot `CGImage` has no color space: read as sRGB, #12ABEF came back #15ABEF (measured). Capturing with `SCStreamConfiguration.colorSpaceName = sRGB` gives the exact value; P3 tagging didn't. Only the picker uses it; screenshots keep the default capture (switching them to sRGB would change their output — not asked).
+- Drawing the loupe into the full-screen canvas with `NSShadow` cost ~50 % CPU at 125 moves/s (vImage blur ~half). Now a small layer-backed view: GPU zoom (`magnificationFilter = .nearest`), overlay image drawn once, `shadowPath` shadow → ~12 %. A flipped NSView's backing layer is already top-down: don't flip layer frames/shadow paths again.
+
