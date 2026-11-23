@@ -6376,6 +6376,56 @@
           }
         }
       }
+    },
+    "Keep Awake": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener despierto"
+          }
+        }
+      }
+    },
+    "Keep Awake on": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener despierto activado"
+          }
+        }
+      }
+    },
+    "Keep Awake off": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantener despierto desactivado"
+          }
+        }
+      }
+    },
+    "Couldn't keep the Mac awake": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo mantener el Mac despierto"
+          }
+        }
+      }
+    },
+    "Keeps the Mac and the display awake without moving the mouse. Turns off when the Mac locks.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantiene el Mac y la pantalla despiertos sin mover el ratón. Se desactiva al bloquear el Mac."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

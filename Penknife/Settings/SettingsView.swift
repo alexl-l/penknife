@@ -187,6 +187,7 @@ private extension ModuleID {
     var tint: TileColor {
         switch self {
         case .jiggler: .blue
+        case .keepAwake: .brown
         case .microphone: .orange
         case .lockScreen: .indigo
         case .screenshot: .purple
@@ -307,7 +308,7 @@ private struct ModuleDetail: View {
             MeetingOptions()
         case .cpuTemperature:
             Section { MenuBarToggle(kind: .temperature) }
-        case .lockScreen, .dialogs:
+        case .lockScreen, .dialogs, .keepAwake:
             EmptyView()
         }
     }

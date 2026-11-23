@@ -5,6 +5,7 @@ import KeyboardShortcuts
 /// A module that is off must hold no timers, observers or event taps.
 enum ModuleID: String, CaseIterable, Identifiable {
     case jiggler
+    case keepAwake
     case microphone
     case lockScreen
     case screenshot
@@ -23,6 +24,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .jiggler: String(localized: "Mouse Jiggler")
+        case .keepAwake: String(localized: "Keep Awake")
         case .microphone: String(localized: "Microphone")
         case .lockScreen: String(localized: "Lock Screen")
         case .screenshot: String(localized: "Screenshot")
@@ -41,6 +43,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     var summary: String {
         switch self {
         case .jiggler: String(localized: "Keeps you shown as active by nudging the mouse when you stop for a while.")
+        case .keepAwake: String(localized: "Keeps the Mac and the display awake without moving the mouse. Turns off when the Mac locks.")
         case .microphone: String(localized: "Mutes the meeting you are in with its own shortcut (Teams, Meet, Zoom, Slack, Webex), or the Mac's microphone.")
         case .lockScreen: String(localized: "Locks the screen and turns off Mouse Jiggler.")
         case .screenshot: String(localized: "Capture an area or a window (press Space). Mark it up, then copy or save it. Or record it as a video or GIF and draw as you go. Nothing leaves your Mac.")
@@ -66,6 +69,7 @@ enum ModuleID: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .jiggler: "computermouse"
+        case .keepAwake: "cup.and.saucer"
         case .microphone: "mic"
         case .lockScreen: "lock"
         case .screenshot: "camera.viewfinder"

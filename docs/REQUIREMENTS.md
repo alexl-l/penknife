@@ -415,6 +415,8 @@ Noted only, nothing designed or built. Each one goes through clarify → require
 
 **R-37 Mute the mic when the Mac locks** — approved 2026-11-22 (user: "sip, sigue en el orden que consideres"; product idea #6). Optional, OFF by default, in Settings › Microphone: any lock mutes the Mac's microphone silently; unlocking leaves it muted (you unmute on purpose when you're back). Rules MIC-86…88 in `requirements/microphone.md`.
 
+**R-39 Keep Awake** — approved 2026-11-22 (user: "yep" to the proposal). A separate module, not a jiggler mode: a toggle (menu + shortcut with no default key) that keeps the Mac and the display awake with one power assertion, without moving the mouse; off at launch and when the Mac locks; no durations for now. Rules KA-01…08 in `requirements/keepawake.md`.
+
 ## Product ideas (product-ideas agent, 2026-11-22; user: "go" to start with #1)
 Improvements to what exists, most useful first:
 1. **Screenshot → "Copy text"**: APPROVED as R-36 (below).
@@ -423,7 +425,7 @@ Improvements to what exists, most useful first:
 4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small. BUILT 2026-11-22 as R-38 (screenshot.md SS-63…66).
 5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium.
 6. **Lock → mute the mic when locking**: APPROVED as R-37.
-New ideas: **Keep awake** (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (AirPods ↔ speakers by shortcut or Touch Bar); **Mic-open warning** when a call ends.
+New ideas: **Keep awake** (BUILT 2026-11-22 as R-39) (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (AirPods ↔ speakers by shortcut or Touch Bar); **Mic-open warning** when a call ends.
 
 ## Rejected / out of scope
 - Esc stops the recording and closes the capture window (asked 2026-11-19, dropped the same day; user: "ya tenemos el shortcut para parar … no es tan seguro. se puede oprimir por error"). Stop stays on the toolbar button, ⇧⌘R (REC-48) and ⌃⌥R; Esc only cancels before "go" (O-32).

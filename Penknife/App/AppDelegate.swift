@@ -52,6 +52,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                       music: music, cpu: cpu, weather: weather, speedTest: speedTest)
         manager = ModuleManager(modules: [
             jiggler,
+            KeepAwakeModule(),
             microphone,
             LockScreenModule(jiggler: jiggler),
             screenshot,

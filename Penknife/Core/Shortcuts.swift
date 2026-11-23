@@ -5,6 +5,8 @@ import KeyboardShortcuts
 extension KeyboardShortcuts.Name {
     static let openMenu = Self("openMenu", default: .init(.p, modifiers: [.control, .option]))
     static let toggleJiggler = Self("toggleJiggler", default: .init(.f12))
+    /// Keep Awake (R-39): no default key.
+    static let toggleKeepAwake = Self("toggleKeepAwake")
     static let toggleMicrophone = Self("toggleMicrophone", default: .init(.f5))
     static let lockScreen = Self("lockScreen", default: .init(.f6))
     static let screenshot = Self("screenshot", default: .init(.f1))

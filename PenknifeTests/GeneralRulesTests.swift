@@ -31,7 +31,7 @@ struct GeneralRulesTests {
         for id in ModuleID.allCases {
             #expect(ModuleManager.isOn(id, in: empty), "\(id)")
         }
-        #expect(ModuleID.allCases == [.jiggler, .microphone, .lockScreen, .screenshot, .clipboard, .macros, .music,
+        #expect(ModuleID.allCases == [.jiggler, .keepAwake, .microphone, .lockScreen, .screenshot, .clipboard, .macros, .music,
                                       .blockAppleMusic, .cpuTemperature, .weather, .speedTest, .touchBar, .dialogs])
     }
 
@@ -134,9 +134,9 @@ struct GeneralRulesTests {
         #expect(other.origin.x == CGFloat(-960 - 100) && other.origin.y == CGFloat(1080 - 25 - 8 - 44))
     }
 
-    @Test("GN-18 seven alert types, each shown when nothing is saved")
+    @Test("GN-18 eight alert types, each shown when nothing is saved")
     func alertTypes() {
-        #expect(AlertCategory.allCases == [.jiggler, .microphone, .screenshot, .clipboard, .macros, .music, .speedTest])
+        #expect(AlertCategory.allCases == [.jiggler, .keepAwake, .microphone, .screenshot, .clipboard, .macros, .music, .speedTest])
         let empty = JigglerRulesTests.MemoryDefaults()
         for category in AlertCategory.allCases {
             #expect(category.key == "alerts.\(category.rawValue)")
