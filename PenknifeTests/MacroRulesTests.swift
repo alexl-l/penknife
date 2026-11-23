@@ -297,4 +297,14 @@ struct MacroRulesTests {
         data.removeColumn(0)
         #expect(data.columns.isEmpty && data.rows.isEmpty)
     }
+
+    @Test("MAC-76 a new step goes below the selected one, else at the end")
+    func insertBelowSelected() {
+        let steps = (0..<5).map { _ in MacroStep(kind: .text) }
+        #expect(MacroStep.insertionIndex(after: steps[2].id, in: steps) == 3)
+        #expect(MacroStep.insertionIndex(after: steps[4].id, in: steps) == 5)
+        #expect(MacroStep.insertionIndex(after: nil, in: steps) == 5)
+        #expect(MacroStep.insertionIndex(after: MacroStep(kind: .key).id, in: steps) == 5)
+        #expect(MacroStep.insertionIndex(after: nil, in: []) == 0)
+    }
 }

@@ -236,6 +236,8 @@ private struct MacroDetail: View {
     @State private var creating = false
     @State private var nameDraft = ""
     @State private var editingIcon = false
+    /// The step the user is on (clicked or editing): a new step goes right below it (MAC-76).
+    @State private var selectedStep: MacroStep.ID?
     @FocusState private var nameFocused: Bool
     private var store: MacroStore { module.store }
 
@@ -303,7 +305,7 @@ private struct MacroDetail: View {
             }
 
             if tab == 0 {
-                StepList(module: module, macro: macro)
+                StepList(module: module, macro: macro, selected: $selectedStep)
                 HStack {
                     Menu {
                         ForEach(MacroStep.Kind.allCases, id: \.self) { kind in
@@ -322,12 +324,22 @@ private struct MacroDetail: View {
         }
         .padding(16)
         .sheet(isPresented: $creating) {
-            CreateFromText { steps in macro.wrappedValue.steps += steps }
+            CreateFromText { steps in insert(steps) }
         }
+        .onChange(of: macro.wrappedValue.id) { selectedStep = nil }
     }
 
     private func addStep(_ kind: MacroStep.Kind) {
-        macro.wrappedValue.steps.append(MacroStep(kind: kind))
+        insert([MacroStep(kind: kind)])
+    }
+
+    /// Below the selected step, or at the end when none is selected (MAC-76); the last new
+    /// step becomes the selected one, so adding again keeps the order.
+    private func insert(_ steps: [MacroStep]) {
+        guard let last = steps.last else { return }
+        let at = MacroStep.insertionIndex(after: selectedStep, in: macro.wrappedValue.steps)
+        macro.wrappedValue.steps.insert(contentsOf: steps, at: at)
+        selectedStep = last.id
     }
 }
 
@@ -455,6 +467,8 @@ private struct MacroIconButton: View {
 private struct StepList: View {
     let module: MacrosModule
     @Binding var macro: Macro
+    @Binding var selected: MacroStep.ID?
+    @FocusState private var editing: MacroStep.ID?
     @State private var dragging: MacroStep.ID?
     @State private var startIndex = 0
     @State private var offset: CGFloat = 0
@@ -476,6 +490,10 @@ private struct StepList: View {
             .coordinateSpace(.named(Self.space))
             .padding(4)
         }
+        // A click on the empty part of the list selects nothing: new steps go at the end.
+        .contentShape(Rectangle())
+        .onTapGesture { selected = nil }
+        .onChange(of: editing) { if let id = editing { selected = id } }
         .background(RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .textBackgroundColor)))
         .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Color(nsColor: .separatorColor)))
     }
@@ -499,7 +517,7 @@ private struct StepList: View {
                 .frame(width: 18)
                 .help(step.kind.title)
                 .accessibilityHidden(true)
-            StepEditor(module: module, step: binding, columns: macro.data.columns)
+            StepEditor(module: module, step: binding, columns: macro.data.columns, editing: $editing)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Menu {
                 Button("Duplicate") { duplicate(step.id) }
@@ -518,10 +536,14 @@ private struct StepList: View {
         .background {
             if isDragged {
                 RoundedRectangle(cornerRadius: 6).fill(.background).shadow(color: .black.opacity(0.25), radius: 6, y: 2)
+            } else if selected == step.id {
+                RoundedRectangle(cornerRadius: 6).fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
             } else if !index.isMultiple(of: 2) {
                 RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.035))
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { selected = step.id }
         .offset(y: isDragged ? offset : 0)
         .zIndex(isDragged ? 1 : 0)
         .contextMenu {
@@ -585,6 +607,7 @@ private struct StepEditor: View {
     let module: MacrosModule
     @Binding var step: MacroStep
     let columns: [String]
+    var editing: FocusState<MacroStep.ID?>.Binding
 
     var body: some View {
         switch step.kind {
@@ -592,6 +615,7 @@ private struct StepEditor: View {
             HStack(spacing: 6) {
                 TextField("Text", text: $step.text)
                     .textFieldStyle(.roundedBorder)
+                    .focused(editing, equals: step.id)
                     .accessibilityLabel("Text to type")
                 Menu {
                     ForEach(MacroText.offered, id: \.token) { variable in
@@ -620,6 +644,7 @@ private struct StepEditor: View {
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 70)
                     .multilineTextAlignment(.trailing)
+                    .focused(editing, equals: step.id)
                     .accessibilityLabel("Milliseconds")
                 Stepper("", value: $step.milliseconds, in: 0...60_000, step: 100).labelsHidden()
                 Text("ms").foregroundStyle(.secondary)

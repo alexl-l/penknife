@@ -660,3 +660,12 @@ final class MacroStore {
         }
     }
 }
+
+extension MacroStep {
+    /// Where a new step goes (MAC-76): right below `selected`, or at the end when nothing is
+    /// selected or the selected step is gone.
+    static func insertionIndex(after selected: MacroStep.ID?, in steps: [MacroStep]) -> Int {
+        guard let selected, let index = steps.firstIndex(where: { $0.id == selected }) else { return steps.count }
+        return index + 1
+    }
+}
