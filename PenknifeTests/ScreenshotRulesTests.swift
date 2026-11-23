@@ -1010,14 +1010,18 @@ struct ScreenshotRulesTests {
         #expect(mac.overlays.count == 1 && mac.overlays[0].overlay.calls == ["show"])
         #expect(mac.overlays[0].mode == .frozen && !mac.overlays[0].recordOnly)
         #expect(module.begin() == nil)              // open
-        // Record Screen with the overlay open switches it to record mode.
-        module.toggleRecording()
+        // Holding Screenshot (or Record Screen) with the overlay open switches it to record mode.
+        module.holdToRecord()
         #expect(mac.overlays[0].overlay.calls == ["show", "record mode"])
+        module.toggleRecording()
+        #expect(mac.overlays[0].overlay.calls == ["show", "record mode", "record mode"])
         // The overlay starts a recording and closes: presses do nothing while it runs.
         mac.overlays[0].overlay.onRecord(Self.request())
         mac.overlays[0].overlay.onFinish()
         #expect(mac.recordings.count == 1 && mac.recordings[0].calls == ["start"])
         #expect(module.begin() == nil)
+        module.holdToRecord()                       // a hold never stops a recording
+        #expect(mac.recordings[0].calls == ["start"])
         // Record Screen while recording stops it.
         module.toggleRecording()
         #expect(mac.recordings[0].calls == ["start", "stop"])

@@ -106,7 +106,7 @@ final class ScreenshotModule: Module {
         [
             ModuleAction(shortcut: .screenshot, title: String(localized: "Screenshot"), symbol: id.symbol,
                          holdDelay: { [weak self] in self.flatMap { Self.holdSeconds(in: $0.environment.defaults) } },
-                         onHold: { [weak self] in self?.begin(record: true) },
+                         onHold: { [weak self] in self?.holdToRecord() },
                          perform: { [weak self] in self?.begin() }),
             ModuleAction(shortcut: .recordScreen, title: String(localized: "Record Screen"), symbol: "record.circle",
                          perform: { [weak self] in self?.toggleRecording() }),
@@ -132,6 +132,15 @@ final class ScreenshotModule: Module {
         } else {
             begin(record: true)
         }
+    }
+
+    /// Holding the Screenshot key or Touch Bar button (SS-02): opens the overlay in record mode;
+    /// with the overlay already open, switches it to recording as Record Screen does (SS-51; user
+    /// 2026-11-22: "okay" — the Touch Bar fill filled up and then nothing happened). Never stops a
+    /// running recording.
+    func holdToRecord() {
+        guard recording == nil, !starting else { return }
+        if let session { session.enterRecordMode() } else { begin(record: true) }
     }
 
     private func startRecording(_ request: RecordingRequest) {
