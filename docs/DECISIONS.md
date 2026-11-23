@@ -190,3 +190,13 @@
 
 ## Keep Awake (R-39, 2026-11-22)
 One IOKit assertion `PreventUserIdleDisplaySleep` (as `caffeinate -d`) held while on; it also stops idle system sleep. No timer. The lock notification is observed only while on (turns it off: an awake, locked screen would waste battery). Not saved: macOS drops the assertion when Penknife quits, so starting off matches. Separate module, not a jiggler mode: it doesn't fake activity.
+
+## Pinned screenshots (R-40, 2026-11-23)
+- The pin is a borderless `.nonactivatingPanel`. Cursor rects (`resetCursorRects`) never show in an app that isn't active, so the pin sets its cursor itself on `mouseMoved` (tracking area `.activeAlways`), as the capture canvas does.
+- Trackpad gestures (magnify, smartMagnify) only reach the ACTIVE app: measured with an event log, none arrived while Penknife was inactive, even in the key pin window. So a click on a pin, and pinning itself, activate Penknife (`NSApp.activate()`). Scroll events do reach inactive windows, so scroll-to-resize works without a click.
+- The resize margin outside the photo: the window is the photo + 8 pt, `ignoresMouseEvents = false` so clear pixels take clicks, and the shadow is a layer `shadowPath` around the photo (the window shadow would follow the whole window).
+- Re-editing a pin uses the editor's window-capture path: the pin's background (copied, not a crop, so the frozen screen is freed) becomes `targetImage` (fixed selection) and the marks are moved by the offset (`Annotation.move(by:)`). Record is disabled there (it would film the pin).
+- Bug found by QA: `load(_:at:)` subtracted the height twice (top-left origin already given) and each reopen drifted up one pin height.
+
+## Battery bolt (TB-16, 2026-11-23)
+- `kIOPSIsChargingKey` turns true ~10 s after plugging in (macOS says "AC attached; not charging" meanwhile); `kIOPSPowerSourceStateKey == AC Power` changes at once. The bolt now follows either.
