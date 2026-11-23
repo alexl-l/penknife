@@ -39,7 +39,7 @@ Optional, off by default: when you unmute in Teams with the shortcut and Teams a
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Clipboard history">
 <h3>Clipboard history</h3>
-Open it with ⌃⌥V, search, pin what you reuse (with a letter or emoji of your own as its icon, ⌘E) and paste with ⌘1–⌘9. History lives in memory only; pins stay. Passwords and other concealed items are never saved.
+Open it with ⌃⌥V, search, pin what you reuse (with a letter or emoji of your own as its icon, ⌘E), change a pin's text with ⌘U, and paste with ⌘1–⌘9. History lives in memory only; pins stay. Passwords and other concealed items are never saved.
 </td>
 </tr>
 <tr>
@@ -57,6 +57,11 @@ Play, pause and skip in the player you choose: Spotify, Apple Music, YouTube Mus
 </td>
 </tr>
 </table>
+
+### Macros
+Record or write a sequence of steps (keys, text, waits, files, values from a table) and run it from a panel (⌃⌥M) or from its own shortcut. Put the rows of a form in the Data tab and each run fills the next one. It types in the app in front and stops if you switch apps, click or press Esc. Give each macro its own letter or emoji, and share it as a file.
+
+<img src="docs/screenshots/macros.gif" width="720" alt="Opening the Macros panel and running a macro that fills rows from its data table">
 
 ### Draw while you record
 Drag an area, or press Space and click a window, or press Return for the full screen: recording starts after a 3-2-1. Your marks appear in the file and stay or fade after the time you choose.

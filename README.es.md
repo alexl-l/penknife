@@ -39,7 +39,7 @@ Opcional, desactivado por defecto: si al activar el micrófono en Teams con el a
 <td width="50%" valign="top">
 <img src="docs/screenshots/clipboard.png" alt="Historial del portapapeles">
 <h3>Historial del portapapeles</h3>
-Ábrelo con ⌃⌥V, busca, fija lo que más usas (con una letra o un emoji propio como icono, ⌘E) y pega con ⌘1–⌘9. El historial vive solo en memoria; lo fijado se conserva. Nunca guarda contraseñas ni otros elementos ocultos.
+Ábrelo con ⌃⌥V, busca, fija lo que más usas (con una letra o un emoji propio como icono, ⌘E), cambia el texto de un elemento fijado con ⌘U y pega con ⌘1–⌘9. El historial vive solo en memoria; lo fijado se conserva. Nunca guarda contraseñas ni otros elementos ocultos.
 </td>
 </tr>
 <tr>
@@ -57,6 +57,11 @@ Reproduce, pausa y salta canciones en el reproductor que elijas: Spotify, Apple 
 </td>
 </tr>
 </table>
+
+### Macros
+Graba o escribe una secuencia de pasos (teclas, texto, esperas, archivos, valores de una tabla) y ejecútala desde un panel (⌃⌥M) o con su propio atajo. Pon las filas de un formulario en la pestaña Datos y cada ejecución rellena la siguiente. Escribe en la app que tienes delante y se detiene si cambias de app, haces clic o pulsas Esc. Dale a cada macro su letra o emoji, y compártela como archivo.
+
+<img src="docs/screenshots/macros.gif" width="720" alt="Abrir el panel de Macros y ejecutar una macro que rellena filas desde su tabla de datos">
 
 ### Dibuja mientras grabas
 Arrastra una zona, o pulsa Espacio y haz clic en una ventana, o pulsa Intro para toda la pantalla: la grabación empieza tras un 3-2-1. Tus marcas aparecen en el archivo y se quedan o se desvanecen pasado el tiempo que elijas.

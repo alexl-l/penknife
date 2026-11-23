@@ -3,6 +3,18 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.15 — 2026-11-22
+
+Macros fill forms for you, and you can update a pinned clipboard item without leaving the panel.
+
+- **Macros.** A new module. Record or write a sequence of steps (keys, text, waits, files, values from your data table) and run it from a panel (⌃⌥M) or from its own shortcut. It types in the app in front and stops if you switch apps, click or press Esc. The menu bar icon shows a play symbol while it runs.
+- **A data table for repeated runs.** The Data tab is a table you edit in place. Each run uses the next row, and `{name}` in a text step is filled from the column of that name. Paste a table from Excel, Numbers or Sheets to start.
+- **An icon for each macro.** Give a macro a letter or an emoji on a background color, the same as pinned clipboard items. It shows in the editor and in the list.
+- **Import and export.** Share a macro as a file. Macros from someone else ask before they can paste files or press ⌘ shortcuts. Changes are saved automatically.
+- **Update a pinned value.** In the clipboard, "Update Value…" (⌘U) opens an editor beside the row. Type or paste the new text and the pin keeps its place and icon. Pins can also be reordered.
+- **Alerts on the Touch Bar.** Alerts show their buttons on the Touch Bar, with Delete in red, instead of leaving it black.
+- **Shortcut recorders.** Updated KeyboardShortcuts to 3.1.0: shortcut fields record on the first click again on macOS 26.
+
 ## 1.14 — 2026-11-20
 
 Pressing Play from Penknife now opens Apple Music when nothing is playing, and Settings always shows which page you're on.
