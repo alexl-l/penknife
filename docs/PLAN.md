@@ -3,13 +3,13 @@
 The ordered task list. Read this first after `/clear`. Every checkpoint updates it (done items move to "Done", new approved work goes in order). Details live in `REQUIREMENTS.md` and `requirements/<module>.md`.
 
 ## Now
-- NEXT: pick the next item from "To choose" in the order Claude judges best (user: "sigue en el orden que consideres"); recommendation: pin a capture on screen next (macOS has nothing like it; waiting for the user's yes). Ask the user to try Keep Awake (menu › Keep Awake) and confirm. Publish 1.16 at the end of the session.
+- NEXT: pick the next item from "To choose" in the order Claude judges best (user: "sigue en el orden que consideres"); R-40 Pin a screenshot on screen approved 2026-11-23 (rules SS-67…72): next = `ux-ui-designer` design (button, pinned window) → show the user → wait for "go" → build → QA. Ask the user to try Keep Awake (menu › Keep Awake) and confirm. Publish 1.16 at the end of the session.
 
 ## Next, in order
 - Publish 1.16 at the END of a session, when the user is running low on tokens (user, 2026-11-22: "publiquemos al final"). Contents so far: Keep Awake (R-39), color picker (R-38), mute on lock (R-37), Copy Text, Touch Bar fills, hold-to-record with the capture open, pinned rows setting CB-36. Keep adding work to it until then. Nothing pushed yet.
 
 ## To choose (product ideas, 2026-11-22, list in `REQUIREMENTS.md` › Product ideas)
-Push to talk · pin a capture on screen · export/import settings · mic-open warning after a call.
+Push to talk · export/import settings · mic-open warning after a call.
 
 ## Later (ideas only)
 - Jiggler stop time ("stop jiggling at 6:00 pm").

@@ -417,11 +417,13 @@ Noted only, nothing designed or built. Each one goes through clarify → require
 
 **R-39 Keep Awake** — approved 2026-11-22 (user: "yep" to the proposal). A separate module, not a jiggler mode: a toggle (menu + shortcut with no default key) that keeps the Mac and the display awake with one power assertion, without moving the mouse; off at launch and when the Mac locks; no durations for now. Rules KA-01…08 in `requirements/keepawake.md`.
 
+**R-40 Pin a screenshot on screen** — approved 2026-11-23 (user: "Eso me gusta"; then "sip" to the edit/copy proposal; product idea #3). A new Pin button in the screenshot toolbar, next to Copy / Copy Text / Save, with its own key. It closes the editor and leaves the image (marks included) floating where it was taken, above every window, like a sticky note; it can be moved, resized and closed (Esc or a ✕ on hover). Asked by the user: "Y si quiero abrirla para volverla a editar o copiar se puede?" → double-click reopens the editor with the marks still editable (copy, save, record or pin again from there); right-click menu Copy, Copy Text, Save, Edit, Close; ⌘C with the pointer over it copies. Rules SS-67…72 in `requirements/screenshot.md`. Not coded yet: design review first.
+
 ## Product ideas (product-ideas agent, 2026-11-22; user: "go" to start with #1)
 Improvements to what exists, most useful first:
 1. **Screenshot → "Copy text"**: APPROVED as R-36 (below).
 2. **Microphone → push to talk**: while muted, holding F5 opens the mic; releasing mutes again. Medium; may clash with the Teams consent alert.
-3. **Screenshot → pin on screen**: the capture floats above everything. Small/medium.
+3. **Screenshot → pin on screen**: the capture floats above everything. Small/medium. APPROVED 2026-11-23 as R-40.
 4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small. BUILT 2026-11-22 as R-38 (screenshot.md SS-63…66).
 5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium.
 6. **Lock → mute the mic when locking**: APPROVED as R-37.
