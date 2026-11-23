@@ -476,19 +476,26 @@ private struct StepList: View {
     private static let space = "macroSteps"
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(Array(macro.steps.enumerated()), id: \.element.id) { index, step in
-                    row(index: index, step: step)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(Array(macro.steps.enumerated()), id: \.element.id) { index, step in
+                        row(index: index, step: step)
+                    }
+                    if macro.steps.isEmpty {
+                        Text("No steps yet. Add one below, or create them from text.")
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, minHeight: 80)
+                    }
                 }
-                if macro.steps.isEmpty {
-                    Text("No steps yet. Add one below, or create them from text.")
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 80)
-                }
+                .coordinateSpace(.named(Self.space))
+                .padding(4)
             }
-            .coordinateSpace(.named(Self.space))
-            .padding(4)
+            // A new step is selected on insert: bring it into view (MAC-77).
+            .onChange(of: macro.steps.count) { old, new in
+                guard new > old, let id = selected else { return }
+                withAnimation(.easeInOut(duration: 0.2)) { proxy.scrollTo(id) }
+            }
         }
         // A click on the empty part of the list selects nothing: new steps go at the end.
         .contentShape(Rectangle())
