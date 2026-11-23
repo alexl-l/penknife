@@ -16,6 +16,7 @@ All product ideas of 2026-11-22 are done or rejected.
 - Jiggler stop time ("stop jiggling at 6:00 pm").
 
 ## Done recently
+- 2026-11-23 (builds 387–388, local, NOT published; goes in the next release): MAC-80 Add Step › Return (a Key step with ↩ already set). Designer approved (+ VoiceOver label). User: Enter on a Mac = Return, "entonces return ya está". NOT tried by the user yet.
 - 2026-11-23: 1.19 published (build 385): MAC-77 a new step scrolls into view (QA passed). MAC-78 a macro can be allowed in password fields, per macro, with a warning alert (QA passed UI/alert/persistence; real typing into a password field and Esc under secure input NOT verified: user to try). MAC-79 select several steps (click, ⌘, ⇧), copy/paste within or across macros, in-app copy that leaves the system clipboard alone (QA passed). Editor min width 620 → 680 (the detail was cut). None tried by the user yet.
 - 2026-11-23: 1.18 published (build 375): MAC-76 new macro steps go below the selected step: QA passed 1–5 + drag + typing; context menu and MAC-74(c) not re-checked (QA stopped when Safari came to the front). Designer: system unemphasized selection color. NOT tried by the user yet.
 - 2026-11-23: REJECTED: split one clipboard pin into parts for a macro (user: "mejor no"). Macro data rows already cover several values.
