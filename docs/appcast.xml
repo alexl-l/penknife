@@ -3,6 +3,27 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.16</title>
+            <pubDate>Mon, 23 Nov 2026 02:45:32 -0500</pubDate>
+            <sparkle:version>360</sparkle:version>
+            <sparkle:shortVersionString>1.16</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Pin a screenshot.** A Pin button (⌘P) in the screenshot editor floats the capture above every window in a corner of the screen (bottom left by default, you can change it). Pins stack. Move one, resize it (drag the edges, pinch or scroll), double-click to edit it again with its marks still editable, or right-click to copy, save or close.</li>
+<li>**Color picker.** Press I in the screenshot overlay, or use its own shortcut or the "Pick Color" menu item. A round loupe follows the pointer and a click copies the pixel's exact hex.</li>
+<li>**Copy Text.** Copy the text in a screenshot. Recognition runs on your Mac.</li>
+<li>**Hold to talk.** With the mic muted, hold the mute shortcut (F5) or the Touch Bar mic button to talk. Let go and it mutes again. It works in calls too. On by default, in Settings › Microphone.</li>
+<li>**Mute when the Mac locks.** Optional, off by default.</li>
+<li>**Keep Awake.** A new module that stops the Mac from sleeping without moving the pointer. Toggle it from the menu or with an optional shortcut. It turns off when Penknife starts and when you lock the Mac.</li>
+<li>**Export and import settings.** Settings › General › Settings File saves your settings, shortcuts, Touch Bar, pinned items and macros in one file. Importing replaces them and restarts Penknife. The Teams consent switch is not included: you confirm it on each Mac.</li>
+<li>**Touch Bar.** Hold buttons fill while you hold them. Holding Screenshot while the capture is open switches to recording. The battery bolt shows as soon as the Mac is plugged in.</li>
+<li>**Clipboard.** Choose how many pinned rows show: 3, 5, 8, 12 or All.</li>
+<li>**Settings.** Notes sit as footers under their options and shortcuts are grouped.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.16/Penknife-1.16.zip" length="8269197" type="application/octet-stream" sparkle:edSignature="dvDe6e6uZ0DRrEqbK68KyVORf1Rq9FK+avR6e2dELShD2yRKxljqeSMUuRoCB3siiGvBw22hZpsZMQ/sm6VPAw=="/>
+        </item>
+        <item>
             <title>1.15</title>
             <pubDate>Sun, 22 Nov 2026 20:35:21 -0500</pubDate>
             <sparkle:version>294</sparkle:version>
@@ -33,22 +54,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.14/Penknife-1.14.zip" length="6688664" type="application/octet-stream" sparkle:edSignature="h+dIYhldkdG2NEfl66cw13wO4zZQQdd2tnNpzVKo1S19uEmW+r8j1axX0Gku0tPfwS598vihriQVbF9FLV3tAQ=="/>
-        </item>
-        <item>
-            <title>1.13</title>
-            <pubDate>Fri, 20 Nov 2026 00:53:07 -0500</pubDate>
-            <sparkle:version>266</sparkle:version>
-            <sparkle:shortVersionString>1.13</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Recording speed.** The recording window has a speed menu: 1×, 1.5×, 2× or 4×. It applies to the preview, the saved video, the GIF and the copy. The voice keeps its pitch, it works with trim, and the note shows how long the result will last.</li>
-<li>**Your own icon for pinned items.** Give a pinned clipboard item a letter or an emoji on a background color. Right-click and choose Customize Icon…, or press ⌘E.</li>
-<li>**A more compact clipboard panel.** Pinned items stay fixed at the top. Rows and icons are smaller, and the panel height follows the number of items.</li>
-<li>**Clearer wording.** Settings, menus, alerts, the Touch Bar and recording now say things more plainly, in English and Spanish. In Spanish, the speed test is now "Prueba de velocidad".</li>
-<li>**Smaller fixes.** Settings shows every page name in full in the sidebar. Recording no longer keeps a little memory after each 3-2-1 countdown.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.13/Penknife-1.13.zip" length="6686803" type="application/octet-stream" sparkle:edSignature="Qt9TzwugLJlnuHY9TqC45Uf5Q/EAOwGEudueyamFmbhVSTCDsF+mNoB+C62OdxUtfv+JLLDSCfqAsxMkJCloCg=="/>
         </item>
     </channel>
 </rss>
