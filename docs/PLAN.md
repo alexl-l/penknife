@@ -15,6 +15,7 @@ All product ideas of 2026-11-22 are done or rejected.
 - Jiggler stop time ("stop jiggling at 6:00 pm").
 
 ## Done recently
+- 2026-11-23: 1.17 published: emoji search in the icon editor (CB-37; macOS's Emoji & Symbols search can't reach a menu bar app), macro editor fixes (MAC-74: paste from Clipboard History into the editor, emoji first pick, click elsewhere drops focus), emoji icons not clipped (MAC-75), panel search refocuses after the pin editor. QA passed, designer approved CB-37; user confirmed the fixes and emoji search live ("Listo, fixed").
 - 2026-11-23: user confirmed live: hold to talk works (R-41), import keeps everything (R-42), clipboard with more than 5 pins works (CB-36), Keep Awake and the battery bolt work.
 - 2026-11-23: 1.16 published (pin, color picker, Copy Text, hold to talk, mute on lock, Keep Awake, export/import settings, Touch Bar fills, pinned rows). Hold to talk (R-41, MIC-89…92) and export/import (R-42, GN-28…31): QA passed on the real Mac (after a fix: build 356 broke the F5 tap, see DECISIONS), security + designer reviewed. NOT tried by the user yet.
 - 2026-11-23: Pin a screenshot on screen (R-40, SS-67…73, builds 331–350): Pin button + ⌘P, pin glides to a corner (bottom left by default, setting), stacks; move, resize (invisible 8 pt margin + inner zones, pinch, smart zoom, scroll), grows away from the nearer screen edge; double-click reopens the editor with editable marks; right-click menu; focus after pinning. QA passed, designer approved, user: "funciona muy bien".
