@@ -152,7 +152,9 @@ final class MacroPanel: NSPanel, NSWindowDelegate {
         let alert = NSAlert()
         alert.messageText = String(localized: "Delete “\(macro.name)”?")
         alert.informativeText = String(localized: "This can't be undone.")
-        alert.addButton(withTitle: String(localized: "Delete")).hasDestructiveAction = true
+        let delete = alert.addButton(withTitle: String(localized: "Delete"))
+        delete.hasDestructiveAction = true
+        delete.keyEquivalent = "" // never the default: Return doesn't delete (ux-ui-designer)
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.addTouchBar()
         alert.beginSheetModal(for: self) { [weak self] response in

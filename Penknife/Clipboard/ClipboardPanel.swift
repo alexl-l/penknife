@@ -811,11 +811,11 @@ struct IconEditor: View {
             .accessibilityHidden(true)
 
             HStack(spacing: 8) {
-                TextField("Icon", text: $glyph)
+                TextField(String("Aa"), text: $glyph)
                     .textFieldStyle(.roundedBorder)
                     .multilineTextAlignment(.center)
                     .font(.system(size: 17))
-                    .frame(width: 64)
+                    .frame(width: 72)
                     .focused($focused)
                     .accessibilityLabel("Icon letter or emoji")
                     .overlay(alignment: .trailing) {

@@ -6120,12 +6120,32 @@
         }
       }
     },
-    "No letter and no color = ▶": {
+    "Without a letter or color, ▶ is shown": {
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sin letra ni color = ▶"
+            "value": "Sin letra ni color se muestra ▶"
+          }
+        }
+      }
+    },
+    "Change Icon…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar icono…"
+          }
+        }
+      }
+    },
+    "Opens the icon editor": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre el editor de icono"
           }
         }
       }

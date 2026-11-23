@@ -143,7 +143,9 @@ struct MacroEditorView: View {
         let alert = NSAlert()
         alert.messageText = String(localized: "Delete “\(macro.name)”?")
         alert.informativeText = String(localized: "This can't be undone.")
-        alert.addButton(withTitle: String(localized: "Delete")).hasDestructiveAction = true
+        let delete = alert.addButton(withTitle: String(localized: "Delete"))
+        delete.hasDestructiveAction = true
+        delete.keyEquivalent = "" // never the default: Return doesn't delete (ux-ui-designer)
         alert.addButton(withTitle: String(localized: "Cancel"))
         alert.addTouchBar()
         guard alert.runModal() == .alertFirstButtonReturn else { return }
@@ -229,34 +231,20 @@ private struct MacroDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-            Button { editingIcon = true } label: {
-                Group {
-                    if let icon = macro.wrappedValue.icon {
-                        PinIconView(icon: icon, size: 28)
-                    } else {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .fill(Color(nsColor: .quaternarySystemFill))
-                            .overlay { Image(systemName: "play.fill").font(.system(size: 11)).foregroundStyle(.secondary) }
-                            .frame(width: 28, height: 28)
+            HStack(alignment: .center, spacing: 12) {
+            MacroIconButton(icon: macro.wrappedValue.icon) { editingIcon = true }
+                .popover(isPresented: $editingIcon, arrowEdge: .bottom) {
+                    IconEditor(initial: macro.wrappedValue.icon, appIcon: nil, fallbackSymbol: "play.fill",
+                               caption: String(localized: "Without a letter or color, ▶ is shown")) { icon in
+                        macro.wrappedValue.icon = icon
                     }
                 }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Customize Icon")
-            .accessibilityLabel("Customize Icon")
-            .popover(isPresented: $editingIcon, arrowEdge: .bottom) {
-                IconEditor(initial: macro.wrappedValue.icon, appIcon: nil, fallbackSymbol: "play.fill",
-                           caption: String(localized: "No letter and no color = ▶")) { icon in
-                    macro.wrappedValue.icon = icon
-                }
-            }
             TextField(macro.wrappedValue.name, text: $nameDraft)
                 .textFieldStyle(.plain)
                 .font(.title2.weight(.semibold))
                 .focused($nameFocused)
                 .accessibilityLabel("Macro name")
+                .contextMenu { Button("Change Icon…") { editingIcon = true } }
                 .onAppear { nameDraft = macro.wrappedValue.name }
                 .onChange(of: nameDraft) { _, new in
                     if !new.trimmingCharacters(in: .whitespaces).isEmpty { macro.wrappedValue.name = new }
@@ -285,13 +273,16 @@ private struct MacroDetail: View {
                 .fixedSize()
                 .help("Paste is faster. Keystrokes works in fields that block paste.")
             }
-            Picker("", selection: $tab) {
-                Text("Steps").tag(0)
-                Text("Data").tag(1)
+            HStack {
+                Picker("", selection: $tab) {
+                    Text("Steps").tag(0)
+                    Text("Data").tag(1)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .fixedSize()
+                Spacer()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(maxWidth: 220)
 
             if tab == 0 {
                 StepList(module: module, macro: macro)
@@ -319,6 +310,66 @@ private struct MacroDetail: View {
 
     private func addStep(_ kind: MacroStep.Kind) {
         macro.wrappedValue.steps.append(MacroStep(kind: kind))
+    }
+}
+
+/// The macro's icon in the editor header (ux-ui-designer, 2026-11-22, for "no es tan intuitivo
+/// saber dónde cambio el emoji"): a 40 pt tile; on hover or keyboard focus an accent ring and a
+/// pencil badge; tooltip, VoiceOver hint and a context menu say what it does.
+private struct MacroIconButton: View {
+    let icon: PinIcon?
+    let action: () -> Void
+    @State private var hover = false
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .bottomTrailing) {
+                tile
+                if hover || focused {
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.system(size: 16))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, Color.accentColor)
+                        .background(Circle().fill(Color(nsColor: .windowBackgroundColor)).padding(-1.5))
+                        .offset(x: 5, y: 5)
+                }
+            }
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .focusable()
+        .focusEffectDisabled() // the accent ring is the focus ring here
+        .focused($focused)
+        .onHover { inside in
+            hover = inside
+            if icon == nil {
+                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
+        }
+        .help("Change Icon…")
+        .accessibilityLabel("Change Icon…")
+        .accessibilityHint("Opens the icon editor")
+        .contextMenu { Button("Change Icon…", action: action) }
+    }
+
+    private var tile: some View {
+        Group {
+            if let icon {
+                PinIconView(icon: icon, size: 40)
+            } else {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(nsColor: .quaternarySystemFill))
+                    .overlay { Image(systemName: "play.fill").font(.system(size: 15)).foregroundStyle(.secondary) }
+                    .frame(width: 40, height: 40)
+            }
+        }
+        .overlay {
+            if hover || focused {
+                RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.accentColor, lineWidth: 2)
+            }
+        }
     }
 }
 
@@ -655,7 +706,7 @@ private struct DataEditor: View {
                 .font(.callout)
                 Text("Names can have spaces; { and } aren't allowed. Renaming a column updates the steps.")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -749,7 +800,7 @@ private struct DataTable: View {
                 .accessibilityLabel("Remove Row")
         }
         .frame(height: 30)
-        .background(isNext ? Color.accentColor.opacity(0.18) : (row % 2 == 1 ? Color.primary.opacity(0.04) : .clear))
+        .background(isNext ? Color.accentColor.opacity(0.15) : (row % 2 == 1 ? Color.primary.opacity(0.04) : .clear))
         .contextMenu {
             Button("Use Next") { macro.data.next = row }.disabled(isNext)
             Button("Remove Row") { macro.data.removeRow(row) }
