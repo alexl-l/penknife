@@ -425,9 +425,10 @@ Improvements to what exists, most useful first:
 4. **Screenshot → color picker**: copies the hex of the pixel under the pointer. Small. BUILT 2026-11-22 as R-38 (screenshot.md SS-63…66).
 5. **Settings → export/import everything**: shortcuts, modules, Touch Bar and pins in one file. Medium.
 6. **Lock → mute the mic when locking**: APPROVED as R-37.
-New ideas: **Keep awake** (BUILT 2026-11-22 as R-39) (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (AirPods ↔ speakers by shortcut or Touch Bar); **Mic-open warning** when a call ends.
+New ideas: **Keep awake** (BUILT 2026-11-22 as R-39) (no sleep without moving the mouse, maybe a jiggler mode); **Quick audio output** (REJECTED 2026-11-23, see below); **Mic-open warning** when a call ends.
 
 ## Rejected / out of scope
+- Quick audio output (AirPods ↔ speakers by shortcut or Touch Bar), rejected 2026-11-23. User: "Esto es realmente necesario? … lo hace el Mac desde el icono de sonido". macOS already switches outputs in two clicks from the Sound menu bar icon or Control Center, and AirPods switch by themselves. Penknife would only add a shortcut, saving one click.
 - Esc stops the recording and closes the capture window (asked 2026-11-19, dropped the same day; user: "ya tenemos el shortcut para parar … no es tan seguro. se puede oprimir por error"). Stop stays on the toolbar button, ⇧⌘R (REC-48) and ⌃⌥R; Esc only cancels before "go" (O-32).
 - Turning the jiggler off from the phone (discussed 2026-11-19, not chosen for now; the stop time above covers the main case "I left and forgot it on"). Options weighed: local network server + QR pairing (company Wi‑Fi often isolates devices or blocks incoming connections), internet relay like ntfy with a secret per-person channel (only outgoing HTTPS, works anywhere, but the command passes through a third-party server), iCloud Drive file + Shortcut (needs a personal Apple ID on the company Mac), Bluetooth with an own iOS app (build/sign an iOS app, ~10 m). If revived, the relay was the recommended one, accepting only "off".
 - Alerts as native macOS notifications (discussed 2026-11-18, not chosen for now): macOS sets the duration (~5 s, breaks the user's 1–15 s setting), hides them while sharing the screen or in Do Not Disturb (no mic confirmation in meetings), first-use permission prompt, no on/off state symbol.
