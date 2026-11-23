@@ -314,19 +314,17 @@ private struct MacroDetail: View {
 }
 
 /// The macro's icon in the editor header (ux-ui-designer, 2026-11-22, for "no es tan intuitivo
-/// saber dónde cambio el emoji"): a 40 pt tile; on hover or keyboard focus an accent ring and a
+/// saber dónde cambio el emoji"): a 40 pt tile; on hover an accent ring and a
 /// pencil badge; tooltip, VoiceOver hint and a context menu say what it does.
 private struct MacroIconButton: View {
     let icon: PinIcon?
     let action: () -> Void
     @State private var hover = false
-    @FocusState private var focused: Bool
-
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .bottomTrailing) {
                 tile
-                if hover || focused {
+                if hover {
                     Image(systemName: "pencil.circle.fill")
                         .font(.system(size: 16))
                         .symbolRenderingMode(.palette)
@@ -339,9 +337,6 @@ private struct MacroIconButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .focusable()
-        .focusEffectDisabled() // the accent ring is the focus ring here
-        .focused($focused)
         .onHover { inside in
             hover = inside
             if icon == nil {
@@ -366,7 +361,7 @@ private struct MacroIconButton: View {
             }
         }
         .overlay {
-            if hover || focused {
+            if hover {
                 RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.accentColor, lineWidth: 2)
             }
         }
