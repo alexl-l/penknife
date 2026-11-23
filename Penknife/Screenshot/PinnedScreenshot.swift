@@ -167,7 +167,18 @@ final class PinnedWindow: NSPanel {
 
     /// The frame for a proposed size, kept in proportion, anchored at `anchor` (the corner that
     /// doesn't move while resizing).
-    func resize(to proposed: CGSize, anchor: CGPoint, growsLeft: Bool, growsDown: Bool) {
+    /// A drag on the given sides (none = a pinch): the dragged side moves; the other axis grows
+    /// away from the screen edge the pin is nearer to (user, 2026-11-23: "si lo tengo fijo abajo a
+    /// la derecha, debería crecer hacia arriba y hacia la izquierda").
+    func resize(to proposed: CGSize, from frame: CGRect, left: Bool, right: Bool, top: Bool, bottom: Bool) {
+        let visible = (screen ?? NSScreen.main)?.visibleFrame ?? frame
+        let growsLeft = left || (!right && frame.midX > visible.midX)
+        let growsDown = bottom || (!top && frame.midY > visible.midY)
+        let anchor = CGPoint(x: growsLeft ? frame.maxX : frame.minX, y: growsDown ? frame.maxY : frame.minY)
+        resize(to: proposed, anchor: anchor, growsLeft: growsLeft, growsDown: growsDown)
+    }
+
+    private func resize(to proposed: CGSize, anchor: CGPoint, growsLeft: Bool, growsDown: Bool) {
         let visible = (screen ?? NSScreen.main)?.visibleFrame.size ?? proposed
         let visibleFrame = (screen ?? NSScreen.main)?.visibleFrame
         let size = PinnedCapture.clampedSize(proposed, original: capture.size, visible: visible)
@@ -395,19 +406,22 @@ final class PinnedView: NSView {
         let horizontal = left || right, vertical = top || bottom
         let width = vertical && (!horizontal || abs(byHeight - frame.width) > abs(byWidth - frame.width)) ? byHeight : byWidth
         // The opposite corner stays (this view is flipped; the window's frame is not).
-        // The dragged side moves; the other axis grows away from the screen edge the pin is
-        // nearer to (user, 2026-11-23: "si lo tengo fijo abajo a la derecha, debería crecer hacia
-        // arriba y hacia la izquierda").
-        let visible = (pin.screen ?? NSScreen.main)?.visibleFrame ?? frame
-        let growsLeft = left || (!right && frame.midX > visible.midX)
-        let growsDown = bottom || (!top && frame.midY > visible.midY)
-        let anchor = CGPoint(x: growsLeft ? frame.maxX : frame.minX, y: growsDown ? frame.maxY : frame.minY)
-        pin.resize(to: CGSize(width: width, height: width / ratio), anchor: anchor, growsLeft: growsLeft, growsDown: growsDown)
+        pin.resize(to: CGSize(width: width, height: width / ratio), from: frame, left: left, right: right, top: top, bottom: bottom)
     }
 
     override func mouseUp(with event: NSEvent) {
         drag = .none
         if let window, !window.frame.contains(NSEvent.mouseLocation) { showClose(false) }
+    }
+
+    /// Pinch on the trackpad (user, 2026-11-23: "B me gusta mucho"): bigger or smaller, kept in
+    /// proportion, growing away from the nearer screen edges.
+    override func magnify(with event: NSEvent) {
+        guard let pin else { return }
+        let frame = pin.frame
+        let factor = max(1 + event.magnification, 0.1)
+        pin.resize(to: CGSize(width: frame.width * factor, height: frame.height * factor), from: frame,
+                   left: false, right: false, top: false, bottom: false)
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
