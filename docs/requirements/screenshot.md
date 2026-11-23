@@ -169,7 +169,7 @@ Count (2026-11-19, step B: as-is tests + S1 + S2 + S3, B-8 B-9 B-10 fixed): 59 r
 
 ## 2. Open decisions, questions and known bugs
 
-- BUILT 2026-11-23 (build 331; mock approved by the user: "Aprobado"; QA running): **R-40 Pin a screenshot on screen** (product idea #3; user: "Eso me gusta", "sip").
+- BUILT 2026-11-23 (builds 331–335; mock approved by the user: "Aprobado"; QA passed after fixing the reopened editor's place in 333): **R-40 Pin a screenshot on screen** (product idea #3; user: "Eso me gusta", "sip").
   - **SS-67** Pin / Fijar: a new toolbar button after Save (output group: Copy, Copy Text, Save, Pin; Record stays last), symbol `pin` (designer to confirm), key ⌘P (our choice: P alone is the Pen, and the output buttons all use ⌘ keys: ⌘C, ⇧⌘C, ⌘S), shown in the hover and ⌘ hints. It ends the text being typed, renders the output (SS-45, marks included) and closes the overlay (SS-50); the pinned window appears exactly over the area that was captured, at the same size. Not in record mode.
   - **SS-68** The pinned window: borderless, rounded corners and a shadow (look: `ux-ui-designer`), always above other windows (also above full-screen apps where macOS allows it), never steals the focus from the front app. Several can be open at once. They live in memory only: gone when Penknife quits or the module is turned off.
   - **SS-69** Move and size: drag anywhere on it moves it; dragging its edges or corners resizes it keeping the image's proportions (minimum and maximum size: designer). A ✕ appears on hover; Esc with the pointer over it closes it.
