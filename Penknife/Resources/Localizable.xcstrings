@@ -931,6 +931,106 @@
         }
       }
     },
+    "Settings File": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivo de ajustes"
+          }
+        }
+      }
+    },
+    "Saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, to keep a copy or move them to another Mac.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guarda tus ajustes, atajos, Touch Bar, elementos fijados y macros en un archivo, para tener una copia o pasarlos a otro Mac."
+          }
+        }
+      }
+    },
+    "The settings couldn't be saved.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron guardar los ajustes."
+          }
+        }
+      }
+    },
+    "This isn't a Penknife settings file.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este no es un archivo de ajustes de Penknife."
+          }
+        }
+      }
+    },
+    "It was made by a newer Penknife. Update Penknife and try again.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se creó con un Penknife más nuevo. Actualiza Penknife y vuelve a intentarlo."
+          }
+        }
+      }
+    },
+    "Choose a file made with Export…": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige un archivo creado con Exportar…"
+          }
+        }
+      }
+    },
+    "Replace your settings?": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Reemplazar tus ajustes?"
+          }
+        }
+      }
+    },
+    "Your settings, shortcuts, Touch Bar, pinned items and macros are replaced with the ones in “%@”. Penknife restarts.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus ajustes, atajos, Touch Bar, elementos fijados y macros se reemplazan por los de “%@”. Penknife se reinicia."
+          }
+        }
+      }
+    },
+    "Replace and Restart": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reemplazar y reiniciar"
+          }
+        }
+      }
+    },
+    "The settings couldn't be imported.": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudieron importar los ajustes."
+          }
+        }
+      }
+    },
     "Mute when the Mac locks": {
       "localizations": {
         "es": {

@@ -33,6 +33,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningTests else { return }
+        // R-42: an import chosen in Settings, before anything reads the settings or the pins.
+        SettingsTransfer.applyPending(defaults: .standard, folder: ClipboardStore.defaultFolder)
         let jiggler = JigglerModule()
         let microphone = MicrophoneModule()
         let dialogs = DialogsModule()

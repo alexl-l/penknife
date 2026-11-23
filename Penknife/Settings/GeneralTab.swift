@@ -42,8 +42,78 @@ struct GeneralPage: View {
                 Text("VoiceOver still announces hidden alerts.")
                     .foregroundStyle(.secondary)
             }
+
+            // R-42: one file with everything; an import replaces it all and restarts Penknife.
+            Section {
+                LabeledContent("Settings File") {
+                    HStack {
+                        Button("Export…", action: SettingsFile.export)
+                        Button("Import…", action: SettingsFile.import)
+                    }
+                }
+            } footer: {
+                Text("Saves your settings, shortcuts, Touch Bar, pinned items and macros in one file, to keep a copy or move them to another Mac.")
+                    .foregroundStyle(.secondary)
+            }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// The panels and alerts around `SettingsTransfer` (R-42).
+@MainActor
+enum SettingsFile {
+    static func export() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [SettingsTransfer.fileType]
+        panel.nameFieldStringValue = String(localized: "Penknife Settings") + ".plist"
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        do {
+            let package = SettingsTransfer.package(defaults: .standard, folder: ClipboardStore.defaultFolder)
+            try SettingsTransfer.writeOwnerOnly(SettingsTransfer.encode(package, version: version), to: url)
+        } catch {
+            fail(String(localized: "The settings couldn't be saved."), error.localizedDescription)
+        }
+    }
+
+    static func `import`() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [SettingsTransfer.fileType]
+        panel.allowsMultipleSelection = false
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+            _ = try SettingsTransfer.decode(data)
+        } catch {
+            fail(String(localized: "This isn't a Penknife settings file."),
+                 error as? SettingsTransfer.TransferError == .newerFormat
+                    ? String(localized: "It was made by a newer Penknife. Update Penknife and try again.")
+                    : String(localized: "Choose a file made with Export…"))
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Replace your settings?")
+        alert.informativeText = String(localized: "Your settings, shortcuts, Touch Bar, pinned items and macros are replaced with the ones in “\(url.lastPathComponent)”. Penknife restarts.")
+        alert.addButton(withTitle: String(localized: "Replace and Restart"))
+        alert.addButton(withTitle: String(localized: "Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        do {
+            try SettingsTransfer.stage(data, folder: ClipboardStore.defaultFolder)
+            SettingsTransfer.restart()
+        } catch {
+            fail(String(localized: "The settings couldn't be imported."), error.localizedDescription)
+        }
+    }
+
+    private static func fail(_ message: String, _ detail: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = message
+        alert.informativeText = detail
+        alert.runModal()
     }
 }
 
