@@ -834,6 +834,7 @@ struct ValueEditor: View {
             Text("↩ Save   esc Cancel")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .padding(.leading, 4) // lines up with the field's text
                 .accessibilityHidden(true)
         }
         .padding(12)
