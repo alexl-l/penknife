@@ -16,7 +16,7 @@ All product ideas of 2026-11-22 are done or rejected.
 - Jiggler stop time ("stop jiggling at 6:00 pm").
 
 ## Done recently
-- 2026-11-23: MAC-76 new macro steps go below the selected step (build 373, not published): QA passed 1–5 + drag + typing; context menu and MAC-74(c) not re-checked (QA stopped when Safari came to the front). Designer: system unemphasized selection color. NOT tried by the user yet.
+- 2026-11-23: 1.18 published (build 375): MAC-76 new macro steps go below the selected step: QA passed 1–5 + drag + typing; context menu and MAC-74(c) not re-checked (QA stopped when Safari came to the front). Designer: system unemphasized selection color. NOT tried by the user yet.
 - 2026-11-23: REJECTED: split one clipboard pin into parts for a macro (user: "mejor no"). Macro data rows already cover several values.
 - 2026-11-23: 1.17 published: emoji search in the icon editor (CB-37; macOS's Emoji & Symbols search can't reach a menu bar app), macro editor fixes (MAC-74: paste from Clipboard History into the editor, emoji first pick, click elsewhere drops focus), emoji icons not clipped (MAC-75), panel search refocuses after the pin editor. QA passed, designer approved CB-37; user confirmed the fixes and emoji search live ("Listo, fixed").
 - 2026-11-23: user confirmed live: hold to talk works (R-41), import keeps everything (R-42), clipboard with more than 5 pins works (CB-36), Keep Awake and the battery bolt work.

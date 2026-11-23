@@ -3,6 +3,18 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.18</title>
+            <pubDate>Mon, 23 Nov 2026 11:16:12 -0500</pubDate>
+            <sparkle:version>375</sparkle:version>
+            <sparkle:shortVersionString>1.18</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Steps go where you are.** In the macro editor, select a step or type in it, and Add Step puts the new one right below it instead of at the end. Create from Text… works the same way. With nothing selected, new steps still go at the end.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.18/Penknife-1.18.zip" length="8371645" type="application/octet-stream" sparkle:edSignature="oHreyHwYEMlwixooV1T/h+eJJkChzF1vVe8BizLN508/X9JGsbw0ID47ebHWXMd60vry9fka4Q80AZhguyCxBw=="/>
+        </item>
+        <item>
             <title>1.17</title>
             <pubDate>Mon, 23 Nov 2026 10:48:23 -0500</pubDate>
             <sparkle:version>371</sparkle:version>
@@ -36,24 +48,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.16/Penknife-1.16.zip" length="8269197" type="application/octet-stream" sparkle:edSignature="dvDe6e6uZ0DRrEqbK68KyVORf1Rq9FK+avR6e2dELShD2yRKxljqeSMUuRoCB3siiGvBw22hZpsZMQ/sm6VPAw=="/>
-        </item>
-        <item>
-            <title>1.15</title>
-            <pubDate>Sun, 22 Nov 2026 20:35:21 -0500</pubDate>
-            <sparkle:version>294</sparkle:version>
-            <sparkle:shortVersionString>1.15</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Macros.** A new module. Record or write a sequence of steps (keys, text, waits, files, values from your data table) and run it from a panel (⌃⌥M) or from its own shortcut. It types in the app in front and stops if you switch apps, click or press Esc. The menu bar icon shows a play symbol while it runs.</li>
-<li>**A data table for repeated runs.** The Data tab is a table you edit in place. Each run uses the next row, and `{name}` in a text step is filled from the column of that name. Paste a table from Excel, Numbers or Sheets to start.</li>
-<li>**An icon for each macro.** Give a macro a letter or an emoji on a background color, the same as pinned clipboard items. It shows in the editor and in the list.</li>
-<li>**Import and export.** Share a macro as a file. Macros from someone else ask before they can paste files or press ⌘ shortcuts. Changes are saved automatically.</li>
-<li>**Update a pinned value.** In the clipboard, "Update Value…" (⌘U) opens an editor beside the row. Type or paste the new text and the pin keeps its place and icon. Pins can also be reordered.</li>
-<li>**Alerts on the Touch Bar.** Alerts show their buttons on the Touch Bar, with Delete in red, instead of leaving it black.</li>
-<li>**Shortcut recorders.** Updated KeyboardShortcuts to 3.1.0: shortcut fields record on the first click again on macOS 26.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.15/Penknife-1.15.zip" length="7979665" type="application/octet-stream" sparkle:edSignature="LxVqz4Y72l/rFEv4OusuIVuge2gFXnpf6etFWtmyBXDk5+2DoVqPGPLYvCz61mRryEIxMiDKpNeq6pcDjnypCw=="/>
         </item>
     </channel>
 </rss>
