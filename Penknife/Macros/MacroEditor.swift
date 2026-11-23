@@ -100,6 +100,9 @@ struct MacroEditorView: View {
             }
         }
         .onDeleteCommand { if let id = selection.id { confirmDelete(id) } }
+        // Says once that there is no Save (user, 2026-11-22: "esperaba saber que quedó guardado
+        // mi macro"): edits are written 0.4 s after the last change (MAC-40).
+        .navigationSubtitle(Text("Changes are saved automatically"))
     }
 
     private var sidebarBar: some View {
