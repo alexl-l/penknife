@@ -3,6 +3,15 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.19 — 2026-11-23
+
+Copy and paste macro steps, and decide whether a macro may run in password fields.
+
+- **Select, copy and paste steps.** In the macro editor, select several steps with click, ⌘-click and ⇧-click, as in Finder. Copy them with ⌘C or right-click, then paste with ⌘V or right-click into the same macro or another. They land below the selected step, or at the end. Copied steps stay inside Penknife: the system clipboard and Clipboard History are not touched. In a text field, ⌘C and ⌘V still work on text.
+- **The list follows new steps.** After you add or paste steps, the list scrolls to them.
+- **Allow in password fields.** A new option for each macro, off by default. Macros normally stop when a password field or Secure Keyboard Entry is on. Turning the option on asks you first. While secure input is on, Esc can't stop the macro, but a click or switching apps does. Use it at your own risk. The option is not included when you export macros.
+- **Macros window.** It no longer gets so narrow that its right side is cut off.
+
 ## 1.18 — 2026-11-23
 
 Add macro steps where you need them.
