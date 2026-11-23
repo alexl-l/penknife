@@ -82,11 +82,13 @@ final class PinnedWindow: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
 
-    /// The editor gave it back changed (SS-70): new image, at the editor's place and size.
+    /// The editor gave it back changed (SS-70): new image, its top-left corner at the editor's
+    /// place, the size the pin had (a resized pin stays resized).
     func update(_ capture: PinnedCapture) {
         self.capture = capture
         view.image = capture.image
-        setFrame(capture.frame, display: true)
+        let size = frame.size
+        setFrame(CGRect(x: capture.frame.minX, y: capture.frame.maxY - size.height, width: size.width, height: size.height), display: true)
         reappear()
     }
 
@@ -283,6 +285,9 @@ final class PinnedView: NSView {
             drag = .move
             window?.performDrag(with: event)
             drag = .none
+            // The drag's own loop takes the mouse-up and may skip the exit: hide the ✕ if the
+            // pointer ended outside.
+            if let window, !window.frame.contains(NSEvent.mouseLocation) { showClose(false) }
         }
     }
 

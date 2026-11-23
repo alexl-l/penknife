@@ -1584,7 +1584,7 @@ final class CaptureCanvas: NSView, NSTextViewDelegate {
     /// original size), the marks moved along and still editable.
     func load(_ capture: PinnedCapture, at origin: CGPoint) {
         let size = capture.selection.size
-        var rect = CGRect(x: origin.x - screen.frame.minX, y: screen.frame.maxY - origin.y - size.height,
+        var rect = CGRect(x: origin.x - screen.frame.minX, y: screen.frame.maxY - origin.y,
                           width: size.width, height: size.height)
         rect.origin.x = min(max(rect.minX, 0), max(bounds.width - size.width, 0))
         rect.origin.y = min(max(rect.minY, 0), max(bounds.height - size.height, 0))
