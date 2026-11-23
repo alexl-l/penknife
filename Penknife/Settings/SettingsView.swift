@@ -187,7 +187,7 @@ private extension ModuleID {
     var tint: TileColor {
         switch self {
         case .jiggler: .blue
-        case .keepAwake: .brown
+        case .keepAwake: .green
         case .microphone: .orange
         case .lockScreen: .indigo
         case .screenshot: .purple
