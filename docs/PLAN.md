@@ -3,7 +3,7 @@
 The ordered task list. Read this first after `/clear`. Every checkpoint updates it (done items move to "Done", new approved work goes in order). Details live in `REQUIREMENTS.md` and `requirements/<module>.md`.
 
 ## Now
-2. **Touch Bar: fill while holding (O-34, `requirements/touchbar.md`)** — buttons with a hold action (Screenshot, time, jiggler, battery) fill up while held and are full when the action fires; the speed test button fills while the test runs. Hold fill built (variant A, build 302), waiting for the user's test; speed test fill next.
+2. **Touch Bar: fill while holding (O-34)** — built and confirmed by the user on the real bar ("lo veo bien. todo bien"): holds fill (variant A), the speed test fills, holding Screenshot with the overlay open switches to recording. Final review by `ux-ui-designer` + `performance-reviewer` running.
 
 ## Next, in order
 3. **Clipboard: bigger pinned area** — the user picks how many pinned rows show before scrolling (agreed 2026-11-22).
