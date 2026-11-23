@@ -118,11 +118,17 @@ final class CaptureSession {
         guard !finished else { return }
         let source = pinSource
         pinSource = nil
-        cancel()
-        if let source { source.update(capture) } else { PinBoard.shared.add(capture) }
+        cancel(reactivate: false)
+        let pin = source ?? PinBoard.shared.add(capture)
+        source?.update(capture)
+        // The pin takes the focus, so it can be resized at once (pinch, scroll, keys; user,
+        // 2026-11-23: "se debe dejar el foco ahí para que el usuario le cambie el tamaño de una").
+        pin.focus()
     }
 
-    func cancel() {
+    func cancel() { cancel(reactivate: true) }
+
+    private func cancel(reactivate: Bool) {
         guard !finished else { return }
         finished = true
         // Esc on an editor opened from a pin: the pin comes back as it was.
@@ -134,7 +140,7 @@ final class CaptureSession {
             window.close()
         }
         windows.removeAll()
-        previousApp?.activate()
+        if reactivate { previousApp?.activate() }
         onFinish()
     }
 

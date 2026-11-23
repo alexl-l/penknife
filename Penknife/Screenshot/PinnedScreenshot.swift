@@ -91,7 +91,8 @@ final class PinBoard {
 
     /// A new pin appears over the capture and glides to its place (SS-73; no glide under Reduce
     /// Motion).
-    func add(_ capture: PinnedCapture, defaults: UserDefaults = .standard) {
+    @discardableResult
+    func add(_ capture: PinnedCapture, defaults: UserDefaults = .standard) -> PinnedWindow {
         let pin = PinnedWindow(capture: capture)
         let center = CGPoint(x: capture.frame.midX, y: capture.frame.midY)
         let screen = NSScreen.screens.first { $0.frame.contains(center) } ?? NSScreen.main
@@ -100,16 +101,17 @@ final class PinBoard {
                                                           others: pins.filter(\.isVisible).map(\.imageFrame))
         pins.append(pin)
         pin.orderFrontRegardless()
-        guard target != capture.frame else { return }
+        guard target != capture.frame else { return pin }
         if NSWorkspace.shared.accessibilityDisplayShouldReduceMotion {
             pin.setImageFrame(target)
-            return
+            return pin
         }
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.25
             context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             pin.animator().setFrame(target.insetBy(dx: -PinnedWindow.grab, dy: -PinnedWindow.grab), display: true)
         }
+        return pin
     }
 
     func remove(_ pin: PinnedWindow) {
@@ -172,6 +174,12 @@ final class PinnedWindow: NSPanel {
         let size = imageFrame.size
         setImageFrame(CGRect(x: capture.frame.minX, y: capture.frame.maxY - size.height, width: size.width, height: size.height))
         reappear()
+    }
+
+    /// Penknife active and this pin key: trackpad gestures and keys reach it (SS-69f).
+    func focus() {
+        NSApp.activate()
+        makeKeyAndOrderFront(nil)
     }
 
     /// Back on screen after the editor closed.
@@ -454,6 +462,20 @@ final class PinnedView: NSView {
         guard let pin else { return }
         let frame = pin.imageFrame
         let factor = max(1 + event.magnification, 0.1)
+        pin.resize(to: CGSize(width: frame.width * factor, height: frame.height * factor), from: frame,
+                   left: false, right: false, top: false, bottom: false)
+    }
+
+    /// Scroll over a pin resizes it, for a mouse without a trackpad (user, 2026-11-23: "también
+    /// debe funcionar con scroll … si el usuario no tiene trackpad sino mouse"): up = bigger.
+    /// Scroll events reach a window under the pointer even when Penknife isn't active.
+    override func scrollWheel(with event: NSEvent) {
+        guard let pin, event.scrollingDeltaY != 0 else { return }
+        let step = event.hasPreciseScrollingDeltas ? 0.01 : 0.08
+        var delta = event.scrollingDeltaY
+        if event.isDirectionInvertedFromDevice { delta = -delta }
+        let factor = max(1 + delta * step, 0.1)
+        let frame = pin.imageFrame
         pin.resize(to: CGSize(width: frame.width * factor, height: frame.height * factor), from: frame,
                    left: false, right: false, top: false, bottom: false)
     }
