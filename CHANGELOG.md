@@ -3,6 +3,13 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.20 — 2026-11-23
+
+Let the Mouse Jiggler turn itself off at the end of your day, and add Return to macros in one click.
+
+- **Turn off at.** A new row in Settings › Mouse Jiggler, with a time and a switch. It is off by default and the time is 6:00 PM. Every day at that time the jiggler turns itself off and shows "Mouse Jiggler off — Scheduled time". If you turn it on after that time, it stays on until the same time the next day. If the Mac is asleep then, it turns off when the Mac wakes. No network and no background polling.
+- **Return step.** The Add Step menu has a Return item that adds a Key step with ↩ already set. Before, you added a Key step and then recorded Return.
+
 ## 1.19 — 2026-11-23
 
 Copy and paste macro steps, and decide whether a macro may run in password fields.
