@@ -6,7 +6,8 @@ The ordered task list. Read this first after `/clear`. Every checkpoint updates 
 - Menu icons gone on macOS 27 (user asked 2026-11-23): not our change; macOS 27 hides menu item symbols by default (`NSMenuItem.preferredImageVisibility`, new in the 27 SDK). User chose "lo nativo de apple": no code change (the OS decides). `docs/screenshots/menu.png` retaken 2026-11-23 (1.16 menu, no icons, no personal data); committed locally, NOT pushed.
 
 ## Next, in order
-- Nothing approved. Ideas: jiggler stop time (below).
+- `security-reviewer`: can `com.apple.security.cs.disable-library-validation` (Penknife.entitlements) be removed? It is there so the ad-hoc signed app loads Sparkle and the test bundle (DECISIONS: Unit tests); it lets other code be loaded into Penknife, which holds Accessibility and Screen Recording. Find a safe way (e.g. sign Sparkle with the same identity) without breaking updates, tests or permissions (user asked 2026-11-23).
+- Jiggler stop time: proposal sent 2026-11-23 (Settings row "Turn off at" + time, off by default, daily, one timer, off on wake if missed, alert), waiting for the user's yes.
 
 ## To choose
 All product ideas of 2026-11-22 are done or rejected.
@@ -15,6 +16,7 @@ All product ideas of 2026-11-22 are done or rejected.
 - Jiggler stop time ("stop jiggling at 6:00 pm").
 
 ## Done recently
+- 2026-11-23: REJECTED: split one clipboard pin into parts for a macro (user: "mejor no"). Macro data rows already cover several values.
 - 2026-11-23: 1.17 published: emoji search in the icon editor (CB-37; macOS's Emoji & Symbols search can't reach a menu bar app), macro editor fixes (MAC-74: paste from Clipboard History into the editor, emoji first pick, click elsewhere drops focus), emoji icons not clipped (MAC-75), panel search refocuses after the pin editor. QA passed, designer approved CB-37; user confirmed the fixes and emoji search live ("Listo, fixed").
 - 2026-11-23: user confirmed live: hold to talk works (R-41), import keeps everything (R-42), clipboard with more than 5 pins works (CB-36), Keep Awake and the battery bolt work.
 - 2026-11-23: 1.16 published (pin, color picker, Copy Text, hold to talk, mute on lock, Keep Awake, export/import settings, Touch Bar fills, pinned rows). Hold to talk (R-41, MIC-89…92) and export/import (R-42, GN-28…31): QA passed on the real Mac (after a fix: build 356 broke the F5 tap, see DECISIONS), security + designer reviewed. NOT tried by the user yet.
