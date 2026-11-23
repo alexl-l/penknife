@@ -71,8 +71,11 @@ struct MacroEditorView: View {
     var body: some View {
         NavigationSplitView {
             List(store.macros, selection: $selection.id) { macro in
-                Text(macro.name.isEmpty ? String(localized: "Untitled") : macro.name)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    if let icon = macro.icon { PinIconView(icon: icon, size: 16).accessibilityHidden(true) }
+                    Text(macro.name.isEmpty ? String(localized: "Untitled") : macro.name)
+                        .lineLimit(1)
+                }
                     .contextMenu {
                         Button("Duplicate") { duplicate(macro.id) }
                         Button("Export…") { export([macro.id]) }
@@ -216,6 +219,7 @@ private struct MacroDetail: View {
     @State private var tab = 0
     @State private var creating = false
     @State private var nameDraft = ""
+    @State private var editingIcon = false
     @FocusState private var nameFocused: Bool
     private var store: MacroStore { module.store }
 
@@ -225,6 +229,29 @@ private struct MacroDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+            Button { editingIcon = true } label: {
+                Group {
+                    if let icon = macro.wrappedValue.icon {
+                        PinIconView(icon: icon, size: 28)
+                    } else {
+                        RoundedRectangle(cornerRadius: 7, style: .continuous)
+                            .fill(Color(nsColor: .quaternarySystemFill))
+                            .overlay { Image(systemName: "play.fill").font(.system(size: 11)).foregroundStyle(.secondary) }
+                            .frame(width: 28, height: 28)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Customize Icon")
+            .accessibilityLabel("Customize Icon")
+            .popover(isPresented: $editingIcon, arrowEdge: .bottom) {
+                IconEditor(initial: macro.wrappedValue.icon, appIcon: nil, fallbackSymbol: "play.fill",
+                           caption: String(localized: "No letter and no color = ▶")) { icon in
+                    macro.wrappedValue.icon = icon
+                }
+            }
             TextField(macro.wrappedValue.name, text: $nameDraft)
                 .textFieldStyle(.plain)
                 .font(.title2.weight(.semibold))
@@ -243,6 +270,7 @@ private struct MacroDetail: View {
                         nameDraft = macro.wrappedValue.name
                     }
                 }
+            }
             HStack(spacing: 16) {
                 KeyboardShortcuts.Recorder(String(localized: "Shortcut"), name: MacrosModule.shortcut(id)) { _ in
                     module.refreshShortcuts()

@@ -365,7 +365,9 @@ final class ClipboardPanel: NSPanel, NSWindowDelegate, NSPopoverDelegate {
         popover.behavior = .applicationDefined
         popover.animates = false
         popover.contentViewController = NSHostingController(
-            rootView: IconEditor(store: model.store, id: id, appIcon: model.icon(for: item)))
+            rootView: IconEditor(initial: item.icon, appIcon: model.icon(for: item)) { [store = model.store] icon in
+                store.setIcon(id, icon)
+            })
         popover.delegate = self
         iconPopover = popover
         popover.show(relativeTo: rect, of: hosting, preferredEdge: .maxX)
@@ -781,9 +783,13 @@ private struct IconEditorAnchor: ViewModifier {
 /// One view (user, 2026-11-20): a letter or emoji, a color ("no color" first); neither = the app's
 /// icon. Changes apply at once; Esc or a click outside closes it.
 struct IconEditor: View {
-    let store: ClipboardStore
-    let id: ClipItem.ID
+    /// The icon when the editor opens; each change goes to `onChange` at once.
+    let initial: PinIcon?
     let appIcon: NSImage?
+    /// Shown with no letter and no color when there is no app icon (macros: ▶).
+    var fallbackSymbol = "doc.on.clipboard"
+    var caption = String(localized: "No letter and no color = the app's icon")
+    let onChange: (PinIcon?) -> Void
     @State private var glyph = ""
     @State private var color: PinColor?
     @FocusState private var focused: Bool
@@ -798,7 +804,7 @@ struct IconEditor: View {
                 } else if let appIcon {
                     Image(nsImage: appIcon).resizable().frame(width: 32, height: 32)
                 } else {
-                    Image(systemName: "doc.on.clipboard").font(.system(size: 24)).foregroundStyle(.secondary)
+                    Image(systemName: fallbackSymbol).font(.system(size: 24)).foregroundStyle(.secondary)
                         .frame(width: 32, height: 32)
                 }
             }
@@ -856,21 +862,20 @@ struct IconEditor: View {
                 }
             }
 
-            Text("No letter and no color = the app's icon")
+            Text(caption)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(16)
         .frame(width: 360)
         .onAppear {
-            let current = store.item(id)?.icon
-            glyph = current?.glyph ?? ""
-            color = current?.color
+            glyph = initial?.glyph ?? ""
+            color = initial?.color
         }
     }
 
     private func save() {
-        store.setIcon(id, icon)
+        onChange(icon)
     }
 
     private func swatch(_ choice: PinColor?, name: String, @ViewBuilder _ fill: () -> some View) -> some View {

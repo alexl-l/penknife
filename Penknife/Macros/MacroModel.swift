@@ -307,6 +307,9 @@ struct Macro: Identifiable, Codable, Equatable {
     var lastRun: Date?
     /// `{ask:Name}` answers from the last run, to prefill the prompt.
     var lastAnswers: [String: String] = [:]
+    /// Its own icon (user, 2026-11-22): a letter or emoji and a color, as the clipboard pins
+    /// (CB-33); nil = ▶.
+    var icon: PinIcon?
 
     init(name: String, steps: [MacroStep] = [], typesText: Bool = false) {
         self.name = name
@@ -325,6 +328,7 @@ struct Macro: Identifiable, Codable, Equatable {
         apps = try values.decodeIfPresent([String].self, forKey: .apps) ?? []
         lastRun = try values.decodeIfPresent(Date.self, forKey: .lastRun)
         lastAnswers = try values.decodeIfPresent([String: String].self, forKey: .lastAnswers) ?? [:]
+        icon = try? values.decodeIfPresent(PinIcon.self, forKey: .icon)
     }
 
     /// Renames a data column and every `{old}` in the steps with it (the user, 2026-11-22: "si

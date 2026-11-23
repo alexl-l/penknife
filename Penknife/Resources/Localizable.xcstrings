@@ -6119,6 +6119,16 @@
           }
         }
       }
+    },
+    "No letter and no color = ▶": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin letra ni color = ▶"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

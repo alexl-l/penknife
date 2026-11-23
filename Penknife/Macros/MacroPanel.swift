@@ -252,11 +252,17 @@ struct MacroListView: View {
         let selected = model.selection == macro.id
         let shortcut = KeyboardShortcuts.getShortcut(for: MacrosModule.shortcut(macro))?.description
         return HStack(spacing: 8) {
-            Image(systemName: "play.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(selected ? selectedText : .secondary)
-                .frame(width: 16)
-                .accessibilityHidden(true)
+            Group {
+                if let icon = macro.icon {
+                    PinIconView(icon: icon, size: 16)
+                } else {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(selected ? selectedText : .secondary)
+                }
+            }
+            .frame(width: 16)
+            .accessibilityHidden(true)
             Text(macro.name.isEmpty ? String(localized: "Untitled") : macro.name)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
