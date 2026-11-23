@@ -3,8 +3,6 @@
 The ordered task list. Read this first after `/clear`. Every checkpoint updates it (done items move to "Done", new approved work goes in order). Details live in `REQUIREMENTS.md` and `requirements/<module>.md`.
 
 ## Now
-- 2026-11-24, user tests (they asked for these two, built while they slept): (1) Hold to talk (R-41): mic muted, hold F5 or the Touch Bar mic button, talk, let go → muted again; a tap still toggles. Ask whether 0.4 s feels right and whether it works in a Teams call (consent on). Not measured: holding F5 and opening the Penknife menu meanwhile (QA's synthetic test ended muted on release; log line "Hold ended without its release" now tells if a hold was ended by a pause). (2) Export/import settings (R-42): Settings › General › Settings File — export CONFIRMED by the user 2026-11-23 ("el export funciona"); import not said yet.
-- User confirmed 2026-11-23: Keep Awake works, the battery bolt works. Still pending: clipboard with more than 5 pins.
 - Menu icons gone on macOS 27 (user asked 2026-11-23): not our change; macOS 27 hides menu item symbols by default (`NSMenuItem.preferredImageVisibility`, new in the 27 SDK). User chose "lo nativo de apple": no code change (the OS decides). `docs/screenshots/menu.png` retaken 2026-11-23 (1.16 menu, no icons, no personal data); committed locally, NOT pushed.
 
 ## Next, in order
@@ -17,6 +15,7 @@ All product ideas of 2026-11-22 are done or rejected.
 - Jiggler stop time ("stop jiggling at 6:00 pm").
 
 ## Done recently
+- 2026-11-23: user confirmed live: hold to talk works (R-41), import keeps everything (R-42), clipboard with more than 5 pins works (CB-36), Keep Awake and the battery bolt work.
 - 2026-11-23: 1.16 published (pin, color picker, Copy Text, hold to talk, mute on lock, Keep Awake, export/import settings, Touch Bar fills, pinned rows). Hold to talk (R-41, MIC-89…92) and export/import (R-42, GN-28…31): QA passed on the real Mac (after a fix: build 356 broke the F5 tap, see DECISIONS), security + designer reviewed. NOT tried by the user yet.
 - 2026-11-23: Pin a screenshot on screen (R-40, SS-67…73, builds 331–350): Pin button + ⌘P, pin glides to a corner (bottom left by default, setting), stacks; move, resize (invisible 8 pt margin + inner zones, pinch, smart zoom, scroll), grows away from the nearer screen edge; double-click reopens the editor with editable marks; right-click menu; focus after pinning. QA passed, designer approved, user: "funciona muy bien".
 - 2026-11-23: Touch Bar battery bolt as soon as the Mac is on power (TB-16; measured: macOS's "is charging" comes ~10 s after "AC Power"). Not confirmed by the user yet.
