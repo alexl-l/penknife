@@ -654,10 +654,22 @@ private struct RecordingEndView: View {
                 Button(String(localized: "Save as Video")) { run(.saveVideo) }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(model.trimming ? nil : .defaultAction)
+                    .help(String(localized: "Save as Video (⌘S)"))
+                    // ⌘S as well as Return (REC-35): a button holds one shortcut, so a hidden
+                    // twin carries ⌘S; it inherits the row's disabled state.
+                    .background {
+                        Button("") { run(.saveVideo) }
+                            .keyboardShortcut("s")
+                            .hidden()
+                            .accessibilityHidden(true)
+                    }
                 Button(String(localized: "Save as GIF")) { run(.saveGIF) }
+                    .keyboardShortcut("s", modifiers: [.command, .shift])
+                    .help(String(localized: "Save as GIF (⇧⌘S)"))
                 Spacer()
                 Button { run(.copy) } label: { Label(String(localized: "Copy"), systemImage: "doc.on.doc") }
                     .keyboardShortcut("c")
+                    .help(String(localized: "Copy (⌘C)"))
             }
             .controlSize(.large)
             .disabled(!model.ready || model.trimming || model.busy)

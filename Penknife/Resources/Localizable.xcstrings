@@ -1,6 +1,36 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Save as Video (⌘S)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar como vídeo (⌘S)"
+          }
+        }
+      }
+    },
+    "Save as GIF (⇧⌘S)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar como GIF (⇧⌘S)"
+          }
+        }
+      }
+    },
+    "Copy (⌘C)": {
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar (⌘C)"
+          }
+        }
+      }
+    },
     "Bottom left": {
       "localizations": {
         "es": {
