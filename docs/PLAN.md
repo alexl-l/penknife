@@ -13,6 +13,7 @@ All product ideas of 2026-11-22 are done or rejected.
 ## Later (ideas only)
 
 ## Done recently
+- 2026-11-26: 1.22 published (build 407), Homebrew tap bumped 1.21 → 1.22. Notes by `copywriter`; README unchanged. User approved shipping ("perfecto, compila y publica").
 - 2026-11-26 (build 405, local, NOT published; goes in the next release): REC-35 end window shortcuts: ⌘S = Save as Video (Return kept), ⇧⌘S = Save as GIF (user's pick), tooltips "Save as Video (⌘S)", "Save as GIF (⇧⌘S)", "Copy (⌘C)". Designer APPROVED. QA passed live (⌘S mp4, ⇧⌘S GIF, Return, ⌘C, inert with the trim bar open, no extra button in the accessibility tree). Tests pass (342). Waiting for the user to try it.
 - 2026-11-26: 1.21 published (build 403), Homebrew tap bumped 1.20 → 1.21. Build 401: REC-16 bug: the Mouse button (and Q) while recording goes back to Mouse in ONE press even with a tool armed (it disarmed the tool first). Tests pass (342). User confirmed it works (2026-11-26: "funciona").
 - 2026-11-23: 1.20 published (build 399): R-43 Jiggler turn-off time, MAC-80 Return step. Notes by `copywriter`, README line updated. Homebrew tap bumped 1.11 → 1.20 (it had not been bumped since 1.11).
