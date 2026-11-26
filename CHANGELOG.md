@@ -3,6 +3,12 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.22 — 2026-11-26
+
+Save a recording from the keyboard, and see each shortcut when you hover.
+
+- **End window shortcuts.** In the window that opens after a screen recording, ⌘S now saves the video (Return still does too) and ⇧⌘S saves the GIF. Hover a button to see its shortcut: "Save as Video (⌘S)", "Save as GIF (⇧⌘S)" and "Copy (⌘C)".
+
 ## 1.21 — 2026-11-26
 
 Going back to Mouse while recording takes one press.
