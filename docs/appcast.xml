@@ -3,6 +3,18 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.22</title>
+            <pubDate>Thu, 26 Nov 2026 16:53:58 -0500</pubDate>
+            <sparkle:version>407</sparkle:version>
+            <sparkle:shortVersionString>1.22</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**End window shortcuts.** In the window that opens after a screen recording, ⌘S now saves the video (Return still does too) and ⇧⌘S saves the GIF. Hover a button to see its shortcut: "Save as Video (⌘S)", "Save as GIF (⇧⌘S)" and "Copy (⌘C)".</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.22/Penknife-1.22.zip" length="8461817" type="application/octet-stream" sparkle:edSignature="HMwlQxO5971gCXGtmqoGPmY5b0YL1R1KROo7h7T69rmxmfomlMaOPTB6Sv8OldBhdWcJyzbq7AeBgBjZtWVoBw=="/>
+        </item>
+        <item>
             <title>1.21</title>
             <pubDate>Thu, 26 Nov 2026 15:26:45 -0500</pubDate>
             <sparkle:version>403</sparkle:version>
@@ -26,21 +38,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.20/Penknife-1.20.zip" length="8457181" type="application/octet-stream" sparkle:edSignature="0b1Nwk+H2ih7stejf2CBFpV8Fan9YIGCsN1Jo91nhmVs3FmUq8sHD7TTQ6RKTI26j8Dh3yHx0CEtvIwbFJncCg=="/>
-        </item>
-        <item>
-            <title>1.19</title>
-            <pubDate>Mon, 23 Nov 2026 12:07:35 -0500</pubDate>
-            <sparkle:version>385</sparkle:version>
-            <sparkle:shortVersionString>1.19</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Select, copy and paste steps.** In the macro editor, select several steps with click, ⌘-click and ⇧-click, as in Finder. Copy them with ⌘C or right-click, then paste with ⌘V or right-click into the same macro or another. They land below the selected step, or at the end. Copied steps stay inside Penknife: the system clipboard and Clipboard History are not touched. In a text field, ⌘C and ⌘V still work on text.</li>
-<li>**The list follows new steps.** After you add or paste steps, the list scrolls to them.</li>
-<li>**Allow in password fields.** A new option for each macro, off by default. Macros normally stop when a password field or Secure Keyboard Entry is on. Turning the option on asks you first. While secure input is on, Esc can't stop the macro, but a click or switching apps does. Use it at your own risk. The option is not included when you export macros.</li>
-<li>**Macros window.** It no longer gets so narrow that its right side is cut off.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.19/Penknife-1.19.zip" length="8426474" type="application/octet-stream" sparkle:edSignature="gbJOo978yEqlG0b/pa6T1svh4I/aH8zc6fFWETNMzQCXWU125Kzg3Ohnyf20ULXN/C3yQuTF8Z5kYqeZ3JHeAA=="/>
         </item>
     </channel>
 </rss>
