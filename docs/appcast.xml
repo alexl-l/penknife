@@ -3,6 +3,18 @@
     <channel>
         <title>Penknife</title>
         <item>
+            <title>1.21</title>
+            <pubDate>Thu, 26 Nov 2026 15:26:45 -0500</pubDate>
+            <sparkle:version>403</sparkle:version>
+            <sparkle:shortVersionString>1.21</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<ul>
+<li>**Mouse button.** While recording the screen, pressing Mouse in the recording toolbar (or its key Q) now gives the clicks back to your apps right away, whether a drawing tool is armed or not. Before, after picking a tool such as the rectangle, the first press only disarmed it and you stayed in drawing mode, so you had to press twice. Esc still steps back one level at a time: it ends text, deselects, disarms the tool, then returns to Mouse.</li>
+</ul>
+]]></description>
+            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.21/Penknife-1.21.zip" length="8456815" type="application/octet-stream" sparkle:edSignature="u5oNqX087edz9USQPN7iuPz66HCMJonIbvLpL7gdpm+4zCvhgJQM55V6yWXMRIMHoGKjxfFQDI3lGiw4SJckCw=="/>
+        </item>
+        <item>
             <title>1.20</title>
             <pubDate>Mon, 23 Nov 2026 12:58:42 -0500</pubDate>
             <sparkle:version>399</sparkle:version>
@@ -29,18 +41,6 @@
 </ul>
 ]]></description>
             <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.19/Penknife-1.19.zip" length="8426474" type="application/octet-stream" sparkle:edSignature="gbJOo978yEqlG0b/pa6T1svh4I/aH8zc6fFWETNMzQCXWU125Kzg3Ohnyf20ULXN/C3yQuTF8Z5kYqeZ3JHeAA=="/>
-        </item>
-        <item>
-            <title>1.18</title>
-            <pubDate>Mon, 23 Nov 2026 11:16:12 -0500</pubDate>
-            <sparkle:version>375</sparkle:version>
-            <sparkle:shortVersionString>1.18</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<ul>
-<li>**Steps go where you are.** In the macro editor, select a step or type in it, and Add Step puts the new one right below it instead of at the end. Create from Text… works the same way. With nothing selected, new steps still go at the end.</li>
-</ul>
-]]></description>
-            <enclosure url="https://github.com/alexl-l/penknife/releases/download/v1.18/Penknife-1.18.zip" length="8371645" type="application/octet-stream" sparkle:edSignature="oHreyHwYEMlwixooV1T/h+eJJkChzF1vVe8BizLN508/X9JGsbw0ID47ebHWXMd60vry9fka4Q80AZhguyCxBw=="/>
         </item>
     </channel>
 </rss>
