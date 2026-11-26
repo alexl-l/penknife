@@ -477,11 +477,10 @@ final class RecordingSession {
         case .stop: stop()
         case .pause: togglePause()
         case .pointer:
-            // The Mouse ⇄ Edit slot (REC-16, user's pick A): Mouse → Edit with no tool; a tool
-            // armed → disarmed; Edit with no tool → Mouse.
-            switch Self.pointerStep(drawing: state.drawing, tool: state.tool) {
+            // The Mouse ⇄ Edit slot (REC-16): Mouse → Edit with no tool; Edit (a tool armed or
+            // not) → Mouse in one press (user: "tengo que oprimir dos veces el botón de mouse").
+            switch Self.pointerStep(drawing: state.drawing) {
             case .edit: setDrawing(true)
-            case .disarm: armTool(nil)
             case .mouse: setDrawing(false)
             }
         case .tool(let tool):
@@ -562,11 +561,8 @@ final class RecordingSession {
         }
     }
 
-    enum PointerStep: Equatable { case edit, disarm, mouse }
-    static func pointerStep(drawing: Bool, tool: CaptureTool?) -> PointerStep {
-        guard drawing else { return .edit }
-        return tool == nil ? .mouse : .disarm
-    }
+    enum PointerStep: Equatable { case edit, mouse }
+    static func pointerStep(drawing: Bool) -> PointerStep { drawing ? .mouse : .edit }
 
     private func armTool(_ tool: CaptureTool?) {
         guard tool != state.tool else { return }
