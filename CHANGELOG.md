@@ -3,6 +3,12 @@
 Version = `MARKETING_VERSION` in the Xcode project. Build = number of git commits (set by
 `scripts/install.sh`). Each version gets a git tag `vX.Y`.
 
+## 1.21 — 2026-11-26
+
+Going back to Mouse while recording takes one press.
+
+- **Mouse button.** While recording the screen, pressing Mouse in the recording toolbar (or its key Q) now gives the clicks back to your apps right away, whether a drawing tool is armed or not. Before, after picking a tool such as the rectangle, the first press only disarmed it and you stayed in drawing mode, so you had to press twice. Esc still steps back one level at a time: it ends text, deselects, disarms the tool, then returns to Mouse.
+
 ## 1.20 — 2026-11-23
 
 Let the Mouse Jiggler turn itself off at the end of your day, and add Return to macros in one click.
